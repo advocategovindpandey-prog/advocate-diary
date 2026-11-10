@@ -1,0 +1,108 @@
+rules_version = '2';
+// Advocate Diary — Master / Admin / User rules.
+// इन्हें Firebase Console > Firestore > Rules में paste करके Publish करें (पहले Rules Playground में जाँचें)।
+service cloud.firestore {
+  match /databases/{db}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function prof(id) { return get(/databases/$(db)/documents/users/$(id)).data; }
+    function hasProf() { return signedIn() && exists(/databases/$(db)/documents/users/$(request.auth.uid)); }
+    function me() { return prof(request.auth.uid); }
+    function isMaster() { return hasProf() && me().role == 'master'; }
+    function isAdmin() { return hasProf() && me().role == 'admin'; }
+    function live() { return hasProf() && me().status == 'active' && me().expiresAt > request.time; }
+    function myOfflineMax() { return ('offlineDays' in me()) ? me().offlineDays : 3; }
+    function peerOk(owner) {
+      let par = owner.parentId;
+      return par != null && hasProf() && me().role == 'user' && me().parentId == par && owner.role == 'user' && (
+        (prof(par).role == 'admin' && prof(par).peerView == true) ||
+        (prof(par).role == 'master' && get(/databases/$(db)/documents/config/app).data.directPeerView == true));
+    }
+    function privileged() {
+      return ['role','parentId','status','expiresAt','maxUsers','canCreateUsers','offlineDays','masterCanView','adminCanView','requestStatus','trial','peerView','userId']
+             ;
+    }
+
+    // ---- accounts ----
+    match /users/{id} {
+      allow read: if signedIn() && (
+          id == request.auth.uid || isMaster() ||
+          (hasProf() && resource.data.parentId == request.auth.uid) ||        // admin -> own users
+          (hasProf() && id == me().parentId) ||                               // user/admin -> own parent
+          peerOk(resource.data));                                             // user -> teammates (if allowed)
+      // Master (verified email) first-time bootstrap
+      allow create: if signedIn() && id == request.auth.uid && request.resource.data.role == 'master'
+                       && request.auth.token.email_verified == true
+                       && request.auth.token.email == 'advocategovindpandey@gmail.com';   // सिर्फ Master का ईमेल
+      // Self sign-up as trial admin
+      allow create: if signedIn() && id == request.auth.uid && !hasProf() && request.resource.data.role == 'admin'
+                       && request.resource.data.parentId == null && request.resource.data.maxUsers <= 2;
+      allow create: if isMaster();
+      // Admin creating a user: needs permission + within limit + within own validity & offline days
+      allow create: if isAdmin() && live() && request.resource.data.role == 'user'
+                       && request.resource.data.parentId == request.auth.uid
+                       && me().canCreateUsers != false
+                       && (me().maxUsers == -1 || me().userCount < me().maxUsers)
+                       && request.resource.data.expiresAt <= me().expiresAt
+                       && request.resource.data.offlineDays <= myOfflineMax();
+      allow update: if isMaster()
+        || (isAdmin() && resource.data.parentId == request.auth.uid
+            && request.resource.data.role == resource.data.role
+            && request.resource.data.parentId == resource.data.parentId
+            && request.resource.data.expiresAt <= me().expiresAt
+            && (!('offlineDays' in request.resource.data) || request.resource.data.offlineDays <= myOfflineMax()))
+        || (id == request.auth.uid
+            && !request.resource.data.diff(resource.data).affectedKeys().hasAny(privileged())
+            && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['userCount'])
+                || (request.resource.data.userCount - resource.data.userCount) in [-1, 1]))
+        || (id == request.auth.uid && me().role == 'admin'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['peerView','updatedAt']));
+      allow delete: if isMaster() || (isAdmin() && resource.data.parentId == request.auth.uid);
+    }
+
+    // ---- User ID -> email (login & password reset) ----
+    match /ids/{lid} {
+      allow get: if true;                 // login screen पर, login से पहले
+      allow list: if false;
+      allow create: if isMaster() || (isAdmin() && live() && me().canCreateUsers != false);
+      allow update: if false;
+      allow delete: if isMaster() || isAdmin();
+    }
+
+    // ---- public app settings (logo, APK link, contact, directPeerView) ----
+    match /config/{d} {
+      allow read: if true;
+      allow write: if isMaster();
+    }
+
+    // ---- notifications ----
+    match /notifications/{n} {
+      allow read: if signedIn();
+      allow create, update, delete: if (isMaster() || isAdmin()) && live();
+    }
+
+    // ---- edits sent to Master (index build) ----
+    match /edits/{e} {
+      allow create: if signedIn() && live() && request.resource.data.byUid == request.auth.uid;
+      allow read, update, delete: if isMaster();
+    }
+
+    // ---- diary data (backup chunks) ----
+    match /userData/{owner} {
+      function canRead() {
+        let o = prof(owner);
+        return signedIn() && (
+          owner == request.auth.uid ||
+          (isMaster() && o.masterCanView == true) ||
+          (isAdmin() && o.parentId == request.auth.uid && o.adminCanView == true) ||
+          peerOk(o));
+      }
+      allow read: if canRead();
+      allow write: if signedIn() && owner == request.auth.uid && live();
+      match /chunks/{c} {
+        allow read: if canRead();
+        allow write: if signedIn() && owner == request.auth.uid && live();
+      }
+    }
+  }
+}
