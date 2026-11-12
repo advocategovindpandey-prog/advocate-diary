@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="hi">
-<head><script>window.ADV_BUILD='master';try{var _p=JSON.parse(localStorage.getItem('advPinLock')||'null');if(_p&&_p.salt==='AdvAdminSalt1'&&_p.hash==='92467ba809f7a7e881da046e4419ad7fdaf919e4ef9aa9e518c768b35ba2986a')localStorage.removeItem('advPinLock')}catch(e){}</script>
+<head><script id="adv-guard">(function(){try{var KC='advDiaryCases',_s=Storage.prototype.setItem;window.__advMe='';window.__advViewOnly=false;
+Storage.prototype.setItem=function(k,v){if(k===KC&&this===window.localStorage){try{if(window.__advOvDiff)window.__advOvDiff()}catch(e){}if(window.__advViewOnly)return;try{var a=JSON.parse(v);if(Array.isArray(a)){var me=window.__advMe||'',o=[];for(var i=0;i<a.length;i++){var c=a[i];if(c&&c._ov)continue;if(c&&me&&!c.createdByName)c.createdByName=me;o.push(c)}v=JSON.stringify(o)}}catch(e){}}return _s.call(this,k,v)}}catch(e){}})();</script><script>window.ADV_BUILD='master';try{var _p=JSON.parse(localStorage.getItem('advPinLock')||'null');if(_p&&_p.salt==='AdvAdminSalt1'&&_p.hash==='92467ba809f7a7e881da046e4419ad7fdaf919e4ef9aa9e518c768b35ba2986a')localStorage.removeItem('advPinLock')}catch(e){}</script>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Advocate Diary | Govind Pandey</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13182,7 +13183,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     var why = lockReason(); cacheSet(S.prof);
     if (why) { S.locked = why; S.screen = 'locked'; draw(); }
     else {
-      S.locked = ''; S.screen = 'panel'; S.tab = (role() === 'user' ? 'acct' : 'dash');
+      S.locked = ''; S.screen = 'panel'; S.tab = (role() === 'user' ? ((BUILD === 'admin' && S.prof.canViewMaster) ? 'mym' : 'acct') : (BUILD === 'admin' ? 'mym' : 'dash'));
       var cu0 = S.auth.currentUser, curT = (cu0 && cu0.metadata && cu0.metadata.lastSignInTime) ? new Date(cu0.metadata.lastSignInTime) : new Date();
       var pl = S.prof.lastLogin, prevT = (pl && pl.toDate) ? pl.toDate() : null;
       var fmt = function (d) { return d.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); };
@@ -13192,13 +13193,13 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
         if (S.prevLogin) toast('Last login: ' + S.prevLogin);
         S.fb.updateDoc(ref('users/' + S.prof.id), { lastLogin: S.fb.serverTimestamp() }).catch(function () { });
       } else { try { S.prevLogin = localStorage.getItem('advPrevLogin:' + S.prof.id) || ''; } catch (e) { S.prevLogin = ''; } }
-      if (BUILD !== 'master') S.panelOpen = false;   // gate passed -> show the diary
+      S.panelOpen = false;   // gate passed -> show the diary
       draw();
     }
     startServices();
   }
 
-  function stopServices() { S.unsub.forEach(function (f) { try { f(); } catch (e) { } }); S.unsub = []; clearInterval(S.syncTimer); clearInterval(S.chk); S.syncTimer = null; window.ADV_ROLE = ''; if (S.mwOff) { try { S.mwOff(); } catch (e) { } S.mwOff = null; } }
+  function stopServices() { S.unsub.forEach(function (f) { try { f(); } catch (e) { } }); S.unsub = []; clearInterval(S.syncTimer); clearInterval(S.chk); S.syncTimer = null; window.ADV_ROLE = ''; if (S.mwOff) { try { S.mwOff(); } catch (e) { } S.mwOff = null; } if (S.edOff) { try { S.edOff(); } catch (e) { } S.edOff = null; } }
   function startServices() {
     stopServices(); var F = S.fb; window.ADV_ROLE = S.prof ? S.prof.role : '';
     // real-time: own profile + parent profile -> instant block/expiry
@@ -13221,6 +13222,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       }, function () { }));
     }
     if (BUILD !== 'master' && role() !== 'master') { listenNotes(); masterWatch(); }
+    if (role() === 'master') editsWatch();
     S.syncTimer = setInterval(function () { syncNow('auto'); }, 8000);
     S.chk = setInterval(function () { if (S.prof && S.screen === 'panel' && lockReason()) recheck(true); }, 30000);
   }
@@ -13343,6 +13345,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       if (+exp > ms(me.expiresAt)) throw new Error('User validity cannot exceed your validity (' + fmt(me.expiresAt) + ')');
     }
     var og = parseInt(v.og, 10) || 3; if (!isM && og > (me.offlineDays || 3)) throw new Error('Offline days आपकी सीमा (' + (me.offlineDays || 3) + ') से अधिक नहीं हो सकते');
+    if (!isM) { var _em = (v.email || '').trim().toLowerCase(), _l = (v.uid || '').trim().toLowerCase(); if (_em === MASTER_EMAIL || /^(master|owner|root|superadmin)/.test(_l) || (S.pub && S.pub.masterUserId && _l === String(S.pub.masterUserId).toLowerCase())) throw new Error('यह Master का User ID / Email है — इसे बनाया नहीं जा सकता'); }
     var lid = (v.uid || '').trim().toLowerCase(); if (lid) { if (!/^[a-z0-9._-]{3,30}$/.test(lid)) throw new Error('User ID: 3-30 अक्षर, केवल a-z 0-9 . _ -'); if ((await F.getDoc(ref('ids/' + lid))).exists()) throw new Error('यह User ID पहले से है'); }
     var uid = await authCreate(v.email.trim(), v.pass);
     var data = {
@@ -13464,6 +13467,185 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     document.body.appendChild(o); setTimeout(function () { if (o.parentNode) o.remove(); }, 10000);
   }
   function apkBox() { return '<div class="cc-box"><button class="cc-b gray wide" onclick="advCloud.apk()">📱 Set APK download link' + ((S.pub && S.pub.apkUrl) ? ' (set ✅)' : '') + '</button></div>'; }
+  var ED_KEYS = ['caseNo', 'type', 'court', 'vadiName', 'prativadiName', 'caseDate', 'nextDate', 'time', 'vadiMobile', 'notes'];
+  function who(d) { return (d.byName || 'User') + ' (' + (d.byRole || 'user') + ')'; }
+  function applyOneEdit(d) {
+    var c = d.case || {}, now = new Date().toISOString(), item = null, res = 'added';
+    if (d.op === 'update' && d.caseId) item = cases.find(function (x) { return x.id === d.caseId; });
+    if (!item && c.caseNo) { var k = (c.type || '') + '|' + c.caseNo + '|' + (c.court || ''); item = cases.find(function (x) { return x.caseNo && ((x.type || '') + '|' + x.caseNo + '|' + (x.court || '')) === k; }); }
+    if (item) {
+      res = 'updated';
+      if (c.nextDate && c.nextDate !== item.nextDate) { var h = Array.isArray(item.history) ? item.history : []; if (item.nextDate) h.unshift({ date: item.nextDate }); item.history = h.slice(0, 10); item.nextDate = c.nextDate; item.updatedAt = now; }
+      ['court', 'type', 'caseDate', 'time', 'vadiName', 'prativadiName', 'notes', 'vadiMobile'].forEach(function (k2) { if (c[k2]) item[k2] = c[k2]; });
+      item.party = (item.side === 'prativadi' ? item.prativadiName : item.vadiName) || item.party;
+      item.editedBy = who(d); item.editedAt = now;
+    } else {
+      var adv = (typeof settings !== 'undefined' && settings.activeAdvocateId) || '';
+      item = { id: (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'c' + Date.now(), history: [], customFields: {}, advocateId: adv, advocateIds: adv ? [adv] : [], caseNo: c.caseNo || '', mukhtars: [], mukhtarAam: '', vadiName: c.vadiName || '', prativadiName: c.prativadiName || '', vadiMobile: c.vadiMobile || '', vadiEmail: '', prativadiMobile: '', prativadiEmail: '', side: 'vadi', smsGreetTarget: 'auto', remLang: 'default', party: c.vadiName || '', mobile: c.vadiMobile || '', email: '', court: c.court || '', type: c.type || '', subCaseType: '', caseDate: c.caseDate || '', nextDate: c.nextDate || '', time: c.time || '', notes: c.notes || '', created: now, reminderSentAt: null, lastSent: null, sent: null, inactive: false, inactiveReason: '', inactiveAt: null, updatedAt: now, addedBy: who(d), addedAt: now };
+      cases.push(item);
+    }
+    return res;
+  }
+
+  /* ---------- User edits inside the app -> pending request to Master ---------- */
+  var OFF = { t: null };
+  function sendEdit(op, caseId, ch) {
+    var F = S.fb;
+    return F.addDoc(F.collection(S.db, 'edits'), { ownerUid: S.pub.masterUid, byUid: S.prof.id, byName: S.prof.name || S.prof.email, byRole: S.prof.role, op: op, caseId: caseId || '', case: ch, applied: false, at: F.serverTimestamp() })
+      .then(function () { toast('📤 Master को भेज दिया — स्वीकार होने पर उनके डेटा में जुड़ेगा'); })
+      .catch(function (e) { toast(errText(e)); });
+  }
+  function ovDiffNow() {
+    try {
+      if (!S.prof || !S.fb || !S.pub || !S.pub.masterUid || role() === 'master' || S.prof.canEditMaster !== true || typeof cases === 'undefined') return;
+      var mu = S.pub.masterUid, src = OV.srcs[mu];
+      if (src) cases.forEach(function (c) {
+        if (!c._ov || c._srcUid !== mu) return;
+        var o = (src.cases || []).filter(function (x) { return String(x.id) === String(c._rawId); })[0]; if (!o) return;
+        var ch = {}, any = false; ED_KEYS.forEach(function (k) { if (c[k] && String(c[k]) !== String(o[k] || '')) { ch[k] = String(c[k]).slice(0, 300); any = true; } });
+        if (any) { ch.caseNo = c.caseNo || o.caseNo || ''; ED_KEYS.forEach(function (k) { o[k] = c[k]; }); sendEdit('update', c._rawId, ch); }
+      });
+      var key = 'advOffered:' + S.prof.id, ids = null; try { ids = JSON.parse(localStorage.getItem(key) || 'null'); } catch (e) { }
+      var own = cases.filter(function (c) { return !c._ov; });
+      if (!ids) { try { localStorage.setItem(key, JSON.stringify(own.map(function (c) { return c.id; }))); } catch (e) { } return; }
+      var added = false;
+      own.forEach(function (c) {
+        if (ids.indexOf(c.id) > -1) return;
+        if (!c.caseNo || !c.vadiName || !c.prativadiName || !c.nextDate) return;
+        var ch = {}; ED_KEYS.forEach(function (k) { if (c[k]) ch[k] = String(c[k]).slice(0, 300); });
+        ids.push(c.id); added = true; sendEdit('add', '', ch);
+      });
+      if (added) { try { localStorage.setItem(key, JSON.stringify(ids)); } catch (e) { } }
+    } catch (e) { }
+  }
+  window.__advOvDiff = function () { clearTimeout(OFF.t); OFF.t = setTimeout(ovDiffNow, 900); };
+
+  /* ---------- Accept / Reject / Undo for edits sent by users ---------- */
+  var EDL = { q: [], undo: [], first: true };
+  try { EDL.undo = JSON.parse(localStorage.getItem('advEditUndo') || '[]'); } catch (e) { }
+  var ED_LAB = { caseNo: 'केस नं.', type: 'प्रकार', court: 'कोर्ट', vadiName: 'वादी', prativadiName: 'प्रतिवादी', caseDate: 'दाखिल तिथि', nextDate: 'अगली तारीख़', time: 'समय', vadiMobile: 'मोबाइल', notes: 'नोट' };
+  function edSaveUndo() { try { EDL.undo = EDL.undo.slice(-15); localStorage.setItem('advEditUndo', JSON.stringify(EDL.undo)); } catch (e) { } }
+  function edFindOld(d) {
+    var c = d.case || {}, item = null;
+    if (d.op === 'update' && d.caseId) item = cases.find(function (x) { return x.id === d.caseId && !x._ov; });
+    if (!item && c.caseNo) { var k = (c.type || '') + '|' + c.caseNo + '|' + (c.court || ''); item = cases.find(function (x) { return !x._ov && x.caseNo && ((x.type || '') + '|' + x.caseNo + '|' + (x.court || '')) === k; }); }
+    return item;
+  }
+  function edSnap() { var m = {}; cases.forEach(function (c) { if (!c._ov) m[c.id] = JSON.stringify(c); }); return m; }
+  function edOwn(fn) {
+    if (window.__advViewOnly) throw new Error('पहले Cloud फ़िल्टर हटाइए — आपका अपना डेटा अभी छुपा है');
+    var had = cases.some(function (c) { return c._ov; });
+    if (had) cases = cases.filter(function (c) { return !c._ov; });
+    try { return fn(); } finally { try { persist(); } catch (e) { } if (had) { try { ovApply(); } catch (e) { } } else { try { renderAll(); } catch (e) { } } }
+  }
+  function edPop() {
+    var o = document.getElementById('ccEdPop'), q = EDL.q;
+    if (!q.length) { if (o) o.remove(); return; }
+    var d = q[0].data, c = d.case || {}, old = edFindOld(d), rows = '';
+    ED_KEYS.forEach(function (k) {
+      if (!c[k]) return; var ov = old ? old[k] : '';
+      if (old && String(ov || '') === String(c[k])) return;
+      rows += '<tr><td style="padding:3px 6px;color:#64748b">' + ED_LAB[k] + '</td><td style="padding:3px 6px;font-weight:700">' + (old && ov ? '<span style="color:#b91c1c;text-decoration:line-through">' + esc(String(ov)) + '</span> → ' : '') + '<span style="color:#137547">' + esc(c[k]) + '</span></td></tr>';
+    });
+    var title = d.op === 'update' || old ? '✏ केस में बदलाव' : '＋ नया केस';
+    if (!o) { o = document.createElement('div'); o.id = 'ccEdPop'; o.style.cssText = 'position:fixed;inset:0;z-index:2147483645;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:14px'; document.body.appendChild(o); }
+    o.innerHTML = '<div style="background:#fff;color:#142b4a;border-radius:16px;max-width:430px;width:100%;max-height:88vh;overflow:auto;padding:16px;font:14px/1.45 system-ui,sans-serif;box-shadow:0 20px 50px rgba(0,0,0,.4)">' +
+      '<div style="font-weight:800;font-size:16px">📥 ' + title + (q.length > 1 ? ' <span style="font-weight:600;font-size:12px;color:#64748b">(' + q.length + ' बाकी)</span>' : '') + '</div>' +
+      '<div style="margin:6px 0;color:#475569"><b>' + esc(d.byName || 'User') + '</b> (' + esc(d.byRole || 'user') + ') ने भेजा · केस ' + esc(c.caseNo || '') + '</div>' +
+      '<table style="width:100%;border-collapse:collapse;font-size:13px;margin:6px 0">' + (rows || '<tr><td style="padding:6px;color:#64748b">कोई नया फ़ील्ड नहीं</td></tr>') + '</table>' +
+      '<div style="display:flex;gap:8px;margin-top:10px"><button style="flex:1;border:0;border-radius:10px;padding:12px;font:800 14px system-ui;background:#137547;color:#fff" onclick="advCloud.edAccept(\'' + q[0].id + '\')">✔ स्वीकार करें</button><button style="flex:1;border:0;border-radius:10px;padding:12px;font:800 14px system-ui;background:#c62828;color:#fff" onclick="advCloud.edReject(\'' + q[0].id + '\')">✖ अस्वीकार करें</button></div>' +
+      '<div style="margin-top:8px;font-size:12px;color:#64748b">स्वीकार करने पर यह बदलाव आपके डेटा में जुड़ जाएगा। फ़ैसले के बाद 15 सेकंड तक "पूर्ववत" का बटन मिलेगा।</div></div>';
+  }
+  function edUndoBar(rec) {
+    var b = document.getElementById('ccEdUndo'); if (b) b.remove();
+    b = document.createElement('div'); b.id = 'ccEdUndo';
+    b.style.cssText = 'position:fixed;left:10px;right:10px;bottom:14px;z-index:2147483646;background:#0f2a4a;color:#fff;border-radius:14px;padding:11px 14px;font:600 14px system-ui,sans-serif;display:flex;gap:10px;align-items:center;box-shadow:0 10px 30px rgba(0,0,0,.4)';
+    b.innerHTML = '<div style="flex:1">' + (rec.kind === 'accept' ? '✔ स्वीकार किया' : '✖ अस्वीकार किया') + ' — ' + esc(rec.label || '') + '</div><button style="border:0;border-radius:9px;padding:9px 13px;font:800 13px system-ui;background:#d9a441;color:#1b1405">↩ पूर्ववत</button>';
+    b.querySelector('button').onclick = function () { b.remove(); edUndo(rec.id); };
+    document.body.appendChild(b); setTimeout(function () { if (b.parentNode) b.remove(); }, 15000);
+  }
+  async function edAccept(id) {
+    var it = EDL.q.filter(function (x) { return x.id === id; })[0]; if (!it) return; var F = S.fb;
+    try {
+      var before = edSnap(), r = '';
+      edOwn(function () { r = applyOneEdit(it.data); });
+      var added = [], changed = {};
+      cases.forEach(function (c) { if (c._ov) return; if (!(c.id in before)) added.push(c.id); else if (JSON.stringify(c) !== before[c.id]) changed[c.id] = before[c.id]; });
+      await F.updateDoc(it.ref, { applied: true, decision: 'accepted', decidedAt: F.serverTimestamp(), result: r });
+      var rec = { id: id, path: it.ref.path, kind: 'accept', added: added, changed: changed, label: (it.data.byName || '') + ' · ' + ((it.data.case || {}).caseNo || ''), at: Date.now() };
+      EDL.undo.push(rec); edSaveUndo(); EDL.q = EDL.q.filter(function (x) { return x.id !== id; }); edPop(); edUndoBar(rec);
+    } catch (e) { toast(e && e.message ? e.message : 'हो नहीं सका'); }
+  }
+  async function edReject(id) {
+    var it = EDL.q.filter(function (x) { return x.id === id; })[0]; if (!it) return; var F = S.fb;
+    try {
+      await F.updateDoc(it.ref, { applied: true, decision: 'rejected', decidedAt: F.serverTimestamp() });
+      var rec = { id: id, path: it.ref.path, kind: 'reject', label: (it.data.byName || '') + ' · ' + ((it.data.case || {}).caseNo || ''), at: Date.now() };
+      EDL.undo.push(rec); edSaveUndo(); EDL.q = EDL.q.filter(function (x) { return x.id !== id; }); edPop(); edUndoBar(rec);
+    } catch (e) { toast(e && e.message ? e.message : 'हो नहीं सका'); }
+  }
+  async function edUndo(id) {
+    var rec = EDL.undo.filter(function (x) { return x.id === id; })[0]; if (!rec) return; var F = S.fb;
+    try {
+      if (rec.kind === 'accept') {
+        edOwn(function () {
+          cases = cases.filter(function (c) { return rec.added.indexOf(c.id) < 0; });
+          Object.keys(rec.changed || {}).forEach(function (cid) { var i = cases.findIndex(function (c) { return c.id === cid; }); if (i >= 0) cases[i] = JSON.parse(rec.changed[cid]); });
+        });
+      }
+      await F.updateDoc(ref(rec.path), { applied: false, decision: 'pending', decidedAt: F.serverTimestamp() });
+      EDL.undo = EDL.undo.filter(function (x) { return x.id !== id; }); edSaveUndo();
+      toast('↩ पूर्ववत हो गया — अनुरोध फिर से सामने आएगा');
+    } catch (e) { toast(e && e.message ? e.message : 'पूर्ववत नहीं हुआ'); }
+  }
+  function edUndoHtml() {
+    var L = EDL.undo.slice(-6).reverse(); if (!L.length) return '';
+    return '<div class="cc-box"><b>↩ हाल के फ़ैसले</b>' + L.map(function (r) { return '<div class="cc-row" style="margin-top:6px"><div class="cc-muted" style="flex:1">' + (r.kind === 'accept' ? '✔' : '✖') + ' ' + esc(r.label || '') + '</div><button class="cc-b sm gray" onclick="advCloud.edUndo(\'' + r.id + '\')">पूर्ववत</button></div>'; }).join('') + '</div>';
+  }
+  window.advEdT = { S: S, EDL: EDL, pop: edPop, accept: edAccept, reject: edReject, undo: edUndo };
+  function editsWatch() {
+    if (S.edOff) { try { S.edOff(); } catch (e) { } S.edOff = null; }
+    if (role() !== 'master' || typeof cases === 'undefined' || typeof persist !== 'function') return;
+    var F = S.fb; EDL.first = true;
+    S.edOff = F.onSnapshot(F.query(F.collection(S.db, 'edits'), F.where('applied', '==', false)), function (snap) {
+      var docs = []; snap.forEach(function (dd) { docs.push({ id: dd.id, ref: dd.ref, data: dd.data() }); });
+      docs.sort(function (x, y) { var a = x.data.at && x.data.at.seconds || 0, b = y.data.at && y.data.at.seconds || 0; return a - b; });
+      var had = EDL.q.map(function (x) { return x.id; }), nw = docs.filter(function (x) { return had.indexOf(x.id) < 0; });
+      EDL.q = docs; edPop();
+      if (nw.length && !EDL.first) { try { if (window.Notification && Notification.permission === 'granted') new Notification('Advocate Diary', { body: (nw[0].data.byName || 'User') + ' ने केस में बदलाव भेजा है' }); } catch (e) { } }
+      EDL.first = false;
+    }, function () { });
+  }
+  function mymTabs() {
+    var t = [['mym', '📂 Master Data']]; if (S.prof && S.prof.canEditMaster) t.push(['edit', '✏ Add / Edit']);
+    t.push(['notify', '🔔 Notifications'], ['acct', '⚙ My Account']); return t;
+  }
+  function vEdit() {
+    var v = S.edv || (S.edv = {});
+    var f = function (k, lab, type) { return '<label>' + lab + '</label><input class="cc-in" type="' + (type || 'text') + '" value="' + esc(v[k] || '') + '" oninput="advCloud.edv(\'' + k + '\',this.value)">'; };
+    if (!S.prof || S.prof.canEditMaster !== true) return '<div class="cc-box">Editing has not been enabled for your account.</div>';
+    return '<div class="cc-box"><b>' + (S.edId ? '✏ Update existing case' : '＋ Add a new case') + '</b><div class="cc-muted">Your entry is sent to the Master and joins the diary when the Master app next syncs. To change an existing case, type its case number and tap Load (open the Master Data tab first).</div>' +
+      '<label>Case number</label><div class="cc-row"><input class="cc-in" style="flex:1;margin:0" value="' + esc(v.caseNo || '') + '" oninput="advCloud.edv(\'caseNo\',this.value)"><button class="cc-b sm" onclick="advCloud.edLoad()">Load</button></div>' +
+      f('type', 'Case type') + f('court', 'Court') + f('vadiName', 'Plaintiff / Petitioner') + f('prativadiName', 'Defendant / Respondent') + f('caseDate', 'Case filing date', 'date') + f('nextDate', 'Next date', 'date') + f('time', 'Time') + f('vadiMobile', 'Mobile') + f('notes', 'Notes') +
+      (S.edErr ? '<div class="cc-err">' + esc(S.edErr) + '</div>' : '') + (S.edOk ? '<div class="cc-info">' + esc(S.edOk) + '</div>' : '') +
+      '<button class="cc-b grn wide" onclick="advCloud.edSubmit()">Send to Master</button><button class="cc-b gray wide" style="margin-top:6px" onclick="advCloud.edClear()">Clear form</button></div>';
+  }
+  async function edSubmit() {
+    var v = S.edv || {}, F = S.fb; S.edOk = '';
+    if (!S.prof || S.prof.canEditMaster !== true) return;
+    if (!(v.caseNo || '').trim() || !(v.vadiName || '').trim() || !(v.prativadiName || '').trim()) { S.edErr = 'Case number and both party names are required.'; return draw(); }
+    if (!S.edId && !v.nextDate) { S.edErr = 'Next date is required for a new case.'; return draw(); }
+    var c = {}; ED_KEYS.forEach(function (k) { if (v[k]) c[k] = String(v[k]).trim().slice(0, 300); });
+    try {
+      await F.addDoc(F.collection(S.db, 'edits'), { ownerUid: S.pub.masterUid, byUid: S.prof.id, byName: S.prof.name || S.prof.email, byRole: S.prof.role, op: S.edId ? 'update' : 'add', caseId: S.edId || '', case: c, applied: false, at: F.serverTimestamp() });
+      S.edv = {}; S.edId = ''; S.edErr = ''; S.edOk = 'Sent to the Master. It will appear in the diary when the Master app next syncs.'; draw();
+    } catch (e) { S.edErr = errText(e); draw(); }
+  }
+  function editsBox() { return editsBox0() + edUndoHtml(); }
+  function editsBox0() {
+    var L = S.edLog;
+    return '<div class="cc-box"><button class="cc-b gray wide" onclick="advCloud.edLog()">✏ Recent edits by others (' + (L ? L.length : 'tap to load') + ')</button>' + (L ? L.map(function (d) { return '<div class="cc-muted" style="margin-top:6px">' + (d.decision === 'rejected' ? '✖' : d.applied ? '✔' : '⏳') + ' ' + esc(d.byName || '') + ' (' + esc(d.byRole || '') + ') · ' + esc(d.op || '') + ' · ' + esc((d.case && d.case.caseNo) || '') + ' · ' + esc(d.when || '') + '</div>'; }).join('') : '') + '</div>';
+  }
   function liveAttach(a) {
     if (S.liveId === a.id) return; if (S.liveOff) { try { S.liveOff(); } catch (e) { } }
     S.liveId = a.id; var first = true;
@@ -13475,16 +13657,69 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     var s = await F.getDocs(col('userData/' + a.id + '/chunks')), parts = s.docs.map(function (d) { return d.data(); }).sort(function (x, y) { return x.i - y.i; });
     var obj = JSON.parse(await gunz(unb64(parts.map(function (p) { return p.d; }).join(''))));
     S.view = { acct: a, meta: m.data(), cases: obj.cases || [], q: '' }; S.tab = 'view'; draw(); liveAttach(a);
-    try { if (BUILD === 'master' && a.id === (localStorage.getItem('advCloudFilter') || '')) schedFilter(obj.cases || [], a); } catch (e) { }
   }
 
+
+
+  /* ---------- Overlay: cloud cases shown inside the app (never saved) ---------- */
+  var OV = { mode: 'merge', notif: true, own: [], srcs: {}, sel: '' };
+  try { var _o = JSON.parse(localStorage.getItem('advCloudOv') || '{}'); OV.mode = _o.mode === 'only' ? 'only' : 'merge'; OV.notif = _o.notif !== false; } catch (e) { }
+  function ovSaveOpts() { try { localStorage.setItem('advCloudOv', JSON.stringify({ mode: OV.mode, notif: OV.notif })); } catch (e) { } }
+  async function fetchCasesOf(a) {
+    var F = S.fb, m = await F.getDoc(ref('userData/' + a.id));
+    if (!m.exists()) throw new Error('The data for this account has not been synced yet');
+    var s = await F.getDocs(col('userData/' + a.id + '/chunks')), parts = s.docs.map(function (d) { return d.data(); }).sort(function (x, y) { return x.i - y.i; });
+    var obj = JSON.parse(await gunz(unb64(parts.map(function (p) { return p.d; }).join(''))));
+    return obj.cases || [];
+  }
+  function ovRefresh() { ['renderAll', 'p2Render', 'renderDashboardManage'].forEach(function (f) { try { if (typeof window[f] === 'function') window[f](); } catch (e) { } }); }
+  function ovApply() {
+    try {
+      if (!window.__advViewOnly) OV.own = cases.filter(function (c) { return !c._ov; });
+      var ids = OV.notif ? (settings.advocates || []).map(function (a) { return a.id; }) : ['__ov'], ov = [], has = false;
+      Object.keys(OV.srcs).forEach(function (uid) {
+        has = true; var sc = OV.srcs[uid];
+        (sc.cases || []).forEach(function (c) { var x = Object.assign({}, c); x.id = 'ov_' + uid + '_' + c.id; x._rawId = c.id; x._ov = 1; x._srcUid = uid; x.createdByName = c.createdByName || sc.name; x.advocateIds = ids; x.advocateId = ids[0]; ov.push(x); });
+      });
+      if ((role() === 'master' || role() === 'admin') && OV.mode === 'only' && OV.sel && OV.srcs[OV.sel]) { window.__advViewOnly = true; cases = ov.filter(function (c) { return c._srcUid === OV.sel; }); }
+      else { window.__advViewOnly = false; cases = OV.own.concat(ov); }
+      ovRefresh(); ovBanner();
+    } catch (e) { try { console.error(e); } catch (x) { } }
+  }
+  function ovBanner() {
+    var b = document.getElementById('ccViewBanner'), names = Object.keys(OV.srcs).map(function (u) { return OV.srcs[u].name; });
+    if (!names.length) { if (b) b.remove(); return; }
+    if (!b) { b = document.createElement('div'); b.id = 'ccViewBanner'; b.style.cssText = 'background:#fff3cd;color:#5b4300;font:700 12px/1.35 system-ui,sans-serif;padding:5px 12px;border-bottom:1px solid #e0c36a'; var l = $('ccLoginLine'); if (l && l.parentNode) l.parentNode.insertBefore(b, l.nextSibling); else document.body.insertBefore(b, document.body.firstChild); }
+    b.textContent = '👁 सिर्फ़ देखने के लिए — ' + names.join(', ') + (window.__advViewOnly ? ' (आपका डेटा छुपा है, कुछ सेव नहीं होगा)' : ' (आपके केसों के साथ मिला हुआ; इनमें बदलाव सेव नहीं होगा)');
+  }
+  function ovSet(uid, name, list) { OV.srcs[uid] = { name: name, cases: list }; ovApply(); }
+  function ovDrop(uid) { delete OV.srcs[uid]; ovApply(); }
+  function ovLive(a, onName) {
+    if (S.ovLiveId === a.id) return; if (S.ovLiveOff) { try { S.ovLiveOff(); } catch (e) { } }
+    S.ovLiveId = a.id; var first = true, tm = null;
+    S.ovLiveOff = S.fb.onSnapshot(ref('userData/' + a.id), function () { if (first) { first = false; return; } clearTimeout(tm); tm = setTimeout(function () { fetchCasesOf(a).then(function (l) { ovSet(a.id, onName, l); }).catch(function () { }); }, 1500); }, function () { });
+  }
+  function ccName(c) { return c.createdByName || (c._ov ? '' : (window.__advMe || '')); }
+  function wrapCard() {
+    try {
+      if (typeof window.card !== 'function' || window.card.__w) return;
+      var o = window.card, w = function (c, i) { var h = o(c, i); try { var n = ccName(c); if (n) h = h.replace(/(<article[^>]*>)/, '$1<div style="font:700 11px/1.3 system-ui,sans-serif;color:#7a5a00;background:#fff3cd;border-radius:8px;padding:2px 8px;margin:0 0 6px;display:inline-block">👤 बनाने वाला: ' + esc(n) + '</div>'); } catch (e) { } return h; };
+      w.__w = 1; window.card = w;
+    } catch (e) { }
+  }
+  async function ovMasterForUser() {
+    if (S._ovm || !S.prof || BUILD === 'master' || role() === 'master' || !S.pub || !S.pub.masterUid) return; S._ovm = true;
+    var a = { id: S.pub.masterUid, name: 'Master' }; S.ovMasterId = a.id;
+    try { var l = await fetchCasesOf(a); ovSet(a.id, 'Master', l); ovLive(a, 'Master'); } catch (e) { S._ovm = false; S._ovmAt = Date.now(); }
+  }
 
   /* ---------- Master: header filter (user/admin/master), login line, notifications ---------- */
   function lineUpdate() {
     var el = $('ccLoginLine'); if (!el) return;
     if (!S.prof) { el.style.display = 'none'; return; }
-    el.style.display = 'block';
-    el.textContent = '☁ ' + titleRole() + ' · ' + (S.prof.email || '') + (S.prevLogin ? ' · Last login: ' + S.prevLogin : '');
+    el.style.display = 'block'; window.__advMe = S.prof.name || S.prof.email || '';
+    var t = $('ccLoginTxt'); if (t) t.textContent = '☁ ' + titleRole() + ' · ' + (S.prof.email || '') + (S.prevLogin ? ' · Last login: ' + S.prevLogin : '');
+    var op = $('ccLoginOpts'); if (op) op.style.display = (role() === 'master' || role() === 'admin') ? 'flex' : 'none'; var fs0 = $('ccFilterSel'); if (fs0) fs0.style.display = (role() === 'master' || role() === 'admin') ? '' : 'none';
   }
   function fillFilter() {
     var sel = $('ccFilterSel'); if (!sel) return;
@@ -13492,7 +13727,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     try { saved = localStorage.getItem('advCloudFilter') || ''; } catch (e) { }
     function opt(x) { return '<option value="' + esc(x.id) + '">' + esc(x.name || x.email) + '</option>'; }
     var ad = L.filter(function (x) { return x.role === 'admin'; }), us = L.filter(function (x) { return x.role === 'user'; });
-    sel.innerHTML = '<option value="">☁ Cloud</option>' + (S.prof ? '<option value="' + esc(S.prof.id) + '">👑 Master — ' + esc(S.prof.name || S.prof.email) + '</option>' : '') +
+    sel.innerHTML = '<option value="">☁ User/Admin</option>' + (S.prof && role() === 'master' ? '<option value="' + esc(S.prof.id) + '">👑 Master — ' + esc(S.prof.name || S.prof.email) + '</option>' : '') +
       (ad.length ? '<optgroup label="🧑‍💼 Admin">' + ad.map(opt).join('') + '</optgroup>' : '') +
       (us.length ? '<optgroup label="👤 User">' + us.map(opt).join('') + '</optgroup>' : '');
     sel.value = saved; if (sel.value !== saved) sel.value = '';
@@ -13540,19 +13775,22 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   }
   async function onFilter(v) {
     try { localStorage.setItem('advCloudFilter', v || ''); } catch (e) { }
-    if (!v) { clearFilterNotifs(); toast('Filter हटा दिया'); return; }
+    OV.sel = v || ''; Object.keys(OV.srcs).forEach(function (u) { if (u !== S.ovMasterId) delete OV.srcs[u]; }); if (S.ovLiveOff) { try { S.ovLiveOff(); } catch (e) { } S.ovLiveOff = null; S.ovLiveId = null; }
+    if (!v) { ovApply(); toast('Filter हटा दिया — आपका अपना डेटा'); return; }
     var a = acctById(v); if (!a) return;
-    try { S.panelOpen = true; await loadData(a); } catch (e) { toast(e && e.message ? e.message : 'Data load नहीं हुआ'); draw(); }
+    try { var l = await fetchCasesOf(a); ovSet(a.id, a.name || a.email, l); ovLive(a, a.name || a.email); toast('✔ ' + (a.name || a.email) + ' का डेटा ऐप में दिख रहा है (' + l.length + ' केस)'); }
+    catch (e) { toast(e && e.message ? e.message : 'Data load नहीं हुआ'); ovApply(); }
   }
   function restoreFilter() {
     if (S._restored) return; var v = ''; try { v = localStorage.getItem('advCloudFilter') || ''; } catch (e) { } if (!v) { S._restored = true; return; }
-    var a = acctById(v); if (!a) return; S._restored = true;
-    loadData(a).catch(function () { });
+    var a = acctById(v); if (!a) return; S._restored = true; OV.sel = a.id;
+    fetchCasesOf(a).then(function (l) { ovSet(a.id, a.name || a.email, l); ovLive(a, a.name || a.email); }).catch(function () { });
   }
+  window.advOv = { set: ovSet, drop: ovDrop, opts: OV };
   function hookFilter() {
     try {
-      lineUpdate();
-      if (S.prof && S.fb && BUILD === 'master') {
+      lineUpdate(); wrapCard(); if (BUILD !== 'master' && S._ovm !== true && (!S._ovmAt || Date.now() - S._ovmAt > 30000)) ovMasterForUser();
+      if (S.prof && S.fb && (role() === 'master' || role() === 'admin')) {
         if (!S._fl) { S._fl = true; fetchList().then(function () { fillFilter(); restoreFilter(); }).catch(function () { S._fl = false; }); }
         var key = (S.list ? S.list.length : -1) + ':' + S.prof.id;
         if (S._fk !== key) { S._fk = key; fillFilter(); }
@@ -13563,7 +13801,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   /* ---------- UI ---------- */
   var CSS = '#cc-root{position:fixed;inset:0;z-index:2147483000;background:#f1f5f9;color:#0f172a;font:15px/1.45 system-ui,"Noto Sans Devanagari",sans-serif;display:none;flex-direction:column;overflow:hidden}' +
     '#cc-root.on{display:flex}#cc-root *{box-sizing:border-box}' +
-    '.cc-top{background:#0f2a4a;color:#fff;padding:10px 12px;display:flex;flex-wrap:wrap;align-items:center;gap:8px}.cc-top b{min-width:150px}#ccLoginLine{display:none;background:#0f2a4a;color:#dbe6f5;font:600 12px/1.3 system-ui,sans-serif;padding:4px 12px;border-top:1px solid #1c3a63}#ccFilterSel{min-width:0;width:84px;flex:0 0 auto;padding:8px 2px;border-radius:8px;border:1px solid #d9a441;background:#fff;color:#142b4a;font-size:12px;font-weight:700}.cc-top b{flex:1;font-size:16px}.cc-top small{opacity:.8;display:block;font-weight:400;font-size:12px}' +
+    '.cc-top{background:#0f2a4a;color:#fff;padding:10px 12px;display:flex;flex-wrap:wrap;align-items:center;gap:8px}.cc-top b{min-width:150px}#ccLoginLine label{display:inline-flex;align-items:center;gap:4px;font-weight:700}#ccLoginLine{display:none;background:#0f2a4a;color:#dbe6f5;font:600 12px/1.3 system-ui,sans-serif;padding:4px 12px;border-top:1px solid #1c3a63}#ccFilterSel{min-width:0;max-width:118px;padding:8px 4px;border-radius:8px;border:1px solid #d9a441;background:#fff;color:#142b4a;font-size:12px;font-weight:700}.cc-top b{flex:1;font-size:16px}.cc-top small{opacity:.8;display:block;font-weight:400;font-size:12px}' +
     '.cc-tabs{display:flex;gap:4px;overflow-x:auto;background:#fff;border-bottom:1px solid #cbd5e1;padding:6px}.cc-tabs button{border:0;background:#e2e8f0;border-radius:18px;padding:7px 13px;white-space:nowrap;font:inherit;font-size:14px}.cc-tabs button.on{background:#0f2a4a;color:#fff}' +
     '.cc-main{flex:1;overflow:auto;padding:12px;-webkit-overflow-scrolling:touch}.cc-box{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin-bottom:10px}' +
     '.cc-center{max-width:420px;margin:6vh auto 0}.cc-center h2{margin:0 0 4px;color:#0f2a4a}.cc-in{width:100%;padding:11px;margin:5px 0 10px;border:1px solid #94a3b8;border-radius:9px;font:inherit;background:#fff;color:#0f172a}textarea.cc-in{min-height:84px}' +
@@ -13583,9 +13821,9 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     var st = document.createElement('style'); st.textContent = CSS; document.head.appendChild(st);
     var r = document.createElement('div'); r.id = 'cc-root'; document.body.appendChild(r);
     var f = document.createElement('button'); f.id = 'cc-fab'; f.type = 'button'; f.textContent = '☁'; f.title = 'Cloud Control'; f.onclick = function () { api.open(); }; document.body.appendChild(f);
-    if (BUILD === 'master') {
-      var hd = document.querySelector('header'); if (hd && !$('ccLoginLine')) { var ln = document.createElement('div'); ln.id = 'ccLoginLine'; hd.parentNode.insertBefore(ln, hd.nextSibling); }
-      var as = $('activeAdvocateSelect'); if (as && !$('ccFilterSel')) { var fs = document.createElement('select'); fs.id = 'ccFilterSel'; fs.title = 'User / Admin / Master चुनें'; fs.innerHTML = '<option value="">☁ Cloud</option>'; fs.onchange = function () { onFilter(this.value); }; as.parentNode.insertBefore(fs, as.nextSibling); }
+    {
+      var hd = document.querySelector('header'); if (hd && !$('ccLoginLine')) { var ln = document.createElement('div'); ln.id = 'ccLoginLine'; ln.innerHTML = '<span id="ccLoginTxt"></span><span id="ccLoginOpts" style="display:none;gap:14px;flex-wrap:wrap;margin-top:3px"><label><input type="checkbox" id="ccOvMerge"> 🔀 मेरे साथ मिलाकर दिखाएँ</label><label><input type="checkbox" id="ccOvNotif"> 🔔 Notification में जोड़ें</label></span>'; hd.parentNode.insertBefore(ln, hd.nextSibling); var m1 = $('ccOvMerge'), m2 = $('ccOvNotif'); if (m1) { m1.checked = OV.mode !== 'only'; m1.onchange = function () { OV.mode = this.checked ? 'merge' : 'only'; ovSaveOpts(); ovApply(); }; } if (m2) { m2.checked = !!OV.notif; m2.onchange = function () { OV.notif = this.checked; ovSaveOpts(); ovApply(); }; } }
+      var as = $('activeAdvocateSelect'); if (as && !$('ccFilterSel')) { var fs = document.createElement('select'); fs.id = 'ccFilterSel'; fs.title = 'User / Admin / Master चुनें'; fs.innerHTML = '<option value="">☁ User/Admin</option>'; fs.onchange = function () { onFilter(this.value); }; as.parentNode.insertBefore(fs, as.nextSibling); }
     }
   }
   function titleRole() { var r = role() || BUILD; return r === 'master' ? 'Master' : r === 'admin' ? 'Admin' : 'User'; }
@@ -13616,17 +13854,24 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   function lastEmail() { try { var o = JSON.parse(localStorage.getItem('advLastLoginLocal') || 'null'); return (o && o.e) || ''; } catch (e) { return ''; } }
   function lastLocal() { try { var o = JSON.parse(localStorage.getItem('advLastLoginLocal') || 'null'); return o ? '<div class="cc-muted" style="margin-top:6px">Last sign-in on this phone: ' + esc(o.e || '') + ' — ' + esc(o.t) + '</div>' : ''; } catch (e) { return ''; } }
   function vLogin() {
-    return '<div class="cc-main"><div class="cc-center cc-box"><h2>🔐 ' + (BUILD === 'master' ? 'Master Login' : BUILD === 'admin' ? 'Admin Login' : 'User Login') + '</h2><div class="cc-muted">Advocate Diary — Cloud</div>' + lastLocal() + '<br>' +
+    var T = BUILD === 'master' ? 'Master Sign in' : 'Sign in';
+    var logo = '<svg viewBox="0 0 120 120" width="92" height="92" aria-hidden="true"><defs><linearGradient id="agb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1f4a86"/><stop offset="1" stop-color="#0a1c36"/></linearGradient><linearGradient id="agg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f8dc86"/><stop offset="1" stop-color="#c58d26"/></linearGradient></defs><rect width="120" height="120" rx="28" fill="url(#agb)"/><rect x="3.5" y="3.5" width="113" height="113" rx="25" fill="none" stroke="url(#agg)" stroke-width="2.5"/><g fill="none" stroke="url(#agg)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="60" cy="24" r="4.5" fill="url(#agg)"/><path d="M60 29V80M30 38H90M30 38L21 60M30 38L39 60M90 38L81 60M90 38L99 60"/><path d="M19 60H41Q30 73 19 60ZM79 60H101Q90 73 79 60Z" fill="url(#agg)"/><path d="M33 93Q46 86 60 93Q74 86 87 93V101Q74 94 60 101Q46 94 33 101Z" fill="url(#agg)"/></g></svg>';
+    if (S.pub && S.pub.logo) logo = '<img src="' + S.pub.logo + '" alt="" style="width:92px;height:92px;border-radius:26px;object-fit:cover;border:2.5px solid #d9a441;box-shadow:0 6px 14px rgba(0,0,0,.35)">';
+    if (!S._pubT && S.fb) { S._pubT = 1; S.fb.getDoc(ref('config/app')).then(function (d) { S.pub = d.exists() ? d.data() : {}; if (S.screen === 'login') draw(); }).catch(function () { }); }
+    var css = '<style>.advl{min-height:100%;padding:26px 16px 30px;background:linear-gradient(180deg,#0e2747 0,#1c4a82 262px,#eef2f8 262px)}.advl .top{text-align:center;color:#fff}.advl .top svg{filter:drop-shadow(0 6px 14px rgba(0,0,0,.35))}.advl h1{margin:10px 0 2px;font-size:26px;letter-spacing:.3px}.advl .wel{font-size:14px;opacity:.92}.advl .tag{font-size:12px;opacity:.75;margin-top:2px}.advl .card{max-width:420px;margin:26px auto 0;background:#fff;border-radius:18px;padding:20px 18px;box-shadow:0 10px 30px rgba(15,42,74,.18)}.advl .card h2{margin:0 0 12px;font-size:22px;color:#0f2a4a}.advl label{font-size:13px;font-weight:700;color:#334155}.advl .gold{width:100%;border:0;border-radius:10px;padding:13px;margin-top:4px;font:inherit;font-size:16px;font-weight:800;color:#1b1405;background:linear-gradient(180deg,#f9dc83,#e0a932);box-shadow:0 2px 0 #b98516;cursor:pointer}.advl .ghost{width:100%;border:1.5px solid #cbd5e1;background:#fff;border-radius:10px;padding:12px;margin-top:10px;font:inherit;font-size:15px;font-weight:700;color:#0f2a4a;cursor:pointer}.advl .or{display:flex;align-items:center;gap:10px;margin:14px 0 4px;color:#94a3b8;font-size:12px}.advl .or:before,.advl .or:after{content:"";flex:1;height:1px;background:#e2e8f0}.advl .ft{text-align:center;color:#64748b;font-size:12px;margin-top:18px}</style>';
+    return css + '<div class="cc-main"><div class="advl"><div class="top">' + logo + '<h1>Advocate Diary</h1><div class="wel">Welcome to Advocate Diary</div><div class="tag">Your case diary — secure, simple, always with you</div></div>' +
+      '<div class="card"><h2>' + T + '</h2>' +
       '<label>Sign in as</label><select id="cc-as" class="cc-in" onchange="advCloud.setAs(this.value)">' + [['auto', 'Detect automatically'], ['master', 'Sign in as Master Admin'], ['admin', 'Sign in as Admin'], ['user', 'Sign in as User']].map(function (o) { return '<option value="' + o[0] + '"' + ((S.asRole || 'auto') === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>' +
-      '<label>User ID / Email</label><input id="cc-em" class="cc-in" type="text" autocomplete="username" value="' + esc(S.em || lastEmail()) + '" autofocus>' +
-      '<label>Password</label><input id="cc-pw" class="cc-in" type="password" autocomplete="current-password" onkeydown="if(event.key===\'Enter\')advCloud.login()">' +
+      '<label>User ID / Email</label><input id="cc-em" class="cc-in" type="text" autocomplete="username" value="' + esc(S.em || lastEmail()) + '" placeholder="Your email">' +
+      '<label>Password</label><input id="cc-pw" class="cc-in" type="password" autocomplete="current-password" placeholder="Password" onkeydown="if(event.key===\'Enter\')advCloud.login()">' +
       (S.msg ? '<div class="' + (/\bsent\b/i.test(S.msg) ? 'cc-info' : 'cc-err') + '">' + esc(S.msg) + '</div>' : '') +
-      '<button class="cc-b wide" onclick="advCloud.login()">Login</button>' +
-      '<button class="cc-b gray wide" onclick="advCloud.google()">Sign in with Google</button>' +
-      '<div style="text-align:center;margin-top:10px"><a href="#" onclick="advCloud.forgot();return false" style="color:#0f2a4a">Forgot password?</a></div>' +
-      (BUILD === 'admin' ? '<button class="cc-b grn wide" style="margin-top:14px" onclick="advCloud.showSignup()">📝 Create a new Admin account (7-day free trial)</button>' : '') +
-      (BUILD === 'master' ? '<button class="cc-b gray sm" style="margin-top:12px" onclick="advCloud.close()">Close</button>' : '') +
-      (!cfgGet() ? '' : '<div style="text-align:center;margin-top:12px"><a href="#" class="cc-muted" onclick="advCloud.resetCfg();return false">Change Firebase config</a></div>') + '</div></div>';
+      '<button class="gold" onclick="advCloud.login()">Sign in</button>' +
+      '<div style="text-align:center;margin-top:12px"><a href="#" onclick="advCloud.forgot();return false" style="color:#1c4a82;font-size:14px">Forgot password?</a></div>' + (S.needVerify ? '<div style="text-align:center;margin-top:8px"><a href="#" onclick="advCloud.resend();return false" style="color:#b45309;font-size:14px">✉ Resend verification link</a></div>' : '') +
+      '<div class="or">or</div><button class="ghost" onclick="advCloud.google()"><b style="display:inline-block;width:22px;height:22px;line-height:22px;border-radius:50%;background:#fff;border:1.5px solid #cbd5e1;color:#4285f4;margin-right:6px">G</b>Sign in with Google</button>' +
+      (BUILD === 'admin' ? '<div class="or">New here?</div><button class="ghost" onclick="advCloud.reg()">📝 New Registration</button>' : '') + (window._ip ? '<button class="ghost" style="margin-top:10px" onclick="advInstall()">⬇ Install app</button>' : '') + ((S.pub && S.pub.apkUrl) ? '<a class="ghost" style="display:block;text-align:center;text-decoration:none;margin-top:10px" href="' + esc(S.pub.apkUrl) + '">📱 Download Android app (APK)</a><div class="ft" style="margin-top:6px">If asked, allow installs from this source.</div>' : '') +
+      lastLocal() + (BUILD === 'master' ? '<button class="ghost" style="margin-top:14px" onclick="advCloud.close()">Close</button>' : '') + '</div>' +
+      (BUILD === 'master' && cfgGet() ? '<div class="ft"><a href="#" onclick="advCloud.resetCfg();return false" style="color:#64748b">Change Firebase config</a></div>' : '') +
+      '<div class="ft">© Advocate Diary</div></div></div>';
   }
   function vSignup() {
     return '<div class="cc-main"><div class="cc-center cc-box"><h2>📝 New Registration</h2><div class="cc-muted">We will email you a verification link. After you verify your email, you can set your password. Access to data is granted once the administrator approves your request.</div>' +
@@ -13660,7 +13905,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   }
   function tabs() {
     var r = role(), t = r === 'master' ? [['dash', '📊 Dashboard'], ['apps', '📩 Requests' + (S.pending.length ? ' (' + S.pending.length + ')' : '')], ['admins', '🧑‍💼 Admins'], ['users', '👥 Users'], ['notify', '🔔 Notification'], ['data', '🗂 Data'], ['acct', '⚙ My Account']] :
-      r === 'admin' ? [['dash', '📊 Dashboard'], ['users', '👥 My Users'], ['notify', '🔔 Notification'], ['data', '🗂 Data'], ['acct', '⚙ My Account']] : [['acct', '⚙ My Account'], ['notify', '🔔 Notifications']];
+      r === 'admin' ? (BUILD === 'admin' ? mymTabs() : [['dash', '📊 Dashboard'], ['users', '👥 My Users'], ['notify', '🔔 Notification'], ['data', '🗂 Data'], ['acct', '⚙ My Account']]) : ((BUILD === 'admin' && S.prof && S.prof.canViewMaster) ? mymTabs() : [['acct', '⚙ My Account'], ['notify', '🔔 Notifications']]);
     return '<div class="cc-tabs">' + t.map(function (x) { return '<button class="' + (S.tab === x[0] || (S.tab === 'view' && x[0] === 'data') ? 'on' : '') + '" onclick="advCloud.tab(\'' + x[0] + '\')">' + x[1] + '</button>'; }).join('') + '</div>';
   }
   function vDl() { return '<div class="cc-box"><button class="cc-b grn wide" onclick="advCloud.csv()">⬇ Download CSV</button>' + (BUILD === 'admin' ? '<button class="cc-b gray wide" onclick="advCloud.mym()">🔄 Refresh</button>' : '') + '</div>'; }
@@ -13672,9 +13917,9 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   function vPanel() {
     var p = S.prof, body = '';
     if (S.tab === 'dash') body = vDash(); else if (S.tab === 'apps') body = vApps(); else if (S.tab === 'admins') body = vList('admin'); else if (S.tab === 'users') body = vList('user');
-    else if (S.tab === 'notify') body = vNotify(); else if (S.tab === 'data') body = vData(); else if (S.tab === 'view') body = vView() + vDl(); else if (S.tab === 'mym') body = vMym(); else body = vAcct();
+    else if (S.tab === 'notify') body = vNotify(); else if (S.tab === 'data') body = vData(); else if (S.tab === 'view') body = vView() + vDl(); else if (S.tab === 'mym') body = vMym(); else if (S.tab === 'edit') body = vEdit(); else body = vAcct();
     return '<div class="cc-top">' + (BUILD === 'master' ? '<button class="cc-b sm" style="background:#d9a441;color:#1b1405;font-weight:800" onclick="advCloud.close()">← ऐप पर वापस</button>' : '') + '<b>☁ ' + titleRole() + ' Control<small>' + esc(p.name || p.email) + ' (' + titleRole() + ') · ' + esc(p.email) + (S.prevLogin ? ' · Last login: ' + esc(S.prevLogin) : '') + '</small></b>' +
-      (BUILD === 'master' || role() !== 'user' ? '<button class="cc-b gray sm" onclick="advCloud.refresh()">🔄</button>' : '') + '<button class="cc-b gray sm" onclick="advCloud.logout()">⏻ Logout</button>' + '<button class="cc-b gray sm" onclick="advCloud.close()">✕</button></div>' + tabs() + '<div class="cc-main">' + body + '</div>';
+      (BUILD === 'master' || role() !== 'user' ? '<button class="cc-b gray sm" onclick="advCloud.refresh()">🔄</button>' : '') + '<button class="cc-b gray sm" onclick="advCloud.logout()">⏻ Logout</button>' + (BUILD === 'admin' ? '' : '<button class="cc-b gray sm" onclick="advCloud.close()">✕</button>') + '</div>' + tabs() + '<div class="cc-main">' + body + '</div>';
   }
   function badgeOf(a) { var s = stateOf(a); return '<span class="cc-badge ' + s + '">' + (s === 'ok' ? 'Active' : s === 'blocked' ? 'Blocked' : 'Expired') + '</span>'; }
 
@@ -13707,12 +13952,12 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       return '<div class="cc-box"><div class="cc-row"><b style="flex:1">' + esc(a.name || '(no name)') + '</b>' + badgeOf(a) + '</div><div class="cc-muted">' + esc(a.email) + (a.mobile ? ' · ' + esc(a.mobile) : '') + '</div>' +
         '<div class="cc-muted">Expires: <b>' + fmt(a.expiresAt) + '</b> (' + daysLeft(a.expiresAt) + ' days)' + (a.role === 'admin' ? ' · Users: <b>' + (a.userCount || 0) + '/' + (a.maxUsers || 0) + '</b>' : '') + '</div>' +
         (isM && a.role === 'user' ? '<div class="cc-muted">Admin: ' + esc(par ? (par.name || par.email) : 'Master (direct)') + '</div>' : '') +
-        '<div class="cc-muted">Last login: ' + fmtT(a.lastLogin) + (isM ? ' · Can view Master data: ' + (a.canViewMaster ? '✅ Yes' : '⛔ No') : '') + '</div>' +
+        '<div class="cc-muted">Last login: ' + fmtT(a.lastLogin) + (isM ? ' · Can view Master data: ' + (a.canViewMaster ? '✅ Yes' : '⛔ No') : '') + (isM && a.canEditMaster ? ' · Can edit ✅' : '') + '</div>' +
         '<div class="cc-row" style="margin-top:8px"><button class="cc-b sm" onclick="advCloud.edit(\'' + a.id + '\')">✏ Edit</button>' +
         (a.status === 'active' ? '<button class="cc-b sm red" onclick="advCloud.status(\'' + a.id + '\',\'blocked\')">🚫 Block</button>' : '<button class="cc-b sm grn" onclick="advCloud.status(\'' + a.id + '\',\'active\')">✅ Unblock</button>') +
         '<button class="cc-b sm gray" onclick="advCloud.reset(\'' + a.id + '\')">📧 Reset</button>' +
         '<button class="cc-b sm gray" ' + (canV ? '' : 'disabled style="opacity:.4"') + ' onclick="advCloud.data(\'' + a.id + '\')">🗂 Data</button>' +
-        (isM ? '<button class="cc-b sm gray" onclick="advCloud.mview(\'' + a.id + '\',' + (a.canViewMaster ? 'false' : 'true') + ')">' + (a.canViewMaster ? '👁 Master data: ON' : '👁 Master data: OFF') + '</button><button class="cc-b sm red" onclick="advCloud.del(\'' + a.id + '\')">🗑</button>' : '') + '</div></div>';
+        (isM ? '<button class="cc-b sm gray" onclick="advCloud.mview(\'' + a.id + '\',' + (a.canViewMaster ? 'false' : 'true') + ')">' + (a.canViewMaster ? '👁 Master data: ON' : '👁 Master data: OFF') + '</button><button class="cc-b sm gray" onclick="advCloud.medit(\'' + a.id + '\',' + (a.canEditMaster ? 'false' : 'true') + ')">' + (a.canEditMaster ? '✏ Edit: ON' : '✏ Edit: OFF') + '</button><button class="cc-b sm red" onclick="advCloud.del(\'' + a.id + '\')">🗑</button>' : '') + '</div></div>';
     }).join('');
   }
   function vNotify() {
@@ -13763,7 +14008,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     if (role() === 'user') h += '<div class="cc-muted" style="margin-top:6px">Transparency: your Admin ' + (p.adminCanView ? '<b>can view your diary data ✅</b>' : 'cannot view your diary data ⛔') + ' · Master ' + (p.masterCanView ? '<b>can view your diary data ✅</b>' : 'cannot view your diary data ⛔') + '</div>';
     h += '</div>';
     if (BUILD !== 'master' && role() !== 'master') h += '<div class="cc-box"><b>☁ Data Sync</b><div class="cc-muted">Last sync: ' + (S.lastSync ? fmtT(S.lastSync) : '—') + '</div><button class="cc-b sm" style="margin-top:6px" onclick="advCloud.sync()">Sync now</button></div>';
-    if (role() === 'master') h += '<div class="cc-box"><button class="cc-b gray wide" onclick="advCloud.contact()">📞 Set the contact number shown to applicants</button></div>' + logoBox() + pageBox() + apkBox();
+    if (role() === 'master') h += '<div class="cc-box"><button class="cc-b gray wide" onclick="advCloud.contact()">📞 Set the contact number shown to applicants</button></div>' + logoBox() + pageBox() + apkBox() + editsBox();
     h += '<div class="cc-box"><button class="cc-b gray wide" onclick="advCloud.reset(\'me\')">📧 Send me a password reset link</button><button class="cc-b red wide" onclick="advCloud.logout()">Logout</button></div>';
     if (role() === 'user') h += '<div class="cc-box"><button class="cc-b gray wide" onclick="advCloud.tab(\'notify\')">🔔 View notifications</button></div>';
     return h;
@@ -13827,6 +14072,21 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     redraw: function () { try { draw(); } catch (e) { } },
     mview: function (id, on) { S.fb.updateDoc(ref('users/' + id), { canViewMaster: !!on, updatedAt: S.fb.serverTimestamp() }).then(function () { toast(on ? 'This account can now view your data' : 'Access to your data removed'); S.listAt = 0; draw(); }).catch(function (e) { toast(errText(e)); }); },
     apk: function () { var cur = (S.pub && S.pub.apkUrl) || ''; var u = prompt('Paste the https link of your APK file (a GitHub Releases link works). Leave empty to hide the download button.', cur); if (u === null) return; u = u.trim(); if (u && u.indexOf('https://') !== 0) return toast('The link must start with https://'); S.fb.setDoc(ref('config/app'), { apkUrl: u }, { merge: true }).then(function () { S.pub = Object.assign(S.pub || {}, { apkUrl: u }); toast(u ? '✅ APK link saved' : 'APK button hidden'); draw(); }).catch(function (e) { toast(errText(e)); }); },
+    medit: function (id, on) { var u = { canEditMaster: !!on, updatedAt: S.fb.serverTimestamp() }; if (on) u.canViewMaster = true; S.fb.updateDoc(ref('users/' + id), u).then(function () { toast(on ? 'This account can now add and edit cases' : 'Editing switched off'); S.listAt = 0; draw(); }).catch(function (e) { toast(errText(e)); }); },
+    edv: function (k, v) { (S.edv || (S.edv = {}))[k] = v; },
+    edClear: function () { S.edv = {}; S.edId = ''; S.edErr = ''; S.edOk = ''; draw(); },
+    edLoad: function () {
+      var no = ((S.edv && S.edv.caseNo) || '').trim().toLowerCase(); S.edErr = ''; S.edOk = '';
+      if (!no) { S.edErr = 'Type a case number first.'; return draw(); }
+      if (!S.view || !S.view.cases) { S.edErr = 'Open the Master Data tab first so the cases are loaded, then try again.'; return draw(); }
+      var c = S.view.cases.filter(function (x) { return String(x.caseNo || '').trim().toLowerCase() === no; })[0];
+      if (!c) { S.edErr = 'No case with that number was found.'; return draw(); }
+      S.edId = c.id; S.edv = {}; ED_KEYS.forEach(function (k) { if (c[k]) S.edv[k] = c[k]; }); draw();
+    },
+    edSubmit: function () { edSubmit(); },
+    edAccept: function (id) { edAccept(id); }, edReject: function (id) { edReject(id); }, edUndo: function (id) { edUndo(id); },
+    edLog: function () { var F = S.fb; F.getDocs(F.query(F.collection(S.db, 'edits'), F.orderBy('at', 'desc'), F.limit(40))).then(function (snap) { S.edLog = []; snap.forEach(function (dd) { var d = dd.data(); d.when = fmtT(d.at); S.edLog.push(d); }); draw(); }).catch(function (e) { toast(errText(e)); }); },
+    _test: { apply: function (d) { return applyOneEdit(d); } },
     setAs: function (v) { S.asRole = v; },
     reg: async function () {
       try { var d = await S.fb.getDoc(ref('config/app')); S.pub = d.exists() ? d.data() : {}; } catch (e) { }
@@ -13869,7 +14129,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     status: function (id, st) { var a = S.list.filter(function (x) { return x.id === id; })[0]; if (!a) return; if (st === 'blocked' && !confirm('"' + (a.name || a.email) + '" — block this account?' + (a.role === 'admin' ? '\n(All of their users will also be blocked)' : ''))) return; setStatus(a, st).catch(function (e) { toast(errText(e)); }); },
     reset: function (id) { if (id === 'me') return resetMail(S.prof); var a = S.list.filter(function (x) { return x.id === id; })[0]; if (a) resetMail(a); },
     del: function (id) { var a = S.list.filter(function (x) { return x.id === id; })[0]; if (a) delAccount(a).catch(function (e) { toast(errText(e)); }); },
-    data: function (id) { var a = S.list.filter(function (x) { return x.id === id; })[0]; if (a) loadData(a).catch(function (e) { toast(errText(e)); }); },
+    data: function (id) { var a = S.list.filter(function (x) { return x.id === id; })[0]; if (!a) return; if (role() === 'master' || role() === 'admin') { var fs = $('ccFilterSel'); S.panelOpen = false; draw(); onFilter(a.id).then(function () { if (fs) fs.value = a.id; }); } else loadData(a).catch(function (e) { toast(errText(e)); }); },
     vq: function (v) { S.view.q = v; draw(); var i = $('cc-root').querySelector('.cc-in'); if (i) { i.focus(); i.setSelectionRange(v.length, v.length); } },
     dl: function () { var b = new Blob([JSON.stringify(S.view.cases, null, 1)], { type: 'application/json' }), a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'cases-' + (S.view.acct.email || 'user') + '.json'; a.click(); },
     sync: function () { syncNow(true).then(function () { toast('Sync complete'); }); },
@@ -13920,7 +14180,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     var f = $('cc-fab'); if (!f || f._mv) return; f._mv = 1;
     setInterval(function () { f.style.boxShadow = S.prof ? '0 0 0 3px #22c55e' : '0 0 0 3px #ef4444'; f.title = S.prof ? 'Cloud (signed in)' : 'Sign in';
       var w = document.getElementById('adv-hi'); var oldw = document.getElementById('adv-who'); if (oldw) oldw.remove();
-      if (S.prof) {
+      if (false && S.prof) {
         if (!w) { w = document.createElement('div'); w.id = 'adv-hi'; w.style.cssText = 'background:#0f2a4a;color:#fff;font:600 12px/1.35 system-ui,sans-serif;padding:5px 12px 5px 58px;position:relative;z-index:1;border-bottom:2px solid #d9a441'; document.body.insertBefore(w, document.body.firstChild); }
         var rl = ({ master: 'Master', admin: 'Admin', user: 'User' })[S.prof.role] || S.prof.role;
         var tx = 'Hi ' + (S.prof.name || S.prof.email) + ' (' + rl + ')' + (S.prevLogin ? ' · Last login: ' + S.prevLogin : ' · First sign-in');

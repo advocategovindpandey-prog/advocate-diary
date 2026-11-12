@@ -1,5 +1,25 @@
-const C='advdiary-v2';
-self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(C).then(c=>c.addAll(['./','index.html','manifest.webmanifest','icon-192.png']).catch(()=>{})));});
-self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))).then(()=>self.clients.claim()));});
-self.addEventListener('fetch',e=>{const r=e.request;if(r.method!=='GET'||new URL(r.url).origin!==location.origin)return;
-e.respondWith(fetch(r).then(res=>{const cp=res.clone();caches.open(C).then(c=>c.put(r,cp));return res;}).catch(()=>caches.match(r).then(m=>m||caches.match('index.html'))));});
+/* Advocate Diary service worker — network-first so new GitHub uploads show immediately; cache is only the offline fallback */
+const CACHE = 'advdiary-v2026-11-12';
+self.addEventListener('install', e => { self.skipWaiting(); });
+self.addEventListener('activate', e => {
+  e.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)));
+    await self.clients.claim();
+  })());
+});
+self.addEventListener('fetch', e => {
+  const req = e.request;
+  if (req.method !== 'GET' || !req.url.startsWith(self.location.origin)) return;
+  e.respondWith((async () => {
+    try {
+      const res = await fetch(req, { cache: 'no-cache' });
+      if (res && res.ok) { const c = await caches.open(CACHE); c.put(req, res.clone()); }
+      return res;
+    } catch (err) {
+      const hit = await caches.match(req, { ignoreSearch: true });
+      if (hit) return hit;
+      throw err;
+    }
+  })());
+});
