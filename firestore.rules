@@ -19,7 +19,7 @@ service cloud.firestore {
         (prof(par).role == 'master' && get(/databases/$(db)/documents/config/app).data.directPeerView == true));
     }
     function privileged() {
-      return ['role','parentId','status','expiresAt','maxUsers','canCreateUsers','offlineDays','masterCanView','adminCanView','requestStatus','trial','peerView','userId']
+      return ['role','parentId','status','expiresAt','maxUsers','canCreateUsers','offlineDays','masterCanView','adminCanView','requestStatus','trial','peerView','userId','needsApproval']
              ;
     }
 
@@ -85,17 +85,20 @@ service cloud.firestore {
 
     // ---- edits sent to Master (index build) ----
     match /edits/{e} {
-      allow create: if signedIn() && live() && request.resource.data.byUid == request.auth.uid;
-      allow read, update, delete: if isMaster();
+      allow create: if signedIn() && live() && request.resource.data.byUid == request.auth.uid
+                       && (request.resource.data.ownerUid == me().parentId
+                           || isMaster()
+                           || (isAdmin() && prof(request.resource.data.ownerUid).parentId == request.auth.uid));
+      allow read, update, delete: if signedIn() && (isMaster() || resource.data.ownerUid == request.auth.uid);
     }
 
-    // ---- diary data (backup chunks) ----
     match /userData/{owner} {
       function canRead() {
         let o = prof(owner);
         return signedIn() && (
           owner == request.auth.uid ||
           (live() && o.role == 'master') ||
+          (live() && owner == me().parentId) ||
           (isMaster() && o.masterCanView == true) ||
           (isAdmin() && o.parentId == request.auth.uid && o.adminCanView == true) ||
           peerOk(o));
@@ -106,6 +109,14 @@ service cloud.firestore {
         allow read: if canRead();
         allow write: if signedIn() && owner == request.auth.uid && live();
       }
+    }
+
+    // ---- shared team cases: one copy for a team (Master + his users, or an admin + his users) ----
+    match /teams/{tid}/cases/{cid} {
+      function member() { return signedIn() && live() && (tid == request.auth.uid || tid == me().parentId); }
+      allow read: if member();
+      allow create, update: if member() && (cid.matches(request.auth.uid + '__.*') || tid == request.auth.uid);
+      allow delete: if false;
     }
   }
 }
