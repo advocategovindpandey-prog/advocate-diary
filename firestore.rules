@@ -114,8 +114,11 @@ service cloud.firestore {
     // ---- shared team cases: one copy for a team (Master + his users, or an admin + his users) ----
     match /teams/{tid}/cases/{cid} {
       function member() { return signedIn() && live() && (tid == request.auth.uid || tid == me().parentId); }
-      allow read: if member();
-      allow create, update: if member() && (cid.matches(request.auth.uid + '__.*') || tid == request.auth.uid);
+      function perm(k) { return !('perms' in me()) || (k in me().perms && me().perms[k] == true); }
+      function ownDoc() { return cid.matches(request.auth.uid + '__.*'); }
+      allow read: if member() || (isMaster() && live());
+      allow create: if (member() && (tid == request.auth.uid || (ownDoc() && perm('create')))) || (isMaster() && live());
+      allow update: if (member() && (tid == request.auth.uid || (ownDoc() && (request.resource.data.get('del', false) != true || perm('del'))))) || (isMaster() && live());
       allow delete: if false;
     }
   }

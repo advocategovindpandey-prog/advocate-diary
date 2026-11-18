@@ -3,7 +3,7 @@
 <head><script id="adv-guard">(function(){try{var KC='advDiaryCases',_s=Storage.prototype.setItem,KEYS=['caseNo','type','court','vadiName','prativadiName','caseDate','nextDate','time','vadiMobile','notes'];window.__advMe='';window.__advRole='';window.__advViewOnly=false;window.__advActor=null;window.__advKeys=KEYS;
 function prevMap(){if(!window.__advPrev){var m={};try{JSON.parse(localStorage.getItem(KC)||'[]').forEach(function(x){if(x&&x.id!=null)m[x.id]=x})}catch(e){}window.__advPrev=m}return window.__advPrev}
 if(!window.__advJs){window.__advJs=1;var _js=JSON.stringify;JSON.stringify=function(v,r,sp){try{if(Array.isArray(v)){if(v.some(function(x){return x&&x._ov}))v=v.filter(function(x){return !(x&&x._ov)})}else if(v&&typeof v==='object'&&Array.isArray(v.cases)&&v.cases.some(function(x){return x&&x._ov}))v=Object.assign({},v,{cases:v.cases.filter(function(x){return !(x&&x._ov)})})}catch(e){}return _js.call(JSON,v,r,sp)}}
-Storage.prototype.setItem=function(k,v){if(k===KC&&this===window.localStorage){try{if(window.__advOvDiff)window.__advOvDiff()}catch(e){}if(window.__advViewOnly)return;try{var a=JSON.parse(v);if(Array.isArray(a)){var me=window.__advMe||'',act=window.__advActor||{name:me,role:window.__advRole||''},pm=prevMap(),o=[],seen={};for(var i=0;i<a.length;i++){var c=a[i];if(!c||c._ov||String(c.id).indexOf('ov_')===0)continue;if(me&&!c.createdByName)c.createdByName=me;var p=pm[c.id],h=(p&&p.hist?p.hist.slice():(c.hist||[]).slice());if(p){for(var j=0;j<KEYS.length;j++){var f=KEYS[j];if(String(c[f]||'')!==String(p[f]||''))h.push({at:Date.now(),by:act.name,r:act.role,f:f,o:String(p[f]||'').slice(0,80),n:String(c[f]||'').slice(0,80)})}}else if(!h.length){h.push({at:Date.now(),by:act.name,r:act.role,f:'new',o:'',n:String(c.caseNo||'')})}if(h.length>10)h=h.slice(-10);if(h.length)c.hist=h;seen[c.id]=1;o.push(c)}try{var hx=(window.__advHiddenOwn&&window.__advHiddenOwn())||[];for(var q=0;q<hx.length;q++){if(hx[q]&&!seen[hx[q].id]){seen[hx[q].id]=1;o.push(hx[q])}}}catch(e){}v=JSON.stringify(o);var nm={};o.forEach(function(x){nm[x.id]=x});window.__advPrev=nm}}catch(e){}}if(k===KC)window.__advStoreV=(window.__advStoreV||0)+1;return _s.call(this,k,v)}}catch(e){}})();</script><script id="adv-json">(function(){try{var _j=JSON.stringify;function strip(a){var hx=(window.__advHiddenOwn&&window.__advHiddenOwn())||[];var ids={};a.forEach(function(c){if(c&&!c._ov)ids[c.id]=1});var out=a.filter(function(c){return !(c&&c._ov)});hx.forEach(function(h){if(h&&!ids[h.id])out.push(h)});return out}function has(a){for(var i=0;i<a.length;i++){if(a[i]&&a[i]._ov)return true}return false}JSON.stringify=function(v,r,sp){try{if(window.__advHiddenOwn){if(Array.isArray(v)&&v.length&&has(v))v=strip(v);else if(v&&typeof v==="object"&&!Array.isArray(v)&&Array.isArray(v.cases)&&v.cases.length&&has(v.cases)){var c2=Object.assign({},v);c2.cases=strip(v.cases);v=c2}}}catch(e){}return _j.call(JSON,v,r,sp)}}catch(e){}})();</script><script id="adv-pwa">window.__advInstall=null;window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();window.__advInstall=e});window.addEventListener("appinstalled",function(){window.__advInstall=null;try{var b=document.getElementById("ccInstall");if(b)b.remove()}catch(x){}});</script><script>window.ADV_BUILD='admin';try{var _p=JSON.parse(localStorage.getItem('advPinLock')||'null');if(_p&&_p.salt==='AdvAdminSalt1'&&_p.hash==='92467ba809f7a7e881da046e4419ad7fdaf919e4ef9aa9e518c768b35ba2986a')localStorage.removeItem('advPinLock')}catch(e){}</script><style>#licAdmin{display:none!important}</style><link rel="manifest" href="manifest-admin.webmanifest"><meta name="theme-color" content="#0e2747"><link rel="icon" href="icon-admin-192.png"><link rel="apple-touch-icon" href="icon-admin-192.png">
+Storage.prototype.setItem=function(k,v){if(k===KC&&this===window.localStorage){try{if(window.__advOvDiff)window.__advOvDiff()}catch(e){}if(window.__advViewOnly)return;try{var a=JSON.parse(v);if(Array.isArray(a)){var viol=[],me=window.__advMe||'',act=window.__advActor||{name:me,role:window.__advRole||''},pm=prevMap(),o=[],seen={};for(var i=0;i<a.length;i++){var c=a[i];if(!c||c._ov||String(c.id).indexOf('ov_')===0)continue;if(me&&!c.createdByName)c.createdByName=me;var p=pm[c.id],pr=(!window.__advSys&&window.__advRole==='user')?window.__advPerms:null;if(pr&&!p&&!pr.create){viol.push({t:'create',id:c.id});continue}if(pr&&p&&!pr.edit){var okf=pr.date?['nextDate','time','notes']:[];for(var z=0;z<KEYS.length;z++){var kf=KEYS[z];if(okf.indexOf(kf)<0&&String(c[kf]||'')!==String(p[kf]||'')){viol.push({t:'field',id:c.id,f:kf,old:p[kf]});c[kf]=p[kf]}}}var h=(p&&p.hist?p.hist.slice():(c.hist||[]).slice());if(p){for(var j=0;j<KEYS.length;j++){var f=KEYS[j];if(String(c[f]||'')!==String(p[f]||''))h.push({at:Date.now(),by:act.name,r:act.role,f:f,o:String(p[f]||'').slice(0,80),n:String(c[f]||'').slice(0,80)})}}else if(!h.length){h.push({at:Date.now(),by:act.name,r:act.role,f:'new',o:'',n:String(c.caseNo||'')})}if(h.length>10)h=h.slice(-10);if(h.length)c.hist=h;seen[c.id]=1;o.push(c)}if(!window.__advSys&&window.__advRole==='user'&&window.__advPerms&&!window.__advPerms.del){for(var pid in pm){if(!seen[pid]&&pm[pid]&&String(pid).indexOf('ov_')!==0&&!(pm[pid]._ov)){viol.push({t:'del',id:pid,obj:pm[pid]});seen[pid]=1;o.push(pm[pid])}}}if(viol.length&&window.__advPermNotify){setTimeout(function(){try{window.__advPermNotify(viol)}catch(e){}},0)}try{var hx=(window.__advHiddenOwn&&window.__advHiddenOwn())||[];for(var q=0;q<hx.length;q++){if(hx[q]&&!seen[hx[q].id]){seen[hx[q].id]=1;o.push(hx[q])}}}catch(e){}v=JSON.stringify(o);var nm={};o.forEach(function(x){nm[x.id]=x});window.__advPrev=nm}}catch(e){}}if(k===KC)window.__advStoreV=(window.__advStoreV||0)+1;return _s.call(this,k,v)}}catch(e){}})();</script><script id="adv-json">(function(){try{var _j=JSON.stringify;function strip(a){var hx=(window.__advHiddenOwn&&window.__advHiddenOwn())||[];var ids={};a.forEach(function(c){if(c&&!c._ov)ids[c.id]=1});var out=a.filter(function(c){return !(c&&c._ov)});hx.forEach(function(h){if(h&&!ids[h.id])out.push(h)});return out}function has(a){for(var i=0;i<a.length;i++){if(a[i]&&a[i]._ov)return true}return false}JSON.stringify=function(v,r,sp){try{if(window.__advHiddenOwn){if(Array.isArray(v)&&v.length&&has(v))v=strip(v);else if(v&&typeof v==="object"&&!Array.isArray(v)&&Array.isArray(v.cases)&&v.cases.length&&has(v.cases)){var c2=Object.assign({},v);c2.cases=strip(v.cases);v=c2}}}catch(e){}return _j.call(JSON,v,r,sp)}}catch(e){}})();</script><script id="adv-pwa">window.__advInstall=null;window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();window.__advInstall=e});window.addEventListener("appinstalled",function(){window.__advInstall=null;try{var b=document.getElementById("ccInstall");if(b)b.remove()}catch(x){}});</script><script>window.ADV_BUILD='admin';try{var _p=JSON.parse(localStorage.getItem('advPinLock')||'null');if(_p&&_p.salt==='AdvAdminSalt1'&&_p.hash==='92467ba809f7a7e881da046e4419ad7fdaf919e4ef9aa9e518c768b35ba2986a')localStorage.removeItem('advPinLock')}catch(e){}</script><style>#licAdmin{display:none!important}</style><link rel="manifest" href="manifest-admin.webmanifest"><meta name="theme-color" content="#0e2747"><link rel="icon" href="icon-admin-192.png"><link rel="apple-touch-icon" href="icon-admin-192.png">
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Advocate Diary | Govind Pandey</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13137,7 +13137,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     var uid = await authCreate(v.email.trim(), v.pass);
     var data = {
       email: v.email.trim().toLowerCase(), name: v.name.trim(), mobile: (v.mobile || '').trim(), role: r, parentId: me.id, status: 'active',
-      expiresAt: F.Timestamp.fromDate(exp), masterCanView: isM ? !!v.mview : false, adminCanView: !!v.aview, createdAt: F.serverTimestamp(), createdBy: me.id, notes: v.notes || '', offlineDays: og, userId: lid
+      expiresAt: F.Timestamp.fromDate(exp), masterCanView: isM ? !!v.mview : false, adminCanView: !!v.aview, perms: { create: false, date: true, edit: false, del: false }, createdAt: F.serverTimestamp(), createdBy: me.id, notes: v.notes || '', offlineDays: og, userId: lid
     };
     if (r === 'admin') { data.maxUsers = v.unl ? -1 : (parseInt(v.max, 10) || 0); data.userCount = 0; data.canCreateUsers = v.cu !== false; data.peerView = !!v.pv; }
     var b = F.writeBatch(S.db); b.set(ref('users/' + uid), data); if (lid) b.set(ref('ids/' + lid), { email: data.email, uid: uid });
@@ -13267,11 +13267,11 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       ['court', 'type', 'caseDate', 'time', 'vadiName', 'prativadiName', 'notes', 'vadiMobile'].forEach(function (k2) { if (c[k2]) item[k2] = c[k2]; });
       item.party = (item.side === 'prativadi' ? item.prativadiName : item.vadiName) || item.party;
       item.editedBy = who(d); item.editedAt = now;
-    } else {
+    } else if (d.op !== 'update' && c.caseNo && c.vadiName && c.prativadiName) {
       var adv = (typeof settings !== 'undefined' && settings.activeAdvocateId) || '';
       item = { id: (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'c' + Date.now(), history: [], customFields: {}, advocateId: adv, advocateIds: adv ? [adv] : [], caseNo: c.caseNo || '', mukhtars: [], mukhtarAam: '', vadiName: c.vadiName || '', prativadiName: c.prativadiName || '', vadiMobile: c.vadiMobile || '', vadiEmail: '', prativadiMobile: '', prativadiEmail: '', side: 'vadi', smsGreetTarget: 'auto', remLang: 'default', party: c.vadiName || '', mobile: c.vadiMobile || '', email: '', court: c.court || '', type: c.type || '', subCaseType: '', caseDate: c.caseDate || '', nextDate: c.nextDate || '', time: c.time || '', notes: c.notes || '', created: now, reminderSentAt: null, lastSent: null, sent: null, inactive: false, inactiveReason: '', inactiveAt: null, updatedAt: now, addedBy: who(d), addedAt: now };
       cases.push(item);
-    }
+    } else { return 'skipped'; }
     return res;
   }
 
@@ -13280,14 +13280,14 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   function sendEdit(op, caseId, ch, owner) {
     var F = S.fb;
     return F.addDoc(F.collection(S.db, 'edits'), { ownerUid: (owner || S.prof.parentId || (S.pub && S.pub.masterUid)), byUid: S.prof.id, byName: S.prof.name || S.prof.email, byRole: S.prof.role, op: op, caseId: caseId || '', case: ch, applied: false, at: F.serverTimestamp() })
-      .then(function () { toast(owner && owner !== (S.prof.parentId || (S.pub && S.pub.masterUid)) ? '📤 भेज दिया — उस यूज़र की ऐप खुली होने पर लागू होगा' : '📤 बदलाव भेज दिया गया'); })
+      .then(function () { toast('📤 बदलाव भेज दिया गया'); })
       .catch(function (e) { toast(errText(e)); });
   }
   function canEditSrc(uid) {
     if (!S.prof) return false; var r = role();
     if (r === 'master') return true;
     if (r === 'admin') return (S.list || []).some(function (x) { return x.id === uid && x.parentId === S.prof.id; });
-    return uid === (S.prof.parentId || (S.pub && S.pub.masterUid)) && S.prof.canEditMaster === true;
+    var pp = S.prof.perms || {}; return uid === (S.prof.parentId || (S.pub && S.pub.masterUid)) && (S.prof.canEditMaster === true || pp.edit === true || pp.date === true);
   }
   function ovDiffNow() {
     try {
@@ -13312,7 +13312,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
         if (c._srcUid && canEditSrc(c._srcUid)) {
           var ch = {}; Object.keys(chg).forEach(function (k) { if (chg[k]) ch[k] = String(chg[k]).slice(0, 300); });
           if (Object.keys(ch).length) {
-            ch.caseNo = c.caseNo || ''; sendEdit('update', c._rawId, ch, c._srcUid);
+            ch.caseNo = c.caseNo || ''; sendChange(c._srcUid, c._rawId, ch);
             var src = OV.srcs[c._srcUid], o = src && (src.cases || []).filter(function (x) { return String(x.id) === String(c._rawId); })[0]; if (o) ED_KEYS.forEach(function (k) { o[k] = c[k]; });
           }
         }
@@ -13408,6 +13408,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       var before = edSnap(), r = '';
       window.__advActor = { name: it.data.byName || 'User', role: it.data.byRole || '' };
       try { edOwn(function () { r = applyOneEdit(it.data); }); } finally { window.__advActor = null; }
+      if (r === 'skipped') { await F.updateDoc(it.ref, { applied: true, decision: 'skipped', decidedAt: F.serverTimestamp() }); EDL.q = EDL.q.filter(function (x) { return x.id !== it.id; }); edPop(); toast('केस नहीं मिला — यह बदलाव छोड़ दिया गया'); return; }
       var added = [], changed = {};
       cases.forEach(function (c) { if (c._ov) return; if (!(c.id in before)) added.push(c.id); else if (JSON.stringify(c) !== before[c.id]) changed[c.id] = before[c.id]; });
       await F.updateDoc(it.ref, { applied: true, decision: silent ? 'auto' : 'accepted', decidedAt: F.serverTimestamp(), result: r });
@@ -13563,7 +13564,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     var H = S._hist; if (!H) return; var e = H.list[idx]; if (!e) return;
     var c = cases.filter(function (x) { return String(x.id) === String(H.id); })[0]; if (!c) return;
     if (!c._ov) { c[e.f] = e.o; try { persist(); renderAll(); } catch (x) { } toast('↩ वापस कर दिया'); }
-    else { var ch = {}; ch[e.f] = e.o; ch.caseNo = c.caseNo || ''; if (!e.o) { toast('खाली मान वापस नहीं किया जा सकता'); return; } sendEdit('update', c._rawId, ch, c._srcUid); }
+    else { var ch = {}; ch[e.f] = e.o; ch.caseNo = c.caseNo || ''; if (!e.o) { toast('खाली मान वापस नहीं किया जा सकता'); return; } sendChange(c._srcUid, c._rawId, ch); }
     var m = document.getElementById('ccHist'); if (m) m.remove();
   }
   function updOpen() {
@@ -13652,9 +13653,29 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
         ops.slice(i, i + 400).forEach(function (o) { if (o.del) delete TS.pushed[o.id]; else TS.pushed[o.id] = o.h; });
       }
       if (ops.length) tsSavePushed();
+      S.tsErr = '';
     } catch (e) { S.tsErr = (e && (e.code || e.message)) || 'error'; }
     finally { TS.busy = false; }
   }
+
+  async function tsEditDoc(owner, rawId, chg) {
+    var tidx = srcTid(owner), key = owner + '__' + rawId, x = (tidx === TS.id ? TS.docs : (TX.docs[tidx] || {}))[key]; if (!x || !x.c) throw new Error('केस नहीं मिला');
+    var rc = JSON.parse(x.c), F = S.fb, nm = S.prof.name || S.prof.email, hh = (rc.hist || []).slice();
+    Object.keys(chg).forEach(function (k) {
+      if (k === 'caseNo') return; var o = String(rc[k] || ''), n = String(chg[k] || ''); if (o === n) return;
+      hh.push({ at: Date.now(), by: nm, r: role(), f: k, o: o.slice(0, 80), n: n.slice(0, 80) });
+      if (k === 'nextDate') { var h2 = Array.isArray(rc.history) ? rc.history : []; if (rc.nextDate) h2.unshift({ date: rc.nextDate }); rc.history = h2.slice(0, 10); }
+      rc[k] = chg[k];
+    });
+    rc.hist = hh.slice(-10); var js = JSON.stringify(rc), h = fnv(js);
+    await F.setDoc(ref('teams/' + tidx + '/cases/' + key), { c: js, h: h, by: nm, byUid: S.prof.id, role: role(), at: F.serverTimestamp(), del: false }, { merge: true });
+  }
+  function sendChange(uid, rawId, ch) {
+    var src = OV.srcs[uid];
+    if (src && src.team && (TS.id === S.prof.id || role() === 'master')) return tsEditDoc(uid, rawId, ch).then(function () { toast('✔ अपडेट हो गया'); }).catch(function (e) { toast(errText(e)); });
+    return sendEdit('update', rawId, ch, uid);
+  }
+  function tsStored(cid) { try { return JSON.parse(localStorage.getItem('advDiaryCases') || '[]').filter(function (c) { return String(c.id) === String(cid); })[0]; } catch (e) { return null; } }
   function tsOwnLocal(cid) { return cases.filter(function (c) { return !c._ov && String(c.id) === String(cid); })[0]; }
   function tsApply(snap) {
     var me = S.prof.id, owners = {}, trash = [], docs = {};
@@ -13665,12 +13686,21 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       if (x.owner === me) {
         var loc = tsOwnLocal(x.cid);
         if (x.del === true && x.delByUid && x.delByUid !== me && loc) {
-          try { edOwn(function () { cases = cases.filter(function (c) { return String(c.id) !== String(x.cid); }); }); } catch (e) { }
+          window.__advSys = 1; try { edOwn(function () { cases = cases.filter(function (c) { return String(c.id) !== String(x.cid); }); }); } catch (e) { } window.__advSys = 0;
           delete TS.pushed[x.cid]; tsSavePushed();
           var msg = '🗑 आपका केस ' + ((loc && loc.caseNo) || '') + ' ' + (x.delBy || 'Master') + ' ने हटा दिया है';
           toast(msg); try { if (window.Notification && Notification.permission === 'granted') new Notification('Advocate Diary', { body: msg }); } catch (e) { }
+        } else if (x.del === false && x.byUid && x.byUid !== me && x.c && loc && !x.rest && x.h !== TS.pushed[x.cid]) {
+          var st = tsStored(x.cid), lh = st ? fnv(JSON.stringify(st)) : '';
+          if (lh === TS.pushed[x.cid]) {
+            try {
+              var rc2 = JSON.parse(x.c); window.__advActor = { name: x.by || 'User', role: x.role || '' };
+              window.__advSys = 1; try { edOwn(function () { var i = cases.findIndex(function (c) { return !c._ov && String(c.id) === String(x.cid); }); if (i > -1) { var keepH = cases[i].hist; cases[i] = Object.assign({}, cases[i], rc2); if (keepH) cases[i].hist = keepH; else delete cases[i].hist; } }); } finally { window.__advActor = null; window.__advSys = 0; }
+              toast('✏ ' + (x.by || 'Master') + ' ने केस ' + (rc2.caseNo || '') + ' अपडेट किया');
+            } catch (e) { }
+          }
         } else if (x.del === false && x.rest === true && !loc && x.c) {
-          try { var rc = JSON.parse(x.c); edOwn(function () { cases.push(rc); }); TS.pushed[x.cid] = x.h; tsSavePushed(); toast('↩ केस ' + (rc.caseNo || '') + ' वापस आ गया'); } catch (e) { }
+          try { var rc = JSON.parse(x.c); window.__advSys = 1; try { edOwn(function () { cases.push(rc); }); } finally { window.__advSys = 0; } TS.pushed[x.cid] = x.h; tsSavePushed(); toast('↩ केस ' + (rc.caseNo || '') + ' वापस आ गया'); } catch (e) { }
         }
         return;
       }
@@ -13685,15 +13715,15 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   function teamStart() {
     if (TS.off || !S.prof || !S.fb) return; TS.id = teamId(); if (!TS.id) return; tsLoadPushed();
     try {
-      TS.off = S.fb.onSnapshot(col('teams/' + TS.id + '/cases'), function (snap) { try { tsApply(snap); } catch (e) { } if (TS.first) { TS.first = false; teamPush(); } }, function (e) { S.tsErr = (e && e.code) || 'error'; });
+      TS.off = S.fb.onSnapshot(col('teams/' + TS.id + '/cases'), function (snap) { TS.okAt = Date.now(); S.tsErr = ''; try { tsApply(snap); } catch (e) { } if (TS.first) { TS.first = false; teamPush(); } }, function (e) { S.tsErr = (e && e.code) || 'error'; });
     } catch (e) { }
   }
-  function canDelSrc(uid) { return !!(S.prof && TS.id && TS.id === S.prof.id && OV.srcs[uid] && OV.srcs[uid].team); }
+  function canDelSrc(uid) { return !!(S.prof && OV.srcs[uid] && OV.srcs[uid].team && ((TS.id && TS.id === S.prof.id) || role() === 'master')); }
   async function tsDel(id) {
     var c = cases.filter(function (x) { return x.id === id; })[0]; if (!c || !c._ov || !canDelSrc(c._srcUid)) return;
     if (!confirm('केस ' + (c.caseNo || '') + ' (' + ((OV.srcs[c._srcUid] || {}).name || '') + ') टीम से हटाएँ? बाद में "Recently deleted" से वापस लाया जा सकता है।')) return;
     var F = S.fb;
-    try { await F.setDoc(ref(tsPath(c._srcUid, c._rawId)), { del: true, delBy: S.prof.name || S.prof.email, delByUid: S.prof.id, delAt: F.serverTimestamp(), rest: false }, { merge: true }); toast('🗑 हटा दिया — यूज़र को सूचना जाएगी'); } catch (e) { toast(errText(e)); }
+    try { await F.setDoc(ref('teams/' + srcTid(c._srcUid) + '/cases/' + c._srcUid + '__' + c._rawId), { del: true, delBy: S.prof.name || S.prof.email, delByUid: S.prof.id, delAt: F.serverTimestamp(), rest: false }, { merge: true }); toast('🗑 हटा दिया — यूज़र को सूचना जाएगी'); } catch (e) { toast(errText(e)); }
   }
   async function tsRestore(key) {
     var x = TS.docs[key]; if (!x) return; var F = S.fb;
@@ -13712,6 +13742,63 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       var w = function (c, i) { var h = o(c, i); try { if (c._ov && canDelSrc(c._srcUid)) { var btn = '<div style="margin:6px 0"><button type="button" style="border:0;border-radius:8px;padding:5px 10px;font:700 12px system-ui;background:#fee2e2;color:#991b1b" onclick="event.stopPropagation();advCloud.tsDel(\'' + esc(String(c.id)).replace(/\'/g, '') + '\')">🗑 Delete (टीम से हटाएँ)</button></div>'; var k = h.lastIndexOf('</article>'); h = k > -1 ? h.slice(0, k) + btn + h.slice(k) : h + btn; } } catch (e) { } return h; };
       w.__d = 1; w.__w = window.card.__w; window.card = w;
     } catch (e) { }
+  }
+
+
+
+  /* ---------- Master: other teams (admin + his users), chosen by tick ---------- */
+  var TX = { offs: {}, docs: {} };
+  function txChosen() { try { return JSON.parse(localStorage.getItem('advMasterTeams') || '[]'); } catch (e) { return []; } }
+  function txApplyTeam(tid, snap) {
+    var owners = {}, docs = {}; snap.forEach(function (d) { var x = d.data(); docs[d.id] = x; if (x && x.cid && x.del !== true) (owners[x.owner] = owners[x.owner] || { name: x.ownerName || 'User', cases: [] }).cases.push(JSON.parse(x.c || '{}')); });
+    TX.docs[tid] = docs;
+    Object.keys(OV.srcs).forEach(function (u) { if (OV.srcs[u].tid === tid && !owners[u]) delete OV.srcs[u]; });
+    Object.keys(owners).forEach(function (u) { var pv = OV.srcs[u]; OV.srcs[u] = { name: owners[u].name, cases: owners[u].cases, noLWW: pv && pv.noLWW, team: true, tid: tid }; });
+    clearTimeout(TS.tmA); TS.tmA = setTimeout(function () { try { ovApply(); } catch (e) { } }, 80);
+  }
+  function txSync() {
+    if (role() !== 'master' || !S.fb) return; var want = txChosen();
+    Object.keys(TX.offs).forEach(function (t) { if (want.indexOf(t) < 0) { try { TX.offs[t](); } catch (e) { } delete TX.offs[t]; delete TX.docs[t]; Object.keys(OV.srcs).forEach(function (u) { if (OV.srcs[u].tid === t) delete OV.srcs[u]; }); ovApply(); } });
+    want.forEach(function (t) { if (TX.offs[t]) return; try { TX.offs[t] = S.fb.onSnapshot(col('teams/' + t + '/cases'), function (snap) { try { txApplyTeam(t, snap); } catch (e) { } }, function (e) { S.tsErr = (e && e.code) || 'error'; }); } catch (e) { } });
+  }
+  function txOpen() {
+    var admins = (S.list || []).filter(function (a) { return a.role === 'admin'; }), ch = txChosen();
+    var rows = admins.map(function (a) { return '<label style="display:flex;align-items:center;gap:8px;margin:9px 0;font-weight:700"><input type="checkbox" class="ccTx" value="' + esc(a.id) + '" ' + (ch.indexOf(a.id) > -1 ? 'checked' : '') + '> 🧑‍💼 ' + esc(a.name || a.email) + '</label>'; }).join('') || '<div style="color:#64748b">अभी कोई एडमिन नहीं है।</div>';
+    modalBox('ccTx', '<div style="display:flex;align-items:center;gap:8px"><b style="flex:1;font-size:15px">👥 एडमिन की टीमें चुनें</b><button style="border:0;background:#e2e8f0;border-radius:8px;padding:6px 10px;font-weight:800" onclick="document.getElementById(\'ccTx\').remove()">✕</button></div><div style="font-size:12px;color:#64748b;margin:4px 0">चुने हुए एडमिन और उनके यूज़र का डेटा आपकी ऐप में मिलकर दिखेगा।</div>' + rows + '<button style="width:100%;border:0;border-radius:10px;padding:12px;font:800 14px system-ui;background:#137547;color:#fff" onclick="advCloud.txSave()">💾 लागू करें</button>');
+  }
+  function txSave() {
+    var v = [].slice.call(document.querySelectorAll('.ccTx')).filter(function (e) { return e.checked; }).map(function (e) { return e.value; });
+    try { localStorage.setItem('advMasterTeams', JSON.stringify(v)); } catch (e) { }
+    var m = document.getElementById('ccTx'); if (m) m.remove(); txSync(); toast('✔ टीमें लागू हो गईं (' + v.length + ')');
+  }
+  function srcTid(uid) { var sc = OV.srcs[uid]; return (sc && sc.tid) || TS.id; }
+
+  /* ---------- Per-user permissions ---------- */
+  function permsOf(a) { var p = a && a.perms; return p ? { create: !!p.create, date: !!p.date, edit: !!p.edit, del: !!p.del } : { create: true, date: true, edit: true, del: true }; }
+  window.__advPermNotify = function (viol) {
+    try {
+      var kinds = {};
+      viol.forEach(function (v) {
+        kinds[v.t] = 1;
+        if (v.t === 'create') cases = cases.filter(function (c) { return c.id !== v.id; });
+        else if (v.t === 'field') { var c2 = cases.filter(function (c) { return c.id === v.id; })[0]; if (c2) c2[v.f] = v.old; }
+        else if (v.t === 'del') { if (!cases.some(function (c) { return c.id === v.id; })) cases.push(v.obj); }
+      });
+      ovRefresh();
+      toast('🔒 आपको यह करने की अनुमति नहीं है (' + Object.keys(kinds).map(function (k) { return k === 'create' ? 'केस बनाना' : k === 'del' ? 'केस हटाना' : 'यह फ़ील्ड बदलना'; }).join(', ') + ')');
+    } catch (e) { }
+  };
+  function permsOpen(id) {
+    var a = (S.list || []).filter(function (x) { return x.id === id; })[0]; if (!a) return; var p = permsOf(a);
+    var row = function (k, t, v) { return '<label style="display:flex;align-items:center;gap:8px;margin:9px 0;font-weight:700"><input type="checkbox" id="ccp_' + k + '" ' + (v ? 'checked' : '') + '> ' + t + '</label>'; };
+    modalBox('ccPerms', '<div style="display:flex;align-items:center;gap:8px"><b style="flex:1;font-size:15px">🔑 अधिकार — ' + esc(a.name || a.email) + '</b><button style="border:0;background:#e2e8f0;border-radius:8px;padding:6px 10px;font-weight:800" onclick="document.getElementById(\'ccPerms\').remove()">✕</button></div>' +
+      '<div style="margin-top:8px">' + row('date', '📅 तारीख़, समय और नोट बदल सकता है', p.date) + row('edit', '✏ बाकी सारे फ़ील्ड बदल सकता है (नाम, कोर्ट, मोबाइल…)', p.edit) + row('create', '➕ नया केस बना सकता है', p.create) + row('del', '🗑 केस हटा सकता है', p.del) + row('appr', '🔐 हर बदलाव पर मेरी मंज़ूरी चाहिए', a.needsApproval === true) + '</div>' +
+      '<div style="font-size:12px;color:#64748b;margin:6px 0">नया यूज़र डिफ़ॉल्ट में सिर्फ़ तारीख़/समय/नोट बदल सकता है। बदलाव यूज़र के अगले लॉगिन या रिफ़्रेश पर लागू होता है।</div>' +
+      '<button style="width:100%;border:0;border-radius:10px;padding:12px;font:800 14px system-ui;background:#137547;color:#fff" onclick="advCloud.permsSave(\'' + esc(id).replace(/\'/g, '') + '\')">💾 सेव करें</button>');
+  }
+  async function permsSave(id) {
+    var g = function (k) { var e = document.getElementById('ccp_' + k); return !!(e && e.checked); };
+    try { await S.fb.updateDoc(ref('users/' + id), { perms: { create: g('create'), date: g('date'), edit: g('edit'), del: g('del') }, needsApproval: g('appr'), updatedAt: S.fb.serverTimestamp() }); var m = document.getElementById('ccPerms'); if (m) m.remove(); toast('✔ अधिकार सेव हो गए'); S.listAt = 0; draw(); } catch (e) { toast(errText(e)); }
   }
 
   /* ---------- Part 3 source filter ---------- */
@@ -13824,7 +13911,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
         try {
           var n = ccName(c), col = (colorOn() && (role() === 'master' || role() === 'admin')) ? ucolor(n) : '#7a5a00';
           var cnt = (c.hist && c.hist.length) ? ' (' + c.hist.length + ')' : '', hs0 = histOf(c), la = hs0.length ? hs0[hs0.length - 1] : null, lname = la ? la.by : (c.createdByName || ''), lcol = (colorOn() && (role() === 'master' || role() === 'admin')) ? ucolor(lname) : '#334155';
-          var tag = '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 6px">' + (n ? '<span style="font:700 11px/1.3 system-ui,sans-serif;color:#fff;background:' + col + ';border-radius:8px;padding:2px 8px">👤 बनाने वाला: ' + esc(n) + '</span>' : '') + '<button type="button" style="border:0;border-radius:8px;padding:2px 8px;font:700 11px system-ui;background:#e2e8f0;color:#0f2a4a" onclick="event.stopPropagation();advCloud.hist(\'' + esc(String(c.id)).replace(/'/g, '') + '\')">🕘 History' + cnt + '</button><button type="button" style="border:0;border-radius:8px;padding:2px 8px;font:700 11px system-ui;background:#fff;color:' + lcol + ';border:1.5px solid ' + lcol + '" onclick="event.stopPropagation();advCloud.hist(\'' + esc(String(c.id)).replace(/'/g, '') + '\')">✏ Last update: ' + esc(lname || '—') + (la ? ' · ' + fdt(la.at) : '') + '</button></div>';
+          var tag = '<div style="display:flex;flex-wrap:nowrap;gap:6px;align-items:center;margin:0 0 6px;overflow:hidden">' + (n ? '<span style="flex:0 1 auto;min-width:0;max-width:46%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:700 11px/1.3 system-ui,sans-serif;color:#fff;background:' + col + ';border-radius:8px;padding:3px 8px">👤 ' + esc(n) + '</span>' : '') + '<button type="button" style="flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left;border-radius:8px;padding:2px 8px;font:700 11px system-ui;background:#fff;color:' + lcol + ';border:1.5px solid ' + lcol + '" onclick="event.stopPropagation();advCloud.hist(\'' + esc(String(c.id)).replace(/'/g, '') + '\')">✏ ' + esc(lname || '—') + (la ? ' · ' + fdt(la.at) : '') + '</button></div>';
           h = h.replace(/(<article)([^>]*>)/, function (m, a1, a2) { return a1 + (n && /style=/.test(a2) === false ? ' style="border-left:6px solid ' + col + '"' : '') + a2 + tag; });
         } catch (e) { }
         return h;
@@ -13842,9 +13929,9 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   function lineUpdate() {
     var el = $('ccLoginLine'); if (!el) return;
     if (!S.prof) { el.style.display = 'none'; return; }
-    el.style.display = 'block'; window.__advMe = S.prof.name || S.prof.email || ''; window.__advRole = role();
+    el.style.display = 'block'; window.__advMe = S.prof.name || S.prof.email || ''; window.__advRole = role(); window.__advPerms = (role() === 'user' && S.prof.perms) ? { create: !!S.prof.perms.create, date: !!S.prof.perms.date, edit: !!S.prof.perms.edit, del: !!S.prof.perms.del } : null;
     var pub = ''; try { pub = (localStorage.getItem('advCloudPubAt') || '').split(', ').pop(); } catch (e) { }
-    var t = $('ccLoginTxt'); if (t) t.textContent = '☁ ' + titleRole() + ' · ' + (S.prof.email || '') + (S.prevLogin ? ' · Last login: ' + S.prevLogin : '') + (S.syncErr ? ' · ⚠ सिंक: ' + S.syncErr : (pub ? ' · ✓ सर्वर पर आख़िरी अपडेट: ' + pub : ''));
+    var t = $('ccLoginTxt'); if (t) t.textContent = '☁ ' + titleRole() + ' · ' + (S.prof.email || '') + (S.prevLogin ? ' · Last login: ' + S.prevLogin : '') + (S.syncErr ? ' · ⚠ सिंक: ' + S.syncErr : (pub ? ' · ✓ सर्वर पर आख़िरी अपडेट: ' + pub : '')) + (S.tsErr ? ' · ⚠ टीम-सिंक: ' + (/permission/i.test(S.tsErr) ? 'Rules publish नहीं हुए' : S.tsErr) : (TS.okAt ? ' · 👥 टीम ✔ ' + new Date(TS.okAt).toLocaleTimeString() : ''));
     var op = $('ccLoginOpts'); if (op) op.style.display = (role() === 'master' || role() === 'admin') ? 'flex' : 'none'; var fs0 = $('ccFilterSel'); if (fs0) fs0.style.display = (role() === 'master' || role() === 'admin') ? '' : 'none';
   }
   function fillFilter() {
@@ -13913,13 +14000,13 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     fetchCasesOf(a).then(function (l) { ovSet(a.id, a.name || a.email, l); ovLive(a, a.name || a.email); }).catch(function () { });
   }
   window.advOv = { set: ovSet, drop: ovDrop, opts: OV };
-  window.advTeam = { TS: TS, apply: tsApply, push: teamPush, start: teamStart, del: tsDel, restore: tsRestore };
+  window.advTeam = { edit: tsEditDoc, TS: TS, apply: tsApply, push: teamPush, start: teamStart, del: tsDel, restore: tsRestore };
   function hookFilter() {
     try {
       if (!S._lu) S._lu = setInterval(function () { try { lineUpdate(); var ck = document.getElementById('ccChkTxt'); if (ck) ck.textContent = S.lastChk ? 'अंतिम जाँच: ' + new Date(S.lastChk).toLocaleTimeString() + (S.syncErr ? ' ⚠ ' + S.syncErr : ' ✔ सर्वर से मिला हुआ') : ''; } catch (e) { } }, 2000);
       if (S._lt !== S.tab + '|' + S.screen) { S._lt = S.tab + '|' + S.screen; S.dOpen = {}; } instUpdate();
       var asx = $('activeAdvocateSelect'); if (asx && !asx._ovw) { asx._ovw = 1; asx.addEventListener('change', function () { setTimeout(function () { try { ovApply(); } catch (e) { } }, 80); }); }
-      wrapAdvSwitch(); lineUpdate(); wrapCard(); wrapCardDel(); wrapAdvFilt(); wrapNb(); if (S.prof && S.fb && !TS.off) teamStart(); if (S.prof && S.fb && !S._asBusy && !S._asOk && (!S._asAt || Date.now() - S._asAt > 30000)) { S._asBusy = true; S._asAt = Date.now(); autoSources().then(function (ok) { S._asOk = !!ok; S._asBusy = false; }).catch(function () { S._asBusy = false; }); }
+      wrapAdvSwitch(); lineUpdate(); wrapCard(); wrapCardDel(); wrapAdvFilt(); wrapNb(); if (S.prof && S.fb && !TS.off) teamStart(); if (role() === 'master' && S.fb && S.list && !S._txOk) { S._txOk = 1; txSync(); } if (S.prof && S.fb && !S._asBusy && !S._asOk && (!S._asAt || Date.now() - S._asAt > 30000)) { S._asBusy = true; S._asAt = Date.now(); autoSources().then(function (ok) { S._asOk = !!ok; S._asBusy = false; }).catch(function () { S._asBusy = false; }); }
       if (S.prof && S.fb && (role() === 'master' || role() === 'admin')) {
         if (!S._fl) { S._fl = true; fetchList().then(function () { fillFilter(); restoreFilter(); }).catch(function () { S._fl = false; }); }
         var key = (S.list ? S.list.length : -1) + ':' + S.prof.id;
@@ -13952,7 +14039,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     var r = document.createElement('div'); r.id = 'cc-root'; document.body.appendChild(r);
     var f = document.createElement('button'); f.id = 'cc-fab'; f.type = 'button'; f.textContent = '☁'; f.title = 'Cloud Control'; f.onclick = function () { api.open(); }; document.body.appendChild(f);
     {
-      var hd = document.querySelector('header'); if (hd && !$('ccLoginLine')) { var ln = document.createElement('div'); ln.id = 'ccLoginLine'; ln.innerHTML = '<span id="ccLoginTxt"></span><span id="ccLoginOpts" style="display:none;gap:14px;flex-wrap:wrap;margin-top:3px"><label><input type="checkbox" id="ccOvMerge"> 🔀 मेरे साथ मिलाकर दिखाएँ</label><label><input type="checkbox" id="ccOvNotif"> 🔔 Notification में जोड़ें</label><label><input type="checkbox" id="ccColorOn"> 🎨 रंग</label><button type="button" id="ccUpdBtn" style="border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:#d9a441;color:#1b1405">📋 Updates</button><button type="button" id="ccNameBtn" style="border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:#e2e8f0;color:#0f2a4a">✏ नाम</button></span>'; hd.parentNode.insertBefore(ln, hd.nextSibling); var m1 = $('ccOvMerge'), m2 = $('ccOvNotif'), m3 = $('ccColorOn'), bU = $('ccUpdBtn'), bN = $('ccNameBtn'); if (m3) { m3.checked = colorOn(); m3.onchange = function () { try { localStorage.setItem('advColorOn', this.checked ? '1' : '0'); } catch (e) { } ovRefresh(); }; } if (bU) bU.onclick = function () { updOpen(); }; if (bN) bN.onclick = function () { renameMe(); }; if (m1) { m1.checked = OV.mode !== 'only'; m1.onchange = function () { OV.mode = this.checked ? 'merge' : 'only'; ovSaveOpts(); ovApply(); }; } if (m2) { m2.checked = !!OV.notif; m2.onchange = function () { OV.notif = this.checked; ovSaveOpts(); ovApply(); }; } }
+      var hd = document.querySelector('header'); if (hd && !$('ccLoginLine')) { var ln = document.createElement('div'); ln.id = 'ccLoginLine'; ln.innerHTML = '<span id="ccLoginTxt"></span><span id="ccLoginOpts" style="display:none;gap:14px;flex-wrap:wrap;margin-top:3px"><label><input type="checkbox" id="ccOvMerge"> 🔀 मेरे साथ मिलाकर दिखाएँ</label><label><input type="checkbox" id="ccOvNotif"> 🔔 Notification में जोड़ें</label><label><input type="checkbox" id="ccColorOn"> 🎨 रंग</label><button type="button" id="ccUpdBtn" style="border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:#d9a441;color:#1b1405">📋 Updates</button><button type="button" id="ccTxBtn" style="border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:#e2e8f0;color:#0f2a4a">👥 टीमें</button><button type="button" id="ccNameBtn" style="border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:#e2e8f0;color:#0f2a4a">✏ नाम</button></span>'; hd.parentNode.insertBefore(ln, hd.nextSibling); var m1 = $('ccOvMerge'), m2 = $('ccOvNotif'), m3 = $('ccColorOn'), bU = $('ccUpdBtn'), bN = $('ccNameBtn'), bT = $('ccTxBtn'); if (bT) bT.onclick = function () { txOpen(); }; if (m3) { m3.checked = colorOn(); m3.onchange = function () { try { localStorage.setItem('advColorOn', this.checked ? '1' : '0'); } catch (e) { } ovRefresh(); }; } if (bU) bU.onclick = function () { updOpen(); }; if (bN) bN.onclick = function () { renameMe(); }; if (m1) { m1.checked = OV.mode !== 'only'; m1.onchange = function () { OV.mode = this.checked ? 'merge' : 'only'; ovSaveOpts(); ovApply(); }; } if (m2) { m2.checked = !!OV.notif; m2.onchange = function () { OV.notif = this.checked; ovSaveOpts(); ovApply(); }; } }
       var as = $('activeAdvocateSelect'); if (as && !$('ccFilterSel')) { var fs = document.createElement('select'); fs.id = 'ccFilterSel'; fs.title = 'User / Admin / Master चुनें'; fs.innerHTML = '<option value="">☁ User/Admin</option>'; fs.onchange = function () { onFilter(this.value); }; as.parentNode.insertBefore(fs, as.nextSibling); }
     }
   }
@@ -14087,7 +14174,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
         (a.status === 'active' ? '<button class="cc-b sm red" onclick="advCloud.status(\'' + a.id + '\',\'blocked\')">🚫 Block</button>' : '<button class="cc-b sm grn" onclick="advCloud.status(\'' + a.id + '\',\'active\')">✅ Unblock</button>') +
         '<button class="cc-b sm gray" onclick="advCloud.reset(\'' + a.id + '\')">📧 Reset</button>' +
         '<button class="cc-b sm gray" ' + (canV ? '' : 'disabled style="opacity:.4"') + ' onclick="advCloud.data(\'' + a.id + '\')">🗂 Data</button>' +
-        (isM ? '<button class="cc-b sm gray" onclick="advCloud.mview(\'' + a.id + '\',' + (a.canViewMaster ? 'false' : 'true') + ')">' + (a.canViewMaster ? '👁 Master data: ON' : '👁 Master data: OFF') + '</button><button class="cc-b sm gray" onclick="advCloud.medit(\'' + a.id + '\',' + (a.canEditMaster ? 'false' : 'true') + ')">' + (a.canEditMaster ? '✏ Edit: ON' : '✏ Edit: OFF') + '</button><button class="cc-b sm red" onclick="advCloud.del(\'' + a.id + '\')">🗑</button>' : '') + (a.role === 'user' && (isM || role() === 'admin') ? (!isM ? '<button class="cc-b sm gray" onclick="advCloud.medit(\'' + a.id + '\',' + (a.canEditMaster ? 'false' : 'true') + ')">' + (a.canEditMaster ? '✏ Edit: ON' : '✏ Edit: OFF') + '</button>' : '') + '<button class="cc-b sm gray" onclick="advCloud.napp(\'' + a.id + '\',' + (a.needsApproval ? 'false' : 'true') + ')">' + (a.needsApproval ? '☑ अनुमोदन चाहिए' : '☐ सीधे लागू') + '</button>' : '') + '</div></div>';
+        (isM ? '<button class="cc-b sm gray" onclick="advCloud.mview(\'' + a.id + '\',' + (a.canViewMaster ? 'false' : 'true') + ')">' + (a.canViewMaster ? '👁 Master data: ON' : '👁 Master data: OFF') + '</button><button class="cc-b sm gray" onclick="advCloud.medit(\'' + a.id + '\',' + (a.canEditMaster ? 'false' : 'true') + ')">' + (a.canEditMaster ? '✏ Edit: ON' : '✏ Edit: OFF') + '</button><button class="cc-b sm red" onclick="advCloud.del(\'' + a.id + '\')">🗑</button>' : '') + (a.role === 'user' && (isM || role() === 'admin') ? (!isM ? '<button class="cc-b sm gray" onclick="advCloud.medit(\'' + a.id + '\',' + (a.canEditMaster ? 'false' : 'true') + ')">' + (a.canEditMaster ? '✏ Edit: ON' : '✏ Edit: OFF') + '</button>' : '') + '<button class="cc-b sm gray" onclick="advCloud.napp(\'' + a.id + '\',' + (a.needsApproval ? 'false' : 'true') + ')">' + (a.needsApproval ? '☑ अनुमोदन चाहिए' : '☐ सीधे लागू') + '</button><button class="cc-b sm gray" onclick="advCloud.perms(\'' + a.id + '\')">🔑 अधिकार</button>' : '') + '</div></div>';
     }).join('');
   }
   function vNotify() {
@@ -14218,6 +14305,8 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     det: function (k, open) { S.dOpen = S.dOpen || {}; S.dOpen[k] = !!open; if (open && k === 'ed' && !S.edLog) { try { advCloud.edLog(); } catch (e) { } } },
     last: function (id) { lastOpen(id); },
     tsDel: function (id) { tsDel(id); }, tsRestore: function (k) { tsRestore(k); },
+    txSave: function () { txSave(); }, tx: function () { txOpen(); },
+    perms: function (id) { permsOpen(id); }, permsSave: function (id) { permsSave(id); },
     hist: function (id) { histOpen(id); }, histRevert: function (i) { histRevert(i); },
     updAll: function (on) { var names = {}; Object.keys(OV.srcs).forEach(function (u) { names[OV.srcs[u].name] = 1; }); if (S.prof) names[S.prof.name || S.prof.email] = 1; S._updSel = on ? Object.keys(names) : []; updOpen(); },
     updTog: function (n, on) { var a = (S._updSel || []).filter(function (x) { return x !== n; }); if (on) a.push(n); S._updSel = a; updOpen(); },
