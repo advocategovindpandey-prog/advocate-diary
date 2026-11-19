@@ -3,7 +3,7 @@
 <head><script id="adv-guard">(function(){try{var KC='advDiaryCases',_s=Storage.prototype.setItem,KEYS=['caseNo','type','court','vadiName','prativadiName','caseDate','nextDate','time','vadiMobile','notes'];window.__advMe='';window.__advRole='';window.__advViewOnly=false;window.__advActor=null;window.__advKeys=KEYS;
 function prevMap(){if(!window.__advPrev){var m={};try{JSON.parse(localStorage.getItem(KC)||'[]').forEach(function(x){if(x&&x.id!=null)m[x.id]=x})}catch(e){}window.__advPrev=m}return window.__advPrev}
 if(!window.__advJs){window.__advJs=1;var _js=JSON.stringify;JSON.stringify=function(v,r,sp){try{if(Array.isArray(v)){if(v.some(function(x){return x&&x._ov}))v=v.filter(function(x){return !(x&&x._ov)})}else if(v&&typeof v==='object'&&Array.isArray(v.cases)&&v.cases.some(function(x){return x&&x._ov}))v=Object.assign({},v,{cases:v.cases.filter(function(x){return !(x&&x._ov)})})}catch(e){}return _js.call(JSON,v,r,sp)}}
-Storage.prototype.setItem=function(k,v){if(k===KC&&this===window.localStorage){try{if(window.__advOvDiff)window.__advOvDiff()}catch(e){}if(window.__advViewOnly)return;try{var a=JSON.parse(v);if(Array.isArray(a)){var viol=[],me=window.__advMe||'',act=window.__advActor||{name:me,role:window.__advRole||''},pm=prevMap(),o=[],seen={};for(var i=0;i<a.length;i++){var c=a[i];if(!c||c._ov||String(c.id).indexOf('ov_')===0)continue;if(me&&!c.createdByName)c.createdByName=me;var p=pm[c.id],pr=(!window.__advSys&&window.__advRole==='user')?window.__advPerms:null;if(pr&&!p&&!pr.create){viol.push({t:'create',id:c.id});continue}if(pr&&p&&!pr.edit){var okf=pr.date?['nextDate','time','notes']:[];for(var z=0;z<KEYS.length;z++){var kf=KEYS[z];if(okf.indexOf(kf)<0&&String(c[kf]||'')!==String(p[kf]||'')){viol.push({t:'field',id:c.id,f:kf,old:p[kf]});c[kf]=p[kf]}}}var h=(p&&p.hist?p.hist.slice():(c.hist||[]).slice());if(p){for(var j=0;j<KEYS.length;j++){var f=KEYS[j];if(String(c[f]||'')!==String(p[f]||''))h.push({at:Date.now(),by:act.name,r:act.role,f:f,o:String(p[f]||'').slice(0,80),n:String(c[f]||'').slice(0,80)})}}else if(!h.length){h.push({at:Date.now(),by:act.name,r:act.role,f:'new',o:'',n:String(c.caseNo||'')})}if(h.length>10)h=h.slice(-10);if(h.length)c.hist=h;seen[c.id]=1;o.push(c)}if(!window.__advSys&&window.__advRole==='user'&&window.__advPerms&&!window.__advPerms.del){for(var pid in pm){if(!seen[pid]&&pm[pid]&&String(pid).indexOf('ov_')!==0&&!(pm[pid]._ov)){viol.push({t:'del',id:pid,obj:pm[pid]});seen[pid]=1;o.push(pm[pid])}}}if(viol.length&&window.__advPermNotify){setTimeout(function(){try{window.__advPermNotify(viol)}catch(e){}},0)}try{var hx=(window.__advHiddenOwn&&window.__advHiddenOwn())||[];for(var q=0;q<hx.length;q++){if(hx[q]&&!seen[hx[q].id]){seen[hx[q].id]=1;o.push(hx[q])}}}catch(e){}v=JSON.stringify(o);var nm={};o.forEach(function(x){nm[x.id]=x});window.__advPrev=nm}}catch(e){}}if(k===KC)window.__advStoreV=(window.__advStoreV||0)+1;return _s.call(this,k,v)}}catch(e){}})();</script><script id="adv-json">(function(){try{var _j=JSON.stringify;function strip(a){var hx=(window.__advHiddenOwn&&window.__advHiddenOwn())||[];var ids={};a.forEach(function(c){if(c&&!c._ov)ids[c.id]=1});var out=a.filter(function(c){return !(c&&c._ov)});hx.forEach(function(h){if(h&&!ids[h.id])out.push(h)});return out}function has(a){for(var i=0;i<a.length;i++){if(a[i]&&a[i]._ov)return true}return false}JSON.stringify=function(v,r,sp){try{if(window.__advHiddenOwn){if(Array.isArray(v)&&v.length&&has(v))v=strip(v);else if(v&&typeof v==="object"&&!Array.isArray(v)&&Array.isArray(v.cases)&&v.cases.length&&has(v.cases)){var c2=Object.assign({},v);c2.cases=strip(v.cases);v=c2}}}catch(e){}return _j.call(JSON,v,r,sp)}}catch(e){}})();</script><script id="adv-pwa">window.__advInstall=null;window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();window.__advInstall=e});window.addEventListener("appinstalled",function(){window.__advInstall=null;try{var b=document.getElementById("ccInstall");if(b)b.remove()}catch(x){}});</script><script>window.ADV_BUILD='user';try{var _p=JSON.parse(localStorage.getItem('advPinLock')||'null');if(_p&&_p.salt==='AdvAdminSalt1'&&_p.hash==='92467ba809f7a7e881da046e4419ad7fdaf919e4ef9aa9e518c768b35ba2986a')localStorage.removeItem('advPinLock')}catch(e){}</script><style>#licAdmin{display:none!important}</style><link rel="manifest" href="manifest-user.webmanifest"><meta name="theme-color" content="#0e2747"><link rel="icon" href="icon-user-192.png"><link rel="apple-touch-icon" href="icon-user-192.png">
+Storage.prototype.setItem=function(k,v){if(k===KC&&this===window.localStorage&&window.__advRaw){return _s.call(this,k,v)}if(k===KC&&this===window.localStorage){try{if(window.__advOvDiff)window.__advOvDiff()}catch(e){}if(window.__advViewOnly)return;try{var a=JSON.parse(v);if(Array.isArray(a)){var viol=[],me=window.__advMe||'',act=window.__advActor||{name:me,role:window.__advRole||''},pm=prevMap(),o=[],seen={};for(var i=0;i<a.length;i++){var c=a[i];if(!c||c._ov||String(c.id).indexOf('ov_')===0)continue;if(me&&!c.createdByName)c.createdByName=me;var p=pm[c.id],pr=(!window.__advSys&&window.__advRole==='user')?window.__advPerms:null;if(pr&&!p&&!pr.create){viol.push({t:'create',id:c.id});continue}if(pr&&p&&!pr.edit){var okf=pr.date?['nextDate','time','notes']:[];for(var z=0;z<KEYS.length;z++){var kf=KEYS[z];if(okf.indexOf(kf)<0&&String(c[kf]||'')!==String(p[kf]||'')){viol.push({t:'field',id:c.id,f:kf,old:p[kf]});c[kf]=p[kf]}}}var h=(p&&p.hist?p.hist.slice():(c.hist||[]).slice());if(p){for(var j=0;j<KEYS.length;j++){var f=KEYS[j];if(String(c[f]||'')!==String(p[f]||''))h.push({at:Date.now(),by:act.name,r:act.role,f:f,o:String(p[f]||'').slice(0,80),n:String(c[f]||'').slice(0,80)})}}else if(!h.length){h.push({at:Date.now(),by:act.name,r:act.role,f:'new',o:'',n:String(c.caseNo||'')})}if(h.length>10)h=h.slice(-10);if(h.length)c.hist=h;seen[c.id]=1;o.push(c)}if(!window.__advSys&&window.__advRole==='user'&&window.__advPerms&&!window.__advPerms.del){for(var pid in pm){if(!seen[pid]&&pm[pid]&&String(pid).indexOf('ov_')!==0&&!(pm[pid]._ov)){viol.push({t:'del',id:pid,obj:pm[pid]});seen[pid]=1;o.push(pm[pid])}}}if(viol.length&&window.__advPermNotify){setTimeout(function(){try{window.__advPermNotify(viol)}catch(e){}},0)}try{var hx=(window.__advHiddenOwn&&window.__advHiddenOwn())||[];for(var q=0;q<hx.length;q++){if(hx[q]&&!seen[hx[q].id]){seen[hx[q].id]=1;o.push(hx[q])}}}catch(e){}v=JSON.stringify(o);var nm={};o.forEach(function(x){nm[x.id]=x});window.__advPrev=nm}}catch(e){}}if(k===KC)window.__advStoreV=(window.__advStoreV||0)+1;return _s.call(this,k,v)}}catch(e){}})();</script><script id="adv-json">(function(){try{var _j=JSON.stringify;function strip(a){var hx=(window.__advHiddenOwn&&window.__advHiddenOwn())||[];var ids={};a.forEach(function(c){if(c&&!c._ov)ids[c.id]=1});var out=a.filter(function(c){return !(c&&c._ov)});hx.forEach(function(h){if(h&&!ids[h.id])out.push(h)});return out}function has(a){for(var i=0;i<a.length;i++){if(a[i]&&a[i]._ov)return true}return false}JSON.stringify=function(v,r,sp){try{if(window.__advHiddenOwn){if(Array.isArray(v)&&v.length&&has(v))v=strip(v);else if(v&&typeof v==="object"&&!Array.isArray(v)&&Array.isArray(v.cases)&&v.cases.length&&has(v.cases)){var c2=Object.assign({},v);c2.cases=strip(v.cases);v=c2}}}catch(e){}return _j.call(JSON,v,r,sp)}}catch(e){}})();</script><script id="adv-pwa">window.__advInstall=null;window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();window.__advInstall=e});window.addEventListener("appinstalled",function(){window.__advInstall=null;try{var b=document.getElementById("ccInstall");if(b)b.remove()}catch(x){}});</script><script>window.ADV_BUILD='user';try{var _p=JSON.parse(localStorage.getItem('advPinLock')||'null');if(_p&&_p.salt==='AdvAdminSalt1'&&_p.hash==='92467ba809f7a7e881da046e4419ad7fdaf919e4ef9aa9e518c768b35ba2986a')localStorage.removeItem('advPinLock')}catch(e){}</script><style>#licAdmin{display:none!important}</style><link rel="manifest" href="manifest-user.webmanifest"><meta name="theme-color" content="#0e2747"><link rel="icon" href="icon-user-192.png"><link rel="apple-touch-icon" href="icon-user-192.png">
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Advocate Diary | Govind Pandey</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13576,6 +13576,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     }).join('');
     var list = cases.filter(function (c) { return (c.hist || histOf(c)).some(function (e) { return sel.indexOf(e.by) > -1; }); });
     list.sort(function (a, b) { var A = histOf(a), B = histOf(b); return (B.length ? B[B.length - 1].at : 0) - (A.length ? A[A.length - 1].at : 0); });
+    var dcnt = 0, t24 = Date.now() - 86400000; list.forEach(function (c) { histOf(c).forEach(function (e) { if (e.f === 'nextDate' && e.at > t24 && sel.indexOf(e.by) > -1) dcnt++; }); });
     var body = list.map(function (c, i) {
       var h = histOf(c).filter(function (e) { return sel.indexOf(e.by) > -1; }).slice(-3).reverse();
       var lines = h.map(function (e) { return '<div style="font-size:12px;color:#475569"><b style="color:' + ucolor(e.by) + '">' + esc(e.by || '') + '</b> · ' + fdt(e.at) + ' · ' + esc(HLAB[e.f] || e.f) + (e.f === 'new' ? '' : ': ' + esc(e.o || '—') + ' → ' + esc(e.n || '—')) + '</div>'; }).join('');
@@ -13583,7 +13584,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       return '<div style="margin:10px 0">' + ch + '<div style="padding:4px 8px">' + lines + '</div></div>';
     }).join('') || '<div style="color:#64748b;padding:14px">चुने हुए यूज़र का कोई अपडेट नहीं मिला।</div>';
     var o = document.getElementById('ccUpd'); if (!o) { o = document.createElement('div'); o.id = 'ccUpd'; o.style.cssText = 'position:fixed;inset:0;z-index:2147483642;background:#f1f5f9;color:#142b4a;overflow:auto;font:14px/1.45 system-ui,sans-serif'; document.body.appendChild(o); }
-    o.innerHTML = '<div style="position:sticky;top:0;background:#0f2a4a;color:#fff;padding:10px 12px;display:flex;align-items:center;gap:8px;z-index:2"><b style="flex:1">📋 यूज़र के अपडेट (' + list.length + ')</b><button style="border:0;border-radius:8px;padding:7px 12px;font-weight:800" onclick="document.getElementById(\'ccUpd\').remove()">✕ बंद</button></div><div style="padding:10px 12px">' + chips + '</div><div style="padding:0 8px 80px">' + body + '</div>';
+    o.innerHTML = '<div style="position:sticky;top:0;background:#0f2a4a;color:#fff;padding:10px 12px;display:flex;align-items:center;gap:8px;z-index:2"><b style="flex:1">📋 यूज़र के अपडेट (' + list.length + ') · 📅 24 घंटे में तारीख़ बदली: ' + dcnt + '</b><button style="border:0;border-radius:8px;padding:7px 12px;font-weight:800" onclick="document.getElementById(\'ccUpd\').remove()">✕ बंद</button></div><div style="padding:10px 12px">' + chips + '</div><div style="padding:0 8px 80px">' + body + '</div>';
   }
   async function renameMe() {
     var n = prompt('नया नाम लिखिए', (S.prof && S.prof.name) || ''); if (n === null) return; n = n.trim(); if (!n) return;
@@ -13631,7 +13632,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
 
 
   /* ---------- Team store: one shared copy of the team's cases (live) ---------- */
-  var TS = { id: '', docs: {}, pushed: {}, off: null, first: true, busy: false, tmA: null };
+  var TS = { id: '', docs: {}, pushed: {}, off: null, first: true, busy: false, tmA: null, seenH: {}, base: true };
   function teamId() { if (!S.prof) return ''; if (role() === 'master' || role() === 'admin') return S.prof.id; return S.prof.parentId || ''; }
   function tsPath(owner, cid) { return 'teams/' + TS.id + '/cases/' + owner + '__' + cid; }
   function tsLoadPushed() { try { TS.pushed = JSON.parse(localStorage.getItem('advTeamPushed:' + S.prof.id) || '{}'); } catch (e) { TS.pushed = {}; } }
@@ -13678,7 +13679,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   function tsStored(cid) { try { return JSON.parse(localStorage.getItem('advDiaryCases') || '[]').filter(function (c) { return String(c.id) === String(cid); })[0]; } catch (e) { return null; } }
   function tsOwnLocal(cid) { return cases.filter(function (c) { return !c._ov && String(c.id) === String(cid); })[0]; }
   function tsApply(snap) {
-    var me = S.prof.id, owners = {}, trash = [], docs = {};
+    var me = S.prof.id, owners = {}, trash = [], docs = {}, notes = [];
     snap.forEach(function (d) { var x = d.data(); docs[d.id] = x; });
     TS.docs = docs;
     Object.keys(docs).forEach(function (k) {
@@ -13706,7 +13707,10 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       }
       if (x.del === true) { trash.push(x); return; }
       (owners[x.owner] = owners[x.owner] || { name: x.ownerName || 'User', cases: [] }).cases.push(JSON.parse(x.c || '{}'));
+      if (TS.seenH[k] !== undefined && TS.seenH[k] !== x.h && !TS.base) notes.push(x); TS.seenH[k] = x.h;
     });
+    if (notes.length) { var n0 = notes[0], tm = ''; try { var dt = n0.at && n0.at.toDate ? n0.at.toDate() : new Date(); tm = dt.toLocaleTimeString(); } catch (e) { } var cn = ''; try { cn = JSON.parse(n0.c || '{}').caseNo || ''; } catch (e) { } var msg2 = '🔔 ' + (n0.by || n0.ownerName || 'User') + ' ने केस ' + cn + ' अपडेट किया' + (notes.length > 1 ? ' (+' + (notes.length - 1) + ' और)' : '') + ' · सर्वर पर पहुँचा ' + tm; toast(msg2); try { if (window.Notification && Notification.permission === 'granted') new Notification('Advocate Diary', { body: msg2 }); } catch (e) { } }
+    TS.base = false;
     TS.trash = trash;
     Object.keys(OV.srcs).forEach(function (u) { if (OV.srcs[u].team && !owners[u]) delete OV.srcs[u]; });
     Object.keys(owners).forEach(function (u) { var pv = OV.srcs[u]; OV.srcs[u] = { name: owners[u].name, cases: owners[u].cases, noLWW: pv && pv.noLWW, team: true }; });
@@ -13772,6 +13776,30 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     var m = document.getElementById('ccTx'); if (m) m.remove(); txSync(); toast('✔ टीमें लागू हो गईं (' + v.length + ')');
   }
   function srcTid(uid) { var sc = OV.srcs[uid]; return (sc && sc.tid) || TS.id; }
+
+
+  /* ---------- One device, many accounts: keep each account's local cases separate ---------- */
+  function acctGuard() {
+    if (S._ag || !S.prof) return; S._ag = 1;
+    var OWN = 'advOwnerUid', KEY = 'advDiaryCases', uid = S.prof.id, prev = null, raw = '[]';
+    try { prev = localStorage.getItem(OWN); raw = localStorage.getItem(KEY) || '[]'; } catch (e) { }
+    function put(k, v) { window.__advRaw = 1; try { localStorage.setItem(k, v); } finally { window.__advRaw = 0; } }
+    function done() { try { localStorage.setItem(OWN, uid); } catch (e) { } }
+    function reload() { window.__advPrev = null; if (!window.__advTestNoReload) setTimeout(function () { location.reload(); }, 150); }
+    if (!prev) {
+      var list = []; try { list = JSON.parse(raw) || []; } catch (e) { }
+      var me = S.prof.name || S.prof.email || '', foreign = list.filter(function (c) { return c && c.createdByName && c.createdByName !== me; });
+      if (list.length && foreign.length >= Math.ceil(list.length / 2) && confirm('इस फ़ोन में किसी और खाते का डेटा मिला है (जैसे: ' + foreign[0].createdByName + '). क्या इसे इस खाते से अलग कर दें?\n\nOK = अलग कर दो · Cancel = यह इसी खाते का डेटा है')) {
+        try { localStorage.setItem('advStash:previous', raw); } catch (e) { } put(KEY, '[]'); done(); reload(); return;
+      }
+      done(); return;
+    }
+    if (prev !== uid) {
+      try { localStorage.setItem('advStash:' + prev, raw); } catch (e) { }
+      var next = '[]'; try { next = localStorage.getItem('advStash:' + uid) || '[]'; } catch (e) { }
+      put(KEY, next); done(); reload();
+    }
+  }
 
   /* ---------- Per-user permissions ---------- */
   function permsOf(a) { var p = a && a.perms; return p ? { create: !!p.create, date: !!p.date, edit: !!p.edit, del: !!p.del } : { create: true, date: true, edit: true, del: true }; }
@@ -14006,7 +14034,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       if (!S._lu) S._lu = setInterval(function () { try { lineUpdate(); var ck = document.getElementById('ccChkTxt'); if (ck) ck.textContent = S.lastChk ? 'अंतिम जाँच: ' + new Date(S.lastChk).toLocaleTimeString() + (S.syncErr ? ' ⚠ ' + S.syncErr : ' ✔ सर्वर से मिला हुआ') : ''; } catch (e) { } }, 2000);
       if (S._lt !== S.tab + '|' + S.screen) { S._lt = S.tab + '|' + S.screen; S.dOpen = {}; } instUpdate();
       var asx = $('activeAdvocateSelect'); if (asx && !asx._ovw) { asx._ovw = 1; asx.addEventListener('change', function () { setTimeout(function () { try { ovApply(); } catch (e) { } }, 80); }); }
-      wrapAdvSwitch(); lineUpdate(); wrapCard(); wrapCardDel(); wrapAdvFilt(); wrapNb(); if (S.prof && S.fb && !TS.off) teamStart(); if (role() === 'master' && S.fb && S.list && !S._txOk) { S._txOk = 1; txSync(); } if (S.prof && S.fb && !S._asBusy && !S._asOk && (!S._asAt || Date.now() - S._asAt > 30000)) { S._asBusy = true; S._asAt = Date.now(); autoSources().then(function (ok) { S._asOk = !!ok; S._asBusy = false; }).catch(function () { S._asBusy = false; }); }
+      wrapAdvSwitch(); lineUpdate(); acctGuard(); wrapCard(); wrapCardDel(); wrapAdvFilt(); wrapNb(); if (S.prof && S.fb && !TS.off) teamStart(); if (role() === 'master' && S.fb && S.list && !S._txOk) { S._txOk = 1; txSync(); } if (S.prof && S.fb && !S._asBusy && !S._asOk && (!S._asAt || Date.now() - S._asAt > 30000)) { S._asBusy = true; S._asAt = Date.now(); autoSources().then(function (ok) { S._asOk = !!ok; S._asBusy = false; }).catch(function () { S._asBusy = false; }); }
       if (S.prof && S.fb && (role() === 'master' || role() === 'admin')) {
         if (!S._fl) { S._fl = true; fetchList().then(function () { fillFilter(); restoreFilter(); }).catch(function () { S._fl = false; }); }
         var key = (S.list ? S.list.length : -1) + ':' + S.prof.id;
@@ -14128,7 +14156,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   function vDl() { return '<div class="cc-box"><button class="cc-b grn wide" onclick="advCloud.csv()">⬇ Download CSV</button>' + (BUILD === 'admin' ? '<button class="cc-b gray wide" onclick="advCloud.mym()">🔄 Refresh</button>' : '') + '</div>'; }
   function vMym() {
     if (S.mymErr) return '<div class="cc-box cc-err">' + esc(S.mymErr) + '</div><button class="cc-b wide" onclick="advCloud.mym()">🔄 Try again</button>';
-    if (!S.mymAt) { S.mymAt = Date.now(); setTimeout(function () { loadData({ id: (S.pub && S.pub.masterUid) || S.prof.parentId, name: 'Master' }).catch(function (e) { S.mymErr = (!S.prof.canViewMaster ? 'Access to the Master data has not been enabled for your account yet.' : errText(e)); S.tab = 'mym'; draw(); }); }, 0); }
+    if (!S.mymAt) { S.mymAt = Date.now(); setTimeout(function () { loadData({ id: S.prof.parentId || (S.pub && S.pub.masterUid), name: 'Master' }).catch(function (e) { S.mymErr = (!S.prof.canViewMaster ? 'Access to the Master data has not been enabled for your account yet.' : errText(e)); S.tab = 'mym'; draw(); }); }, 0); }
     return '<div class="cc-box">Loading…</div>';
   }
   function vPanel() {
