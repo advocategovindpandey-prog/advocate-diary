@@ -13865,7 +13865,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       raw.forEach(function (c) {
         if (!c || c._ov || String(c.id).indexOf('ov_') === 0) return; seen[c.id] = 1;
         var js = JSON.stringify(c), h = fnv(js); if (TS.pushed[c.id] === h) return;
-        var sx = TS.docs[me + '__' + c.id]; if (sx && sx.del === false && TS.pushed[c.id] === undefined && sx.h !== h && tsAtMs(sx) > tsLastAt(c)) return;
+        var sx = TS.docs[me + '__' + c.id]; if (!TS.force && sx && sx.del === false && TS.pushed[c.id] === undefined && sx.h !== h && tsAtMs(sx) > tsLastAt(c)) return;
         ops.push({ id: c.id, h: h, data: { owner: me, ownerName: nm, cid: String(c.id), c: js, h: h, by: nm, byUid: me, role: role(), at: F.serverTimestamp(), del: false, delBy: '', delByUid: '', rest: false } });
       });
       var gone = Object.keys(TS.pushed).filter(function (id) { return !seen[id]; });
@@ -14045,6 +14045,44 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       return out;
     } catch (e) { return []; }
   };
+
+
+  /* ---------- Sync check: shows exactly what is on the phone vs the server ---------- */
+  async function syncCheck() {
+    if (!S.prof) return; var F = S.fb, rows = [], stored = [];
+    try { stored = JSON.parse(localStorage.getItem('advDiaryCases') || '[]'); } catch (e) { }
+    var own = stored.filter(function (c) { return c && !c._ov; }), me = S.prof.id;
+    var mine = Object.keys(TS.docs).filter(function (k) { return TS.docs[k].owner === me && TS.docs[k].del === false; });
+    var pend = 0, sNew = 0, lNew = 0, same = 0;
+    own.forEach(function (c) { var d = TS.docs[me + '__' + c.id]; if (!d) { pend++; return; } if (d.h === fnv(JSON.stringify(c))) { same++; return; } if (tsAtMs(d) > tsLastAt(c)) sNew++; else lNew++; });
+    var wr = '—';
+    if (mine.length) { try { await F.setDoc(ref('teams/' + TS.id + '/cases/' + mine[0]), { ping: F.serverTimestamp() }, { merge: true }); wr = '✔ चल रहा है'; } catch (e) { wr = '❌ ' + (e.code || e.message) + (/permission/i.test(e.code || e.message || '') ? ' (Rules publish नहीं हुए)' : ''); } }
+    var rd = S.tsErr ? '❌ ' + S.tsErr : (TS.okAt ? '✔ चल रहा है' : '⏳ अभी जुड़ा नहीं');
+    var ex = S.prof.expiresAt, exMs = ex && ex.toMillis ? ex.toMillis() : (ex && ex.seconds ? ex.seconds * 1000 : (+ex || 0)), exOk = !exMs || exMs > Date.now(), stOk = (S.prof.status || 'active') === 'active';
+    var validRow = '<div style="border-bottom:1px solid #e2e8f0;padding:6px 0">' + (exOk && stOk ? '✔ खाता चालू' + (exMs ? ' · वैधता ' + new Date(exMs).toLocaleDateString() + ' तक' : '') : '<b style="color:#b91c1c">⚠ खाता बंद या वैधता ख़त्म (' + esc(String(S.prof.status || '')) + (exMs ? ' · ' + new Date(exMs).toLocaleDateString() : '') + ') — इस वजह से सर्वर पढ़ना-लिखना रुका रहता है। Master से वैधता बढ़वाइए।</b>') + '</div>';
+    var line = function (a, b) { return '<div style="display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #e2e8f0;padding:6px 0"><span>' + a + '</span><b>' + b + '</b></div>'; };
+    modalBox('ccSync', '<div style="display:flex;align-items:center;gap:8px"><b style="flex:1;font-size:15px">🔍 सिंक जाँच</b><button style="border:0;background:#e2e8f0;border-radius:8px;padding:6px 10px;font-weight:800" onclick="document.getElementById(\'ccSync\').remove()">✕</button></div>' +
+      line('खाता', esc(role() + ' · ' + (S.prof.name || S.prof.email))) + validRow + line('टीम', esc(TS.id || '—')) + line('सर्वर से पढ़ना', rd) + line('सर्वर पर लिखना', wr) +
+      line('इस फ़ोन में मेरे केस', own.length) + line('सर्वर पर मेरे केस', mine.length) + line('दोनों में एक जैसे', same) + line('फ़ोन नया — सर्वर पर भेजना बाकी', pend + lNew) + line('सर्वर नया — फ़ोन पुराना', sNew) +
+      '<div style="font-size:12px;color:#64748b;margin:8px 0">"लिखना ❌" दिखे तो Rules publish नहीं हुए हैं। "फ़ोन नया" की संख्या बनी रहे तो नीचे वाला पहला बटन दबाइए।</div>' +
+      '<button style="width:100%;margin-top:6px;border:0;border-radius:10px;padding:11px;font:800 14px system-ui;background:#137547;color:#fff" onclick="advCloud.syncPush()">⬆ फ़ोन का डेटा अभी सर्वर पर भेजो</button>' +
+      '<button style="width:100%;margin-top:8px;border:0;border-radius:10px;padding:11px;font:800 14px system-ui;background:#142b4a;color:#fff" onclick="advCloud.syncPull()">⬇ सर्वर का डेटा अभी फ़ोन में लो</button>');
+  }
+  async function syncPush() { TS.pushed = {}; TS.force = 1; try { await teamPush(); } finally { TS.force = 0; } toast(S.tsErr ? '❌ ' + S.tsErr : '⬆ फ़ोन का डेटा सर्वर पर भेज दिया'); var m = document.getElementById('ccSync'); if (m) m.remove(); }
+  function syncPull() {
+    var me = S.prof.id, n = 0;
+    window.__advSys = 1;
+    try {
+      edOwn(function () {
+        Object.keys(TS.docs).forEach(function (k) {
+          var x = TS.docs[k]; if (!x || x.owner !== me || x.del !== false || !x.c) return; var rc; try { rc = JSON.parse(x.c); } catch (e) { return; }
+          var i = cases.findIndex(function (c) { return !c._ov && String(c.id) === String(x.cid); });
+          if (i > -1) cases[i] = Object.assign({}, cases[i], rc); else cases.push(rc); TS.pushed[x.cid] = x.h; n++;
+        });
+      });
+    } finally { window.__advSys = 0; }
+    tsSavePushed(); toast('⬇ सर्वर से ' + n + ' केस लिए'); var m = document.getElementById('ccSync'); if (m) m.remove();
+  }
 
   /* ---------- Per-user permissions ---------- */
   function permsOf(a) { var p = a && a.perms; return p ? { create: !!p.create, date: !!p.date, edit: !!p.edit, del: !!p.del } : { create: true, date: true, edit: true, del: true }; }
@@ -14312,7 +14350,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     var r = document.createElement('div'); r.id = 'cc-root'; document.body.appendChild(r);
     var f = document.createElement('button'); f.id = 'cc-fab'; f.type = 'button'; f.textContent = '☁'; f.title = 'Cloud Control'; f.onclick = function () { api.open(); }; document.body.appendChild(f);
     {
-      var hd = document.querySelector('header'); if (hd && !$('ccLoginLine')) { var ln = document.createElement('div'); ln.id = 'ccLoginLine'; ln.innerHTML = '<span id="ccLoginTxt"></span><span id="ccLoginOpts" style="display:none;gap:14px;flex-wrap:wrap;margin-top:3px"><label><input type="checkbox" id="ccOvMerge"> 🔀 मेरे साथ मिलाकर दिखाएँ</label><label><input type="checkbox" id="ccOvNotif"> 🔔 Notification में जोड़ें</label><label><input type="checkbox" id="ccColorOn"> 🎨 रंग</label><button type="button" id="ccUpdBtn" style="border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:#d9a441;color:#1b1405">📋 Updates</button><button type="button" id="ccTxBtn" style="border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:#e2e8f0;color:#0f2a4a">👥 टीमें</button><button type="button" id="ccNameBtn" style="border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:#e2e8f0;color:#0f2a4a">✏ नाम</button></span>'; hd.parentNode.insertBefore(ln, hd.nextSibling); var m1 = $('ccOvMerge'), m2 = $('ccOvNotif'), m3 = $('ccColorOn'), bU = $('ccUpdBtn'), bN = $('ccNameBtn'), bT = $('ccTxBtn'); if (bT) bT.onclick = function () { txOpen(); }; if (m3) { m3.checked = colorOn(); m3.onchange = function () { try { localStorage.setItem('advColorOn', this.checked ? '1' : '0'); } catch (e) { } ovRefresh(); }; } if (bU) bU.onclick = function () { updOpen(); }; if (bN) bN.onclick = function () { renameMe(); }; if (m1) { m1.checked = OV.mode !== 'only'; m1.onchange = function () { OV.mode = this.checked ? 'merge' : 'only'; ovSaveOpts(); ovApply(); }; } if (m2) { m2.checked = !!OV.notif; m2.onchange = function () { OV.notif = this.checked; ovSaveOpts(); ovApply(); }; } }
+      var hd = document.querySelector('header'); if (hd && !$('ccLoginLine')) { var ln = document.createElement('div'); ln.id = 'ccLoginLine'; ln.innerHTML = '<span id="ccLoginTxt"></span><span id="ccLoginOpts" style="display:none;gap:14px;flex-wrap:wrap;margin-top:3px"><label><input type="checkbox" id="ccOvMerge"> 🔀 मेरे साथ मिलाकर दिखाएँ</label><label><input type="checkbox" id="ccOvNotif"> 🔔 Notification में जोड़ें</label><label><input type="checkbox" id="ccColorOn"> 🎨 रंग</label><button type="button" id="ccUpdBtn" style="border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:#d9a441;color:#1b1405">📋 Updates</button><button type="button" id="ccTxBtn" style="border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:#e2e8f0;color:#0f2a4a">👥 टीमें</button><button type="button" id="ccNameBtn" style="border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:#e2e8f0;color:#0f2a4a">✏ नाम</button></span>'; hd.parentNode.insertBefore(ln, hd.nextSibling); var sb = document.createElement('button'); sb.type = 'button'; sb.textContent = '🔍 सिंक जाँच'; sb.style.cssText = 'border:0;border-radius:8px;padding:2px 8px;font:800 11px system-ui;background:#334155;color:#fff;margin-left:6px'; sb.onclick = function () { syncCheck(); }; var tx0 = ln.firstChild; if (tx0 && tx0.nextSibling) ln.insertBefore(sb, tx0.nextSibling); else ln.appendChild(sb); var m1 = $('ccOvMerge'), m2 = $('ccOvNotif'), m3 = $('ccColorOn'), bU = $('ccUpdBtn'), bN = $('ccNameBtn'), bT = $('ccTxBtn'); if (bT) bT.onclick = function () { txOpen(); }; if (m3) { m3.checked = colorOn(); m3.onchange = function () { try { localStorage.setItem('advColorOn', this.checked ? '1' : '0'); } catch (e) { } ovRefresh(); }; } if (bU) bU.onclick = function () { updOpen(); }; if (bN) bN.onclick = function () { renameMe(); }; if (m1) { m1.checked = OV.mode !== 'only'; m1.onchange = function () { OV.mode = this.checked ? 'merge' : 'only'; ovSaveOpts(); ovApply(); }; } if (m2) { m2.checked = !!OV.notif; m2.onchange = function () { OV.notif = this.checked; ovSaveOpts(); ovApply(); }; } }
       var as = $('activeAdvocateSelect'); if (as && !$('ccFilterSel')) { var fs = document.createElement('select'); fs.id = 'ccFilterSel'; fs.title = 'User / Admin / Master चुनें'; fs.innerHTML = '<option value="">☁ User/Admin</option>'; fs.onchange = function () { onFilter(this.value); }; as.parentNode.insertBefore(fs, as.nextSibling); }
     }
   }
@@ -14579,6 +14617,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     last: function (id) { lastOpen(id); },
     tsDel: function (id) { tsDel(id); }, tsRestore: function (k) { tsRestore(k); },
     txSave: function () { txSave(); }, tx: function () { txOpen(); },
+    syncCheck: function () { syncCheck(); }, syncPush: function () { syncPush(); }, syncPull: function () { syncPull(); },
     perms: function (id) { permsOpen(id); }, permsSave: function (id) { permsSave(id); },
     hist: function (id) { histOpen(id); }, histRevert: function (i) { histRevert(i); },
     updAll: function (on) { var names = {}; Object.keys(OV.srcs).forEach(function (u) { names[OV.srcs[u].name] = 1; }); if (S.prof) names[S.prof.name || S.prof.email] = 1; S._updSel = on ? Object.keys(names) : []; updOpen(); },
