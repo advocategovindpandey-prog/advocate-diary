@@ -13261,7 +13261,10 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     }
     if (BUILD !== 'master' && role() !== 'master') { listenNotes(); masterWatch(); }
     editsWatch();
-    restoreOwnCloud().then(function(){ if (!S.syncTimer && S.prof) { S.syncTimer = setInterval(function () { syncNow('auto'); }, 2500); setTimeout(function(){ syncNow(true); }, 700); } }); document.addEventListener('visibilitychange', function () { if (document.hidden) syncNow('fast'); }); window.addEventListener('online', function(){ if(S.prof) setTimeout(function(){ syncNow(true); },500); });
+    restoreOwnCloud().then(function(){ if (!S.syncTimer && S.prof) { S.syncTimer = setInterval(function () { syncNow('auto'); }, 2500); } });
+    // Refresh / tab hide / reconnect पर force upload नहीं होगा; कम केस होने पर केवल Manual Sync पूछेगा।
+    document.addEventListener('visibilitychange', function () { if (!document.hidden && S.prof) syncNow('auto'); });
+    window.addEventListener('online', function(){ if(S.prof) setTimeout(function(){ syncNow('auto'); },500); });
     S.chk = setInterval(function () { if (S.prof && S.screen === 'panel' && lockReason()) recheck(true); }, 30000);
   }
   function recheck(wasOk) {
@@ -13482,21 +13485,31 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     try {
       var localRaw = localStorage.getItem('advDiaryCases') || '[]';
       var local = JSON.parse(localRaw);
+      if (!Array.isArray(local)) local = [];
       var groupUid = storageOwnerUid(), knownHash = localStorage.getItem('advCloudLastHash:' + groupUid) || '';
-      if (Array.isArray(local) && local.length && knownHash && fnv(localRaw) !== knownHash) return false;
       var F = S.fb, m = await F.getDoc(ref('userData/' + groupUid));
       if (!m.exists()) return false;
+      var meta = m.data() || {}, serverCount = Number(meta.caseCount || 0);
+      // खाली लोकल डेटा पर सर्वर का सुरक्षित बैकअप वापस लाएँ; इससे refresh पर केस शून्य नहीं रहेंगे।
+      // यदि लोकल में कुछ केस हैं लेकिन सर्वर से कम हैं और लोकल बदला हुआ है, तो उसे चुपचाप overwrite न करें।
+      if (local.length > 0 && knownHash && fnv(localRaw) !== knownHash && local.length < serverCount) {
+        S.cloudGuard = { local: local.length, server: serverCount, uid: groupUid };
+        return false;
+      }
+      if (local.length > 0 && knownHash && fnv(localRaw) !== knownHash) return false;
       var snap = await F.getDocs(col('userData/' + groupUid + '/chunks'));
       var parts = snap.docs.map(function(d){return d.data();}).sort(function(a,b){return a.i-b.i;});
       if (!parts.length) return false;
       var obj = JSON.parse(await gunz(unb64(parts.map(function(p){return p.d||'';}).join(''))));
       if (!Array.isArray(obj.cases)) return false;
-      if (Array.isArray(local) && local.length && !knownHash) {
+      if (local.length && !knownHash) {
         try { localStorage.setItem('advGroupMigrationBackup:' + S.prof.id, localRaw); } catch (e) { }
       }
       localStorage.setItem('advDiaryCases', JSON.stringify(obj.cases));
+      // App की live in-memory list भी restore करें, केवल localStorage नहीं।
+      try { cases = obj.cases; if (typeof renderAll === 'function') renderAll(); } catch (e) { }
       localStorage.setItem('advCloudLastHash:' + groupUid, fnv(JSON.stringify(obj.cases))); localStorage.setItem('advCloudLastHash', fnv(JSON.stringify(obj.cases)));
-      S.lastSync = Date.now();
+      S.cloudGuard = null; S.lastSync = Date.now();
       return true;
     } catch(e) { S.syncErr = (e && (e.code || e.message)) || 'restore-error'; return false; }
   }
@@ -13504,18 +13517,29 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     if (S.prof) S.lastChk = Date.now();
     if (!S.prof || !S.fb || !S.db || !navigator.onLine || S.syncing || (force !== true && force !== 'auto' && force !== 'fast')) return;
     var groupUid = storageOwnerUid(), raw = localStorage.getItem('advDiaryCases') || '[]', h = fnv(raw), hashKey = 'advCloudLastHash:' + groupUid;
-    try { if (JSON.parse(raw).length === 0 && (force === 'auto' || force === 'fast' || !confirm('There are no cases on this phone. Clear the server copy?'))) return; } catch (e) { }
+    var localCases;
+    try { localCases = JSON.parse(raw); if (!Array.isArray(localCases)) localCases = []; } catch (e) { return; }
+    if (localCases.length === 0) {
+      if (force !== true) return; // खाली डेटा कभी भी अपने-आप सर्वर पर न भेजें
+      if (!confirm('इस फोन में 0 केस हैं। क्या आप सचमुच सर्वर के सभी केस हटाकर 0 केस सेव करना चाहते हैं?')) return;
+    }
     if (force !== true && h === localStorage.getItem(hashKey)) { S.pend = null; return; }
     if (force === 'auto' && S.pend !== h) { S.pend = h; return; }
     S.syncing = true; var F = S.fb, uid = groupUid;
     try {
-      var cases = JSON.parse(raw), b = b64(await gz(JSON.stringify({ v: 1, at: Date.now(), cases: cases }))), CH = 700000, n = Math.ceil(b.length / CH) || 1;
-      var old = 0; try { var m0 = await F.getDoc(ref('userData/' + uid)); if (m0.exists()) old = m0.data().n || 0; } catch (e) { }
+      var cases = localCases, m0 = await F.getDoc(ref('userData/' + uid)), old = 0, serverCount = 0;
+      if (m0.exists()) { var meta0 = m0.data() || {}; old = meta0.n || 0; serverCount = Number(meta0.caseCount || 0); }
+      if (cases.length < serverCount) {
+        S.cloudGuard = { local: cases.length, server: serverCount, uid: uid };
+        if (force !== true) { S.syncErr = 'लोकल केस सर्वर से कम हैं; सुरक्षित रखने के लिए मैनुअल Sync आवश्यक है।'; return; }
+        if (!confirm('⚠️ डेटा सुरक्षा चेतावनी\n\nइस फोन में ' + cases.length + ' केस हैं, जबकि सर्वर पर ' + serverCount + ' केस हैं।\n\nक्या आप कम केस वाला डेटा सर्वर पर भेजकर पुराने ' + (serverCount - cases.length) + ' केस हटाना चाहते हैं?\n\nरद्द करने पर सर्वर का डेटा सुरक्षित रहेगा।')) return;
+      }
+      var b = b64(await gz(JSON.stringify({ v: 1, at: Date.now(), cases: cases }))), CH = 700000, n = Math.ceil(b.length / CH) || 1;
       var w = [], i; for (i = 0; i < n; i++) w.push(['set', 'userData/' + uid + '/chunks/c' + String(i).padStart(3, '0'), { i: i, d: b.slice(i * CH, (i + 1) * CH) }]);
       for (i = n; i < old; i++) w.push(['del', 'userData/' + uid + '/chunks/c' + String(i).padStart(3, '0')]);
       for (i = 0; i < w.length; i += 4) { var bt = F.writeBatch(S.db); w.slice(i, i + 4).forEach(function (x) { x[0] === 'set' ? bt.set(ref(x[1]), x[2]) : bt.delete(ref(x[1])); }); await bt.commit(); }
       await F.setDoc(ref('userData/' + uid), { n: n, size: b.length, caseCount: cases.length, hash: h, name: (S.prof.role === 'user' && S.parent && S.parent.name) ? S.parent.name : (S.prof.name || ''), email: S.prof.email, groupOwnerUid: uid, groupOwnerRole: (S.prof.role === 'user' && S.parent ? S.parent.role : S.prof.role), updatedAt: F.serverTimestamp(), updatedByUid:S.prof.id, updatedByName:S.prof.name || S.prof.email || 'User', updatedByRole:role(), updatedByAt:F.serverTimestamp() });
-      localStorage.setItem(hashKey, h); localStorage.setItem('advCloudLastHash', h); S.lastSync = Date.now(); S.syncErr = ''; try { localStorage.setItem('advCloudPubAt', new Date().toLocaleString()); } catch (e) { } if (S.panelOpen) draw();
+      localStorage.setItem(hashKey, h); localStorage.setItem('advCloudLastHash', h); S.cloudGuard = null; S.lastSync = Date.now(); S.syncErr = ''; try { localStorage.setItem('advCloudPubAt', new Date().toLocaleString()); } catch (e) { } if (S.panelOpen) draw();
     } catch (e) { S.syncErr = (e && (e.code || e.message)) || 'error'; if (e && e.code === 'permission-denied') { await loadProf().catch(function () { }); recheck(true); } }
     finally { S.syncing = false; }
   }
