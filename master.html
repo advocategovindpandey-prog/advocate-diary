@@ -649,7 +649,21 @@ sync();
 }
 window.openThemePanel=openUI;
 })();
-</script><script id="adv-offline-tick">setInterval(function(){try{if(window.ADV_BUILD==='master'||navigator.onLine)return;var c=JSON.parse(localStorage.getItem('advCloudCache')||'null');if(!c)return;var n=Date.now(),sn=c.seen||c.at;if(n<sn-60000||n-c.at>=(c.og||3)*864e5||c.exp<=n)location.reload();else{c.seen=Math.max(sn,n);localStorage.setItem('advCloudCache',JSON.stringify(c))}}catch(e){}},60000);</script><script id="adv-status-badge">(function(){var el;function st(){try{return window.advCloud&&advCloud.status?advCloud.status():null}catch(e){return null}}
+</script><script id="adv-offline-tick">setInterval(function(){try{if(window.ADV_BUILD==='master'||navigator.onLine)return;var c=JSON.parse(localStorage.getItem('advCloudCache')||'null');if(!c)return;var n=Date.now(),sn=c.seen||c.at;if(n<sn-60000||n-c.at>=(c.og||3)*864e5||c.exp<=n)location.reload();else{c.seen=Math.max(sn,n);localStorage.setItem('advCloudCache',JSON.stringify(c))}}catch(e){}},60000);</script><script id="adv-login-identity">
+(function(){
+ function update(){
+  try{
+   var st=window.advCloud&&window.advCloud.status?window.advCloud.status():null;
+   var box=document.getElementById('advLoggedInIdentity'), name=document.getElementById('advLoggedInName');
+   if(!box||!name)return;
+   if(st&&st.name){name.textContent=st.name;box.style.display='block';}
+   else {box.style.display='none';}
+  }catch(e){}
+ }
+ update();setInterval(update,1500);window.addEventListener('focus',update);
+})();
+</script>
+<script id="adv-status-badge">(function(){var el;function st(){try{return window.advCloud&&advCloud.status?advCloud.status():null}catch(e){return null}}
 function tick(){if(!document.body)return;var s=st();if(!s||!s.name){if(el)el.style.display='none';return}
 if(!el){el=document.createElement('div');el.id='advStat';el.style.cssText='position:fixed;left:8px;bottom:calc(8px + env(safe-area-inset-bottom,0px));z-index:2147483000;max-width:82vw;padding:5px 11px;border-radius:16px;font:600 12px system-ui,sans-serif;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.3);pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';document.body.appendChild(el)}
 var c,t;if(!s.online){c='#c62828';t='\uD83D\uDD34 Offline'}else if(s.err){c='#d97706';t='\uD83D\uDFE0 Online · sync error'}else if(s.syncing||s.pending){c='#d97706';t='\uD83D\uDFE1 Syncing…'}else{c='#137547';t='\uD83D\uDFE2 Online'+(s.last?' · synced '+new Date(s.last).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'')}
@@ -694,6 +708,7 @@ setInterval(tick,2000);window.addEventListener('online',tick);window.addEventLis
   </div>
 </aside>
 <main>
+<div id="advLoggedInIdentity" style="margin:0 0 10px;padding:9px 12px;border:1px solid #cbd5e1;border-radius:11px;background:#f8fafc;color:#142b4a;font-size:13px;font-weight:700">👤 लॉगिन: <span id="advLoggedInName">लोड हो रहा है…</span></div>
 <div class="dashboard-shell">
 <div class="stats"><div class="stat dash-item" data-dash-key="total" role="button" onclick="showStatCases('all')"><span>📁 कुल केस</span><b id="totalCount">0</b><div class="status-mini"><button class="sm-inactive" onclick="event.stopPropagation();showStatCases('inactive')">⏸ Deactivate Case <span id="totalInactiveMini">0</span></button><button class="sm-disposed" onclick="event.stopPropagation();showStatCases('disposed')">✅ Disposed <span id="totalDisposedMini">0</span></button></div></div><div class="stat dash-item" data-dash-key="today" role="button" onclick="showStatCases('today')"><span>📅 आज की तारीख वाले केस</span><b id="todayCount">0</b></div><div class="stat missbox dash-item" data-dash-key="missed"><div class="miss-top" role="button" onclick="showStatCases('missed')"><span>⚠️ मिस्ड डेट</span><b id="missedCount" style="color:#c62828">0</b></div><div class="missed-reminder-grid"><div class="missed-reminder-tile sms" role="button" onclick="event.stopPropagation();showStatCases('pendingReminder')"><div class="rt-title">💬 SMS Reminder Due</div><b class="rt-count" id="pendRemCount">0</b><div class="rt-sub">SMS / WhatsApp reminder बाकी</div></div><div class="missed-reminder-tile sma" role="button" onclick="event.stopPropagation();showStatCases('partialReminder')"><div class="rt-title">🕐 1/2 SMA Reminder Due</div><b class="rt-count" id="partialRemCount">0</b><div class="rt-sub">कुछ recipients को reminder बाकी</div></div></div></div><div class="stat dash-item dash-7day-box" data-dash-key="next7_4day" role="button" onclick="showStatCases('next7_4day')"><span>⏳ अगले 7 दिन के केस</span><b id="next7_4dayCount">0</b><div class="dash-next4-inner" data-dash-key="soon" role="button" onclick="event.stopPropagation();showStatCases('soon')"><span>अगले 4 दिन</span><b id="soonCount">0</b></div></div></div>
 
@@ -2166,7 +2181,28 @@ function liveCases(){return cases.filter(c=>!c.inactive&&!c.disposed)}
 function isMissed(c){return !c.inactive&&!c.disposed&&c.nextDate<today()}
 function vsName(c){return `${esc(c.vadiName||c.party||'—')}${c.side==='vadi'?' ⭐':''} <span class="vs-word">vs</span> ${esc(c.prativadiName||'—')}${c.side==='prativadi'?' ⭐':''}`}
 function dayTag(s,col){if(!s)return '';const d=new Date(s+'T00:00:00');if(isNaN(d))return '';const n=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];return ` <span class="day3" style="font-weight:800;color:${col||(d.getDay()===0?'#c62828':'#8b4513')}">(${n})</span>`}
-function card(c,i){return `<article data-case-id="${c.id}" class="case-card ${c.inactive?'inactive':''} ${c.disposed?'disposed':''} ${isMissed(c)?'missed':''} ${partialRem(c)?'partial':(pendRem(c)?'pendrem':'')}">${c.inactive?`<div class="badge-line"><span class="pill-off">⏸ Deactivated</span></div>`:''}${c.disposed?`<div class="badge-line"><span class="pill-disposed">✅ Disposed</span></div>`:''}${(isMissed(c)||pendRem(c))?`<div class="badge-line">${isMissed(c)?'<span class="pill-red">⚠️ Missed Date</span>':''}${partialRem(c)?'<span class="pill-part">👥 '+remProgress(c).done+'/'+remProgress(c).total+' को भेजा — बाकी को भेजें</span>':(pendRem(c)?'<span class="pill-yel">📵 SMS/WhatsApp बाकी</span>':'')}</div>`:''}<div><span class="serial">${i+1}</span><b class="case-vs">${vsName(c)}</b> <span class="small">(${esc(c.caseNo)})</span>${c.type?`<span class="type-watermark">${esc(c.type)}</span>`:''}</div><div class="meta">${c.inactive&&c.inactiveReason?`<div class="small">⏸ कारण: ${esc(c.inactiveReason)}</div>`:''}${settings.advocates&&settings.advocates.length>1?`<div class="small">👤 Advocate: ${esc(caseAdvNames(c)||'—')}</div>`:''}${caseMukhtars(c).length?`<div class="small">मुख्तार आम: ${esc(caseMukhtars(c).map(m=>m.name||m.mobile).join(', '))}</div>`:''}<b style="color:${isMissed(c)?'#c62828':'#142b4a'}">Next Date: ${fmt(c.nextDate)}${dayTag(c.nextDate,isMissed(c)?'#c62828':'#142b4a')}<br><span class="days-left">${daysRemaining(c.nextDate)}</span>${isMissed(c)?' · MISSED DATE':''}</b>${(c.notes&&String(c.notes).trim())?'<div class="p3-note" style="margin:6px 0 8px;padding:8px 10px;border-radius:10px;background:#fff7e6;border-left:4px solid #d97706;font-size:13px;color:#7c2d12;white-space:pre-wrap;line-height:1.35"><b>📝 नोट'+''+':</b> '+esc(c.notes)+'</div>':''}<br>कोर्ट: ${esc(c.court||'—')}${c.time?' · कोर्ट रूम: '+esc(c.time):''}<br>पिछली तारीख: <span style="font-family:'Poppins','Noto Sans Devanagari',system-ui,-apple-system,Arial,sans-serif;font-weight:400;font-size:inherit">${previousDateOf(c)?fmt(previousDateOf(c))+' ('+['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date(previousDateOf(c)+'T00:00:00').getDay()]+')':'—'}</span></div>${nextSpecialFieldHtml(c)}<div class="actions"><button type="button" class="btn sm gold" id="nextSpecialBtn-${c.id}" onclick="toggleNextSpecialDetails('${c.id}')">🔎 Special Details देखें</button><button class="btn" data-optbtn="1" onclick="toggleOptions('${c.id}')">⋮ विकल्प</button></div><div id="options-${c.id}" class="options-dialog hidden"><div class="actions"><button class="btn" onclick="loadEdit('${c.id}')">Edit</button>${c.inactive?'':`<button class="btn gray" onclick="toggleInlineDate('${c.id}')">Update Date</button><button class="btn green" onclick="openSendOptions('${c.id}')">📤 भेजें</button>`}<button class="btn gold" onclick="showHistory('${c.id}')">📜 History (${(c.history||[]).length})</button>${c.inactive?`<button class="btn green" onclick="activateCase('${c.id}')">▶ Activate</button>`:`<button class="btn gray" onclick="deactivateCase('${c.id}')">⏸ Deactivate</button>`}${c.disposed?`<button class="btn gray" onclick="undisposeCase('${c.id}')">↩ Mark Active</button>`:`<button class="btn green" onclick="disposeCase('${c.id}')">✅ Disposed</button>`}<button class="btn red" onclick="deleteCase('${c.id}')">Delete</button><button class="btn gray" onclick="toggleOptions('${c.id}')">⬅ Back</button></div></div><div id="inlineDate-${c.id}" class="inline-date hidden" style="margin-top:12px;padding:12px;border:1px solid #cbd5e1;border-radius:10px;background:#f8fafc"><div style="font-size:18px;font-weight:900;color:#142b4a;margin-bottom:10px;border-bottom:1px solid #dbe3ee;padding-bottom:8px">📁 ${vsName(c)} <span class="small">(${esc(c.caseNo)})</span></div><label>नई अगली तारीख</label><input id="inlineDateInput-${c.id}" type="date" value="${c.nextDate||''}" style="display:block;margin:6px 0 10px;width:100%;padding:10px"><label>नोट / अगली तारीख का विवरण</label><textarea id="inlineNote-${c.id}" placeholder="वैकल्पिक विवरण" style="display:block;width:100%;min-height:80px;margin:6px 0 10px;padding:10px;box-sizing:border-box">${esc(c.notes||'')}</textarea><div class="actions"><button class="btn green" onclick="saveInlineDate('${c.id}')">यहीं सेव करें</button><button class="btn gold" onclick="openSendOptions('${c.id}')">📤 रिमाइंडर भेजें</button><button class="btn gray" onclick="showHistory('${c.id}')">History</button><button class="btn gray" onclick="toggleInlineDate('${c.id}')">⬅ Back</button></div></div><span class="case-file-watermark">Case File Date: ${fmt(c.caseDate||c.nextDate)}</span></article>`}
+// Master-only multi-case delete toolbar
+(function(){
+ var bar=document.createElement('div');bar.id='advBulkDeleteBar';
+ bar.style.cssText='display:none;position:fixed;left:10px;right:10px;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:2147482000;background:#142b4a;color:#fff;border-radius:13px;padding:10px 12px;box-shadow:0 8px 25px #0004;align-items:center;gap:8px;flex-wrap:wrap';
+ bar.innerHTML='<b id="advBulkCount" style="flex:1">0 केस चुने</b><button type="button" class="btn sm gray" onclick="advBulkSelectVisible(true)">सभी चुनें</button><button type="button" class="btn sm red" onclick="advBulkDelete()">🗑 Delete</button><button type="button" class="btn sm gray" onclick="advBulkSelectVisible(false)">Clear</button>';
+ document.addEventListener('DOMContentLoaded',function(){if(!document.getElementById('advBulkDeleteBar'))document.body.appendChild(bar);});
+ if(document.body&&!document.getElementById('advBulkDeleteBar'))document.body.appendChild(bar);
+})();
+window.advBulkCaseToggle=function(el){var bar=document.getElementById('advBulkDeleteBar');if(!bar)return;var n=document.querySelectorAll('.adv-bulk-case-check:checked').length;document.getElementById('advBulkCount').textContent=n+' केस चुने';bar.style.display=n?'flex':'none';};
+window.advBulkSelectVisible=function(on){document.querySelectorAll('.adv-bulk-case-check').forEach(function(x){x.checked=!!on});var x=document.querySelector('.adv-bulk-case-check');if(x)window.advBulkCaseToggle(x);};
+window.advBulkDelete=function(){
+ var ids=Array.from(document.querySelectorAll('.adv-bulk-case-check:checked')).map(function(x){return String(x.getAttribute('data-bulk-case')||'')}).filter(Boolean);
+ if(!ids.length)return alert('पहले केस चुनें।');
+ if(!confirm('क्या आप '+ids.length+' चुने हुए केस स्थायी रूप से Delete करना चाहते हैं? यह क्रिया वापस नहीं होगी।'))return;
+ var chosen=new Set(ids);for(var i=cases.length-1;i>=0;i--)if(chosen.has(String(cases[i].id)))cases.splice(i,1);
+ try{localStorage.setItem('advDiaryCases',JSON.stringify(cases));}catch(e){alert('डेटा सेव नहीं हुआ: '+e.message);return;}
+ document.querySelectorAll('.adv-bulk-case-check').forEach(function(x){x.checked=false});
+ var bar=document.getElementById('advBulkDeleteBar');if(bar)bar.style.display='none';
+ try{if(typeof renderStats==='function')renderStats();if(typeof renderUpdateMatches==='function')renderUpdateMatches();if(typeof renderNext==='function')renderNext();if(typeof renderCatalogue==='function')renderCatalogue();}catch(e){}
+ alert(ids.length+' केस Delete कर दिए गए।');
+};
+function card(c,i){return `<article data-case-id="${c.id}" class="case-card ${c.inactive?'inactive':''} ${c.disposed?'disposed':''} ${isMissed(c)?'missed':''} ${partialRem(c)?'partial':(pendRem(c)?'pendrem':'')}"><label class="adv-bulk-case-pick" style="display:flex;align-items:center;gap:6px;margin:0 0 7px;font-size:12px;font-weight:700;color:#142b4a"><input type="checkbox" class="adv-bulk-case-check" data-bulk-case="${c.id}" onchange="advBulkCaseToggle(this)"> इस केस को चुनें</label>${c.inactive?`<div class="badge-line"><span class="pill-off">⏸ Deactivated</span></div>`:''}${c.disposed?`<div class="badge-line"><span class="pill-disposed">✅ Disposed</span></div>`:''}${(isMissed(c)||pendRem(c))?`<div class="badge-line">${isMissed(c)?'<span class="pill-red">⚠️ Missed Date</span>':''}${partialRem(c)?'<span class="pill-part">👥 '+remProgress(c).done+'/'+remProgress(c).total+' को भेजा — बाकी को भेजें</span>':(pendRem(c)?'<span class="pill-yel">📵 SMS/WhatsApp बाकी</span>':'')}</div>`:''}<div><span class="serial">${i+1}</span><b class="case-vs">${vsName(c)}</b> <span class="small">(${esc(c.caseNo)})</span>${c.type?`<span class="type-watermark">${esc(c.type)}</span>`:''}</div><div class="meta">${c.inactive&&c.inactiveReason?`<div class="small">⏸ कारण: ${esc(c.inactiveReason)}</div>`:''}${settings.advocates&&settings.advocates.length>1?`<div class="small">👤 Advocate: ${esc(caseAdvNames(c)||'—')}</div>`:''}${caseMukhtars(c).length?`<div class="small">मुख्तार आम: ${esc(caseMukhtars(c).map(m=>m.name||m.mobile).join(', '))}</div>`:''}<b style="color:${isMissed(c)?'#c62828':'#142b4a'}">Next Date: ${fmt(c.nextDate)}${dayTag(c.nextDate,isMissed(c)?'#c62828':'#142b4a')}<br><span class="days-left">${daysRemaining(c.nextDate)}</span>${isMissed(c)?' · MISSED DATE':''}</b>${(c.notes&&String(c.notes).trim())?'<div class="p3-note" style="margin:6px 0 8px;padding:8px 10px;border-radius:10px;background:#fff7e6;border-left:4px solid #d97706;font-size:13px;color:#7c2d12;white-space:pre-wrap;line-height:1.35"><b>📝 नोट'+''+':</b> '+esc(c.notes)+'</div>':''}<br>कोर्ट: ${esc(c.court||'—')}${c.time?' · कोर्ट रूम: '+esc(c.time):''}<br>पिछली तारीख: <span style="font-family:'Poppins','Noto Sans Devanagari',system-ui,-apple-system,Arial,sans-serif;font-weight:400;font-size:inherit">${previousDateOf(c)?fmt(previousDateOf(c))+' ('+['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date(previousDateOf(c)+'T00:00:00').getDay()]+')':'—'}</span></div>${nextSpecialFieldHtml(c)}<div class="actions"><button type="button" class="btn sm gold" id="nextSpecialBtn-${c.id}" onclick="toggleNextSpecialDetails('${c.id}')">🔎 Special Details देखें</button><button class="btn" data-optbtn="1" onclick="toggleOptions('${c.id}')">⋮ विकल्प</button></div><div id="options-${c.id}" class="options-dialog hidden"><div class="actions"><button class="btn" onclick="loadEdit('${c.id}')">Edit</button>${c.inactive?'':`<button class="btn gray" onclick="toggleInlineDate('${c.id}')">Update Date</button><button class="btn green" onclick="openSendOptions('${c.id}')">📤 भेजें</button>`}<button class="btn gold" onclick="showHistory('${c.id}')">📜 History (${(c.history||[]).length})</button>${c.inactive?`<button class="btn green" onclick="activateCase('${c.id}')">▶ Activate</button>`:`<button class="btn gray" onclick="deactivateCase('${c.id}')">⏸ Deactivate</button>`}${c.disposed?`<button class="btn gray" onclick="undisposeCase('${c.id}')">↩ Mark Active</button>`:`<button class="btn green" onclick="disposeCase('${c.id}')">✅ Disposed</button>`}<button class="btn red" onclick="deleteCase('${c.id}')">Delete</button><button class="btn gray" onclick="toggleOptions('${c.id}')">⬅ Back</button></div></div><div id="inlineDate-${c.id}" class="inline-date hidden" style="margin-top:12px;padding:12px;border:1px solid #cbd5e1;border-radius:10px;background:#f8fafc"><div style="font-size:18px;font-weight:900;color:#142b4a;margin-bottom:10px;border-bottom:1px solid #dbe3ee;padding-bottom:8px">📁 ${vsName(c)} <span class="small">(${esc(c.caseNo)})</span></div><label>नई अगली तारीख</label><input id="inlineDateInput-${c.id}" type="date" value="${c.nextDate||''}" style="display:block;margin:6px 0 10px;width:100%;padding:10px"><label>नोट / अगली तारीख का विवरण</label><textarea id="inlineNote-${c.id}" placeholder="वैकल्पिक विवरण" style="display:block;width:100%;min-height:80px;margin:6px 0 10px;padding:10px;box-sizing:border-box">${esc(c.notes||'')}</textarea><div class="actions"><button class="btn green" onclick="saveInlineDate('${c.id}')">यहीं सेव करें</button><button class="btn gold" onclick="openSendOptions('${c.id}')">📤 रिमाइंडर भेजें</button><button class="btn gray" onclick="showHistory('${c.id}')">History</button><button class="btn gray" onclick="toggleInlineDate('${c.id}')">⬅ Back</button></div></div><span class="case-file-watermark">Case File Date: ${fmt(c.caseDate||c.nextDate)}</span></article>`}
 
 function showInline(id){let el=$('inlineDate-'+id);if(!el)return;el.classList.remove('hidden')}
 function toggleInlineDate(id){let el=$('inlineDate-'+id);if(!el)return;let wasHidden=el.classList.contains('hidden');closeAllDialogs();if(!wasHidden)return;showInline(id);let i=$('inlineDateInput-'+id);if(i)i.focus()}
@@ -13225,7 +13261,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     }
     if (BUILD !== 'master' && role() !== 'master') { listenNotes(); masterWatch(); }
     editsWatch();
-    restoreOwnCloud().then(function(){ if (!S.syncTimer && S.prof && S.screen === 'panel') S.syncTimer = setInterval(function () { syncNow('auto'); }, 2500); }); document.addEventListener('visibilitychange', function () { if (document.hidden) syncNow('fast'); });
+    restoreOwnCloud().then(function(){ if (!S.syncTimer && S.prof) { S.syncTimer = setInterval(function () { syncNow('auto'); }, 2500); setTimeout(function(){ syncNow(true); }, 700); } }); document.addEventListener('visibilitychange', function () { if (document.hidden) syncNow('fast'); }); window.addEventListener('online', function(){ if(S.prof) setTimeout(function(){ syncNow(true); },500); });
     S.chk = setInterval(function () { if (S.prof && S.screen === 'panel' && lockReason()) recheck(true); }, 30000);
   }
   function recheck(wasOk) {
@@ -13436,40 +13472,50 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   async function gunz(u8) { var ds = new Blob([u8]).stream().pipeThrough(new DecompressionStream('gzip')); return await new Response(ds).text(); }
   function b64(u8) { var s = '', n = 0x8000; for (var i = 0; i < u8.length; i += n) s += String.fromCharCode.apply(null, u8.subarray(i, i + n)); return btoa(s); }
   function unb64(s) { var b = atob(s), u = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
+  // Shared group storage: Master + Master Users share Master's uid; each Admin + its Users share that Admin's uid.
+  function storageOwnerUid() {
+    if (!S.prof) return '';
+    return (S.prof.role === 'user' && S.prof.parentId) ? S.prof.parentId : S.prof.id;
+  }
   async function restoreOwnCloud() {
     if (!S.prof || !S.fb || !navigator.onLine) return false;
     try {
-      var local = JSON.parse(localStorage.getItem('advDiaryCases') || '[]');
-      if (Array.isArray(local) && local.length) return false;
-      var F = S.fb, m = await F.getDoc(ref('userData/' + S.prof.id));
+      var localRaw = localStorage.getItem('advDiaryCases') || '[]';
+      var local = JSON.parse(localRaw);
+      var groupUid = storageOwnerUid(), knownHash = localStorage.getItem('advCloudLastHash:' + groupUid) || '';
+      if (Array.isArray(local) && local.length && knownHash && fnv(localRaw) !== knownHash) return false;
+      var F = S.fb, m = await F.getDoc(ref('userData/' + groupUid));
       if (!m.exists()) return false;
-      var snap = await F.getDocs(col('userData/' + S.prof.id + '/chunks'));
+      var snap = await F.getDocs(col('userData/' + groupUid + '/chunks'));
       var parts = snap.docs.map(function(d){return d.data();}).sort(function(a,b){return a.i-b.i;});
       if (!parts.length) return false;
       var obj = JSON.parse(await gunz(unb64(parts.map(function(p){return p.d||'';}).join(''))));
       if (!Array.isArray(obj.cases)) return false;
+      if (Array.isArray(local) && local.length && !knownHash) {
+        try { localStorage.setItem('advGroupMigrationBackup:' + S.prof.id, localRaw); } catch (e) { }
+      }
       localStorage.setItem('advDiaryCases', JSON.stringify(obj.cases));
-      localStorage.setItem('advCloudLastHash', fnv(JSON.stringify(obj.cases)));
+      localStorage.setItem('advCloudLastHash:' + groupUid, fnv(JSON.stringify(obj.cases))); localStorage.setItem('advCloudLastHash', fnv(JSON.stringify(obj.cases)));
       S.lastSync = Date.now();
       return true;
     } catch(e) { S.syncErr = (e && (e.code || e.message)) || 'restore-error'; return false; }
   }
   async function syncNow(force) {
     if (S.prof) S.lastChk = Date.now();
-    if (!S.prof || S.screen !== 'panel' || !navigator.onLine || S.syncing || (force !== true && force !== 'auto' && force !== 'fast')) return;
-    var raw = localStorage.getItem('advDiaryCases') || '[]', h = fnv(raw);
+    if (!S.prof || !S.fb || !S.db || !navigator.onLine || S.syncing || (force !== true && force !== 'auto' && force !== 'fast')) return;
+    var groupUid = storageOwnerUid(), raw = localStorage.getItem('advDiaryCases') || '[]', h = fnv(raw), hashKey = 'advCloudLastHash:' + groupUid;
     try { if (JSON.parse(raw).length === 0 && (force === 'auto' || force === 'fast' || !confirm('There are no cases on this phone. Clear the server copy?'))) return; } catch (e) { }
-    if (force !== true && h === localStorage.getItem('advCloudLastHash')) { S.pend = null; return; }
+    if (force !== true && h === localStorage.getItem(hashKey)) { S.pend = null; return; }
     if (force === 'auto' && S.pend !== h) { S.pend = h; return; }
-    S.syncing = true; var F = S.fb, uid = S.prof.id;
+    S.syncing = true; var F = S.fb, uid = groupUid;
     try {
       var cases = JSON.parse(raw), b = b64(await gz(JSON.stringify({ v: 1, at: Date.now(), cases: cases }))), CH = 700000, n = Math.ceil(b.length / CH) || 1;
       var old = 0; try { var m0 = await F.getDoc(ref('userData/' + uid)); if (m0.exists()) old = m0.data().n || 0; } catch (e) { }
       var w = [], i; for (i = 0; i < n; i++) w.push(['set', 'userData/' + uid + '/chunks/c' + String(i).padStart(3, '0'), { i: i, d: b.slice(i * CH, (i + 1) * CH) }]);
       for (i = n; i < old; i++) w.push(['del', 'userData/' + uid + '/chunks/c' + String(i).padStart(3, '0')]);
       for (i = 0; i < w.length; i += 4) { var bt = F.writeBatch(S.db); w.slice(i, i + 4).forEach(function (x) { x[0] === 'set' ? bt.set(ref(x[1]), x[2]) : bt.delete(ref(x[1])); }); await bt.commit(); }
-      await F.setDoc(ref('userData/' + uid), { n: n, size: b.length, caseCount: cases.length, hash: h, name: S.prof.name || '', email: S.prof.email, updatedAt: F.serverTimestamp(), updatedByUid:S.prof.id, updatedByName:S.prof.name || S.prof.email || 'User', updatedByRole:role(), updatedByAt:F.serverTimestamp() });
-      localStorage.setItem('advCloudLastHash', h); S.lastSync = Date.now(); S.syncErr = ''; try { localStorage.setItem('advCloudPubAt', new Date().toLocaleString()); } catch (e) { } if (S.panelOpen) draw();
+      await F.setDoc(ref('userData/' + uid), { n: n, size: b.length, caseCount: cases.length, hash: h, name: (S.prof.role === 'user' && S.parent && S.parent.name) ? S.parent.name : (S.prof.name || ''), email: S.prof.email, groupOwnerUid: uid, groupOwnerRole: (S.prof.role === 'user' && S.parent ? S.parent.role : S.prof.role), updatedAt: F.serverTimestamp(), updatedByUid:S.prof.id, updatedByName:S.prof.name || S.prof.email || 'User', updatedByRole:role(), updatedByAt:F.serverTimestamp() });
+      localStorage.setItem(hashKey, h); localStorage.setItem('advCloudLastHash', h); S.lastSync = Date.now(); S.syncErr = ''; try { localStorage.setItem('advCloudPubAt', new Date().toLocaleString()); } catch (e) { } if (S.panelOpen) draw();
     } catch (e) { S.syncErr = (e && (e.code || e.message)) || 'error'; if (e && e.code === 'permission-denied') { await loadProf().catch(function () { }); recheck(true); } }
     finally { S.syncing = false; }
   }
@@ -13536,6 +13582,11 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       var newId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'shared_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
       item = { id:newId, history:[], hist:[{at:Date.now(),by:actor.name,byUid:actor.uid,r:actor.role,f:'new',o:'',n:String(ch.caseNo||'')}], customFields:{}, advocateId:(typeof settings!=='undefined' && settings.activeAdvocateId)||'', advocateIds:[], caseNo:ch.caseNo||'', mukhtars:[], mukhtarAam:'', vadiName:ch.vadiName||'', prativadiName:ch.prativadiName||'', vadiMobile:ch.vadiMobile||'', vadiEmail:'', prativadiMobile:'', prativadiEmail:'', side:'vadi', smsGreetTarget:'auto', remLang:'default', party:ch.vadiName||'', mobile:ch.vadiMobile||'', email:'', court:ch.court||'', type:ch.type||'', subCaseType:'', caseDate:ch.caseDate||'', nextDate:ch.nextDate||'', time:ch.time||'', notes:ch.notes||'', created:now, updatedAt:now, addedBy:actor.name+' ('+actor.role+')', addedByUid:actor.uid, addedAt:now, editedBy:actor.name+' ('+actor.role+')', editedByUid:actor.uid, editedAt:now, reminderSentAt:null, lastSent:null, sent:null, inactive:false, inactiveReason:'', inactiveAt:null };
       list.push(item);
+    } else if (op === 'delete') {
+      var before = list.length;
+      list = list.filter(function (x) { return String(x.id) !== String(caseId); });
+      if (list.length === before) throw new Error('यह केस सर्वर पर नहीं मिला');
+      item = null;
     } else throw new Error('अमान्य बदलाव');
     var raw = JSON.stringify({ v:1, at:Date.now(), cases:list }), packed64 = b64(await gz(raw)), CH = 700000, n = Math.ceil(packed64.length/CH) || 1;
     var writes=[]; for (var i=0;i<n;i++) writes.push(['set','userData/'+uid+'/chunks/c'+String(i).padStart(3,'0'),{i:i,d:packed64.slice(i*CH,(i+1)*CH)}]);
@@ -14526,21 +14577,30 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     return h;
   }
   function vData() {
-    var isM = role() === 'master', L = S.list.filter(function (x) { return isM ? x.role !== 'master' : x.parentId === S.prof.id; });
+    var isM = role() === 'master';
     if (!S.listAt) { setTimeout(function () { fetchList().catch(function () { }); }, 0); return '<div class="cc-box">Loading…</div>'; }
-    return '<div class="cc-box cc-muted">' + (isM ? 'Master can open the data of every Admin and User.' : 'You can open the data of your own Users only.') + '</div>' +
-      (L.length ? L.map(function (a) { return '<div class="cc-box cc-row"><div style="flex:1"><b>' + esc(a.name || a.email) + '</b> <span class="cc-muted">(' + a.role + ')</span><br><span class="cc-muted">' + esc(a.email) + '</span></div><button class="cc-b sm" onclick="advCloud.data(\'' + a.id + '\')">Open</button></div>'; }).join('') : '<div class="cc-box">No account has enabled access.</div>');
+    if (isM) {
+      var admins = S.list.filter(function (x) { return x.role === 'admin'; }).sort(function(a,b){return (a.name||a.email||'').localeCompare(b.name||b.email||'');});
+      return '<div class="cc-box cc-muted">हर Admin का अलग shared storage group है। उस Admin और उसके सभी Users का डेटा एक साथ खुलेगा। Master Group में Master और उसके सीधे बनाए गए Users का डेटा रहेगा।</div>' +
+        '<div class="cc-box cc-row"><div style="flex:1"><b>🟢 Storage A — Master Group</b><br><span class="cc-muted">' + esc(S.prof.name || S.prof.email) + ' + Master के Users</span></div><button class="cc-b sm" onclick="advCloud.data(\'' + S.prof.id + '\')">Open</button></div>' +
+        (admins.length ? admins.map(function(a,i){return '<div class="cc-box cc-row"><div style="flex:1"><b>🗂 Storage ' + String.fromCharCode(66+i) + ' — ' + esc(a.name || a.email) + '</b><br><span class="cc-muted">Admin + उसके सभी Users · ' + esc(a.email) + '</span></div><button class="cc-b sm" onclick="advCloud.data(\'' + a.id + '\')">Open Group</button></div>';}).join('') : '<div class="cc-box">अभी कोई Admin Group नहीं है।</div>');
+    }
+    return '<div class="cc-box cc-muted">आपके Admin और उसके Users का साझा डेटा इसी ग्रुप में रहेगा।</div>' +
+      '<div class="cc-box cc-row"><div style="flex:1"><b>🗂 आपका साझा Group</b><br><span class="cc-muted">' + esc(S.prof.name || S.prof.email) + ' + आपके सभी Users</span></div><button class="cc-b sm" onclick="advCloud.data(\'' + S.prof.id + '\')">Open Group</button></div>';
   }
   function vView() {
     var v = S.view; if (!v) return ''; var q = (v.q || '').toLowerCase();
     var cs = v.cases.filter(function (c) { return !q || JSON.stringify(c).toLowerCase().indexOf(q) > -1; });
     var pref = ['caseNo', 'caseNumber', 'court', 'vadiName', 'prativadiName', 'nextDate', 'caseType', 'status'], keys = pref.filter(function (k) { return v.cases.some(function (c) { return c && c[k] != null && typeof c[k] !== 'object'; }); });
     if (!keys.length && v.cases[0]) keys = Object.keys(v.cases[0]).filter(function (k) { return typeof v.cases[0][k] !== 'object'; }).slice(0, 6);
+    var canManage = role() === 'master';
+    var selected = v.selected || [];
     return '<div class="cc-row" style="margin-bottom:8px"><button class="cc-b gray sm" onclick="advCloud.tab(\'data\')">← Back</button><b style="flex:1">' + esc(v.acct.name || v.acct.email) + '</b></div>' +
-      '<div class="cc-muted">Cases: <b>' + v.cases.length + '</b> · Last sync: ' + fmtT(v.meta.updatedAt) + ' · View only (read-only)</div>' +
+      '<div class="cc-muted">Cases: <b>' + v.cases.length + '</b> · Last sync: ' + fmtT(v.meta.updatedAt) + (canManage ? ' · Master controls enabled' : ' · Read-only') + '</div>' +
       '<div class="cc-row" style="margin:8px 0"><input class="cc-in" style="flex:1;margin:0" placeholder="🔍 Search" value="' + esc(v.q) + '" oninput="advCloud.vq(this.value)"><button class="cc-b sm" onclick="advCloud.dl()">⬇ JSON</button></div>' +
-      '<div style="overflow:auto"><table class="cc-tbl"><tr><th>#</th>' + keys.map(function (k) { return '<th>' + esc(k) + '</th>'; }).join('') + '</tr>' +
-      cs.slice(0, 300).map(function (c, i) { return '<tr><td>' + (i + 1) + '</td>' + keys.map(function (k) { return '<td>' + esc(c[k]) + '</td>'; }).join('') + '</tr>'; }).join('') + '</table></div>' + (cs.length > 300 ? '<div class="cc-muted">Showing the first 300 — use search to narrow down.</div>' : '');
+      (canManage ? '<div class="cc-row" style="margin:6px 0"><label class="cc-muted"><input type="checkbox" onchange="advCloud.vselAll(this.checked)"> इस पेज के सभी केस चुनें</label><button class="cc-b sm red" onclick="advCloud.vbulkDel()">🗑 चुने हुए Delete (<span id="advCloudBulkN">' + selected.length + '</span>)</button></div>' : '') +
+      '<div style="overflow:auto"><table class="cc-tbl"><tr>' + (canManage ? '<th>✓</th>' : '') + '<th>#</th>' + keys.map(function (k) { return '<th>' + esc(k) + '</th>'; }).join('') + '</tr>' +
+      cs.slice(0, 300).map(function (c, i) { return '<tr>' + (canManage ? '<td><input type="checkbox" ' + (selected.indexOf(String(c.id)) >= 0 ? 'checked' : '') + ' onchange="advCloud.vsel(\'' + esc(c.id) + '\',this.checked)"></td>' : '') + '<td>' + (i + 1) + '</td>' + keys.map(function (k) { return '<td>' + esc(c[k]) + '</td>'; }).join('') + '</tr>'; }).join('') + '</table></div>' + (cs.length > 300 ? '<div class="cc-muted">Showing the first 300 — use search to narrow down.</div>' : '');
   }
   function pageBox() {
     var v = parseInt(localStorage.getItem('advPageSize')) || 100;
@@ -14694,6 +14754,9 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     del: function (id) { var a = S.list.filter(function (x) { return x.id === id; })[0]; if (a) delAccount(a).catch(function (e) { toast(errText(e)); }); },
     data: function (id) { var a = S.list.filter(function (x) { return x.id === id; })[0]; if (!a) return; if (role() === 'master' || role() === 'admin') { var fs = $('ccFilterSel'); S.panelOpen = false; draw(); onFilter(a.id).then(function () { if (fs) fs.value = a.id; }); } else loadData(a).catch(function (e) { toast(errText(e)); }); },
     vq: function (v) { S.view.q = v; draw(); var i = $('cc-root').querySelector('.cc-in'); if (i) { i.focus(); i.setSelectionRange(v.length, v.length); } },
+    vsel: function (id, on) { if (!S.view) return; var a = S.view.selected || (S.view.selected = []); id = String(id); S.view.selected = on ? (a.indexOf(id) < 0 ? a.concat([id]) : a) : a.filter(function (x) { return x !== id; }); draw(); },
+    vselAll: function (on) { if (!S.view) return; var q = (S.view.q || '').toLowerCase(); S.view.selected = on ? S.view.cases.filter(function (c) { return !q || JSON.stringify(c).toLowerCase().indexOf(q) > -1; }).slice(0,300).map(function (c) { return String(c.id); }) : []; draw(); },
+    vbulkDel: async function () { if (role() !== 'master' || !S.view || !S.view.acct || !S.view.selected || !S.view.selected.length) return toast('पहले केस चुनें'); var ids = S.view.selected.slice(); if (!confirm(ids.length + ' चुने हुए केस स्थायी रूप से Delete करें?')) return; try { for (var i=0;i<ids.length;i++) await writeSharedCase('delete', ids[i], null, S.view.acct.id); S.view.cases = S.view.cases.filter(function (c) { return ids.indexOf(String(c.id)) < 0; }); S.view.selected = []; S.view.meta.updatedAt = new Date(); toast(ids.length + ' केस Delete हो गए और सर्वर पर सेव हो गए'); draw(); } catch(e) { toast('Delete पूरा नहीं हुआ: ' + errText(e)); } },
     dl: function () { var b = new Blob([JSON.stringify(S.view.cases, null, 1)], { type: 'application/json' }), a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'cases-' + (S.view.acct.email || 'user') + '.json'; a.click(); },
     sync: function () { syncNow(true).then(function () { toast('Sync complete'); }); },
     compose: function () {
