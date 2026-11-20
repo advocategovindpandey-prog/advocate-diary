@@ -1550,7 +1550,7 @@ const fmt=s=>{if(!s)return '—';return advDmon(new Date(s+'T00:00:00'))};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const persist=()=>{setTimeout(()=>{try{renderStats()}catch(e){}},0);localStorage.setItem('advDiaryCases',JSON.stringify(cases));autoBackup();};
 // Automatic local snapshots: every change + one dated snapshot per calendar day.
-function autoBackup(){try{const now=new Date(),stamp=now.toISOString(),day=dateKey(now),payload=JSON.stringify({savedAt:stamp,date:day,cases,settings});localStorage.setItem('advDiaryBackup:latest',payload);const dailyKey='advDiaryBackup:daily:'+day;if(!localStorage.getItem(dailyKey))localStorage.setItem(dailyKey,payload);localStorage.setItem('advDiaryBackup:lastCheck',stamp);}catch(e){console.warn('Auto-backup could not be saved (storage may be full).',e)}}
+function autoBackup(){try{const now=new Date(),stamp=now.toISOString(),day=dateKey(now),payload=JSON.stringify({savedAt:stamp,date:day,cases:cases.filter(c=>!c._ov).concat(window.__advTeamCases?window.__advTeamCases():[]),settings});localStorage.setItem('advDiaryBackup:latest',payload);const dailyKey='advDiaryBackup:daily:'+day;if(!localStorage.getItem(dailyKey))localStorage.setItem(dailyKey,payload);localStorage.setItem('advDiaryBackup:lastCheck',stamp);}catch(e){console.warn('Auto-backup could not be saved (storage may be full).',e)}}
 function checkAutoBackup(){try{const last=localStorage.getItem('advDiaryBackup:lastCheck');if(!last||Date.now()-new Date(last).getTime()>=24*60*60*1000){autoBackup();}}catch(e){console.warn('Auto-backup check failed.',e)}}
 // Daily backup reminder: shown once per day on first open, and stays until the user actually takes a backup.
 function dismissBackupPrompt(){try{localStorage.setItem('advDiaryBackup:promptSkipDate',today())}catch(e){}$('backupPromptOverlay').classList.add('hidden')}
@@ -6804,7 +6804,7 @@ header .advViewSel option{color:#142b4a;background:#fff}
   const caseDates=c=>{const a=[c.caseDate,c.nextDate];(c.history||[]).forEach(h=>a.push(h&&h.date));(c.facedHistory||[]).forEach(h=>a.push(h&&h.date));return a.filter(Boolean)};
   const allMode=r=>r.mode==='all'||(!r.from&&!r.to);
   const cname=c=>(c.vadiName||c.party||'—')+' vs '+(c.prativadiName||'—')+(c.caseNo?' ('+c.caseNo+')':'');
-  function bkCases(){const r=R.bk;return allMode(r)?cases.slice():cases.filter(c=>caseDates(c).some(d=>inR(d,r)))}
+  function bkCases(){const r=R.bk,_c=cases.filter(c=>!c._ov&&String(c.id).indexOf('ov_')!==0).concat(window.__advTeamCases?window.__advTeamCases():[]);return allMode(r)?_c.slice():_c.filter(c=>caseDates(c).some(d=>inR(d,r)))}
   window._bkName=function(){const r=R.bk,n=new Date(),z=x=>String(x).padStart(2,'0');
     const stamp=z(n.getDate())+'-'+z(n.getMonth()+1)+'-'+n.getFullYear()+'-'+z(n.getHours())+'-'+z(n.getMinutes())+'-'+z(n.getSeconds());
     const rng=allMode(r)?'':' ('+(dmy(r.from)||'Start')+'_to_'+(dmy(r.to)||'Today')+')';
@@ -13855,14 +13855,17 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   function tsPath(owner, cid) { return 'teams/' + TS.id + '/cases/' + owner + '__' + cid; }
   function tsLoadPushed() { try { TS.pushed = JSON.parse(localStorage.getItem('advTeamPushed:' + S.prof.id) || '{}'); } catch (e) { TS.pushed = {}; } }
   function tsSavePushed() { try { localStorage.setItem('advTeamPushed:' + S.prof.id, JSON.stringify(TS.pushed)); } catch (e) { } }
+  function tsLastAt(c) { var h = (c && c.hist) || [], t = 0; for (var i = 0; i < h.length; i++) if (h[i].at > t) t = h[i].at; return t; }
+  function tsAtMs(x) { try { return x && x.at && x.at.toMillis ? x.at.toMillis() : 0; } catch (e) { return 0; } }
   async function teamPush() {
-    if (!S.prof || !S.fb || !TS.id || TS.busy || window.__advViewOnly) return; TS.busy = true;
+    if (!S.prof || !S.fb || !TS.id || TS.busy || TS.first || window.__advViewOnly) return; TS.busy = true;
     try {
       var raw = []; try { raw = JSON.parse(localStorage.getItem('advDiaryCases') || '[]'); } catch (e) { }
       var F = S.fb, me = S.prof.id, nm = S.prof.name || S.prof.email || '', ops = [], seen = {};
       raw.forEach(function (c) {
         if (!c || c._ov || String(c.id).indexOf('ov_') === 0) return; seen[c.id] = 1;
         var js = JSON.stringify(c), h = fnv(js); if (TS.pushed[c.id] === h) return;
+        var sx = TS.docs[me + '__' + c.id]; if (sx && sx.del === false && TS.pushed[c.id] === undefined && sx.h !== h && tsAtMs(sx) > tsLastAt(c)) return;
         ops.push({ id: c.id, h: h, data: { owner: me, ownerName: nm, cid: String(c.id), c: js, h: h, by: nm, byUid: me, role: role(), at: F.serverTimestamp(), del: false, delBy: '', delByUid: '', rest: false } });
       });
       var gone = Object.keys(TS.pushed).filter(function (id) { return !seen[id]; });
@@ -13904,6 +13907,16 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       var x = docs[k]; if (!x || !x.cid) return;
       if (x.owner === me) {
         var loc = tsOwnLocal(x.cid);
+        if (x.del === false && x.c && TS.pushed[x.cid] === undefined) {
+          var st0 = tsStored(x.cid);
+          if (!st0) { try { var rc0 = JSON.parse(x.c); window.__advSys = 1; try { edOwn(function () { cases.push(rc0); }); } finally { window.__advSys = 0; } TS.pushed[x.cid] = x.h; tsSavePushed(); } catch (e) { } return; }
+          var lh0 = fnv(JSON.stringify(st0));
+          if (lh0 === x.h) { TS.pushed[x.cid] = x.h; tsSavePushed(); return; }
+          if (tsAtMs(x) > tsLastAt(st0)) {
+            try { var rc1 = JSON.parse(x.c); window.__advActor = { name: x.by || 'User', role: x.role || '' }; window.__advSys = 1; try { edOwn(function () { var i = cases.findIndex(function (c) { return !c._ov && String(c.id) === String(x.cid); }); if (i > -1) cases[i] = Object.assign({}, cases[i], rc1); }); } finally { window.__advActor = null; window.__advSys = 0; } TS.pushed[x.cid] = x.h; tsSavePushed(); } catch (e) { }
+          }
+          return;
+        }
         if (x.del === true && x.delByUid && x.delByUid !== me && loc) {
           window.__advSys = 1; try { edOwn(function () { cases = cases.filter(function (c) { return String(c.id) !== String(x.cid); }); }); } catch (e) { } window.__advSys = 0;
           delete TS.pushed[x.cid]; tsSavePushed();
@@ -14018,6 +14031,20 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       put(KEY, next); done(); reload();
     }
   }
+
+
+  window.__advTeamCases = function () {
+    try {
+      var r = role(), out = [];
+      cases.forEach(function (c) {
+        if (!c._ov) return; if (r === 'user' && !c._merged) return; if (r !== 'master' && r !== 'admin' && r !== 'user') return;
+        var x = Object.assign({}, c); x.id = c._merged ? c._ownId : c._rawId; x.teamOwner = (OV.srcs[c._srcUid] || {}).name || '';
+        Object.keys(x).forEach(function (k) { if (k.charAt(0) === '_') delete x[k]; }); delete x.advocateIds; x.advocateId = (typeof activeAdvocate === 'function' && activeAdvocate() && activeAdvocate().id) || x.advocateId;
+        out.push(x);
+      });
+      return out;
+    } catch (e) { return []; }
+  };
 
   /* ---------- Per-user permissions ---------- */
   function permsOf(a) { var p = a && a.perms; return p ? { create: !!p.create, date: !!p.date, edit: !!p.edit, del: !!p.del } : { create: true, date: true, edit: true, del: true }; }
