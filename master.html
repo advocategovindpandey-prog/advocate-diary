@@ -649,21 +649,7 @@ sync();
 }
 window.openThemePanel=openUI;
 })();
-</script><script id="adv-offline-tick">setInterval(function(){try{if(window.ADV_BUILD==='master'||navigator.onLine)return;var c=JSON.parse(localStorage.getItem('advCloudCache')||'null');if(!c)return;var n=Date.now(),sn=c.seen||c.at;if(n<sn-60000||n-c.at>=(c.og||3)*864e5||c.exp<=n)location.reload();else{c.seen=Math.max(sn,n);localStorage.setItem('advCloudCache',JSON.stringify(c))}}catch(e){}},60000);</script><script id="adv-login-identity">
-(function(){
- function update(){
-  try{
-   var st=window.advCloud&&window.advCloud.status?window.advCloud.status():null;
-   var box=document.getElementById('advLoggedInIdentity'), name=document.getElementById('advLoggedInName');
-   if(!box||!name)return;
-   if(st&&st.name){name.textContent=st.name;box.style.display='block';}
-   else {box.style.display='none';}
-  }catch(e){}
- }
- update();setInterval(update,1500);window.addEventListener('focus',update);
-})();
-</script>
-<script id="adv-status-badge">(function(){var el;function st(){try{return window.advCloud&&advCloud.status?advCloud.status():null}catch(e){return null}}
+</script><script id="adv-offline-tick">setInterval(function(){try{if(window.ADV_BUILD==='master'||navigator.onLine)return;var c=JSON.parse(localStorage.getItem('advCloudCache')||'null');if(!c)return;var n=Date.now(),sn=c.seen||c.at;if(n<sn-60000||n-c.at>=(c.og||3)*864e5||c.exp<=n)location.reload();else{c.seen=Math.max(sn,n);localStorage.setItem('advCloudCache',JSON.stringify(c))}}catch(e){}},60000);</script><script id="adv-status-badge">(function(){var el;function st(){try{return window.advCloud&&advCloud.status?advCloud.status():null}catch(e){return null}}
 function tick(){if(!document.body)return;var s=st();if(!s||!s.name){if(el)el.style.display='none';return}
 if(!el){el=document.createElement('div');el.id='advStat';el.style.cssText='position:fixed;left:8px;bottom:calc(8px + env(safe-area-inset-bottom,0px));z-index:2147483000;max-width:82vw;padding:5px 11px;border-radius:16px;font:600 12px system-ui,sans-serif;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.3);pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';document.body.appendChild(el)}
 var c,t;if(!s.online){c='#c62828';t='\uD83D\uDD34 Offline'}else if(s.err){c='#d97706';t='\uD83D\uDFE0 Online · sync error'}else if(s.syncing||s.pending){c='#d97706';t='\uD83D\uDFE1 Syncing…'}else{c='#137547';t='\uD83D\uDFE2 Online'+(s.last?' · synced '+new Date(s.last).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'')}
@@ -708,7 +694,6 @@ setInterval(tick,2000);window.addEventListener('online',tick);window.addEventLis
   </div>
 </aside>
 <main>
-<div id="advLoggedInIdentity" style="margin:0 0 10px;padding:9px 12px;border:1px solid #cbd5e1;border-radius:11px;background:#f8fafc;color:#142b4a;font-size:13px;font-weight:700">👤 लॉगिन: <span id="advLoggedInName">लोड हो रहा है…</span></div>
 <div class="dashboard-shell">
 <div class="stats"><div class="stat dash-item" data-dash-key="total" role="button" onclick="showStatCases('all')"><span>📁 कुल केस</span><b id="totalCount">0</b><div class="status-mini"><button class="sm-inactive" onclick="event.stopPropagation();showStatCases('inactive')">⏸ Deactivate Case <span id="totalInactiveMini">0</span></button><button class="sm-disposed" onclick="event.stopPropagation();showStatCases('disposed')">✅ Disposed <span id="totalDisposedMini">0</span></button></div></div><div class="stat dash-item" data-dash-key="today" role="button" onclick="showStatCases('today')"><span>📅 आज की तारीख वाले केस</span><b id="todayCount">0</b></div><div class="stat missbox dash-item" data-dash-key="missed"><div class="miss-top" role="button" onclick="showStatCases('missed')"><span>⚠️ मिस्ड डेट</span><b id="missedCount" style="color:#c62828">0</b></div><div class="missed-reminder-grid"><div class="missed-reminder-tile sms" role="button" onclick="event.stopPropagation();showStatCases('pendingReminder')"><div class="rt-title">💬 SMS Reminder Due</div><b class="rt-count" id="pendRemCount">0</b><div class="rt-sub">SMS / WhatsApp reminder बाकी</div></div><div class="missed-reminder-tile sma" role="button" onclick="event.stopPropagation();showStatCases('partialReminder')"><div class="rt-title">🕐 1/2 SMA Reminder Due</div><b class="rt-count" id="partialRemCount">0</b><div class="rt-sub">कुछ recipients को reminder बाकी</div></div></div></div><div class="stat dash-item dash-7day-box" data-dash-key="next7_4day" role="button" onclick="showStatCases('next7_4day')"><span>⏳ अगले 7 दिन के केस</span><b id="next7_4dayCount">0</b><div class="dash-next4-inner" data-dash-key="soon" role="button" onclick="event.stopPropagation();showStatCases('soon')"><span>अगले 4 दिन</span><b id="soonCount">0</b></div></div></div>
 
@@ -2181,28 +2166,7 @@ function liveCases(){return cases.filter(c=>!c.inactive&&!c.disposed)}
 function isMissed(c){return !c.inactive&&!c.disposed&&c.nextDate<today()}
 function vsName(c){return `${esc(c.vadiName||c.party||'—')}${c.side==='vadi'?' ⭐':''} <span class="vs-word">vs</span> ${esc(c.prativadiName||'—')}${c.side==='prativadi'?' ⭐':''}`}
 function dayTag(s,col){if(!s)return '';const d=new Date(s+'T00:00:00');if(isNaN(d))return '';const n=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];return ` <span class="day3" style="font-weight:800;color:${col||(d.getDay()===0?'#c62828':'#8b4513')}">(${n})</span>`}
-// Master-only multi-case delete toolbar
-(function(){
- var bar=document.createElement('div');bar.id='advBulkDeleteBar';
- bar.style.cssText='display:none;position:fixed;left:10px;right:10px;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:2147482000;background:#142b4a;color:#fff;border-radius:13px;padding:10px 12px;box-shadow:0 8px 25px #0004;align-items:center;gap:8px;flex-wrap:wrap';
- bar.innerHTML='<b id="advBulkCount" style="flex:1">0 केस चुने</b><button type="button" class="btn sm gray" onclick="advBulkSelectVisible(true)">सभी चुनें</button><button type="button" class="btn sm red" onclick="advBulkDelete()">🗑 Delete</button><button type="button" class="btn sm gray" onclick="advBulkSelectVisible(false)">Clear</button>';
- document.addEventListener('DOMContentLoaded',function(){if(!document.getElementById('advBulkDeleteBar'))document.body.appendChild(bar);});
- if(document.body&&!document.getElementById('advBulkDeleteBar'))document.body.appendChild(bar);
-})();
-window.advBulkCaseToggle=function(el){var bar=document.getElementById('advBulkDeleteBar');if(!bar)return;var n=document.querySelectorAll('.adv-bulk-case-check:checked').length;document.getElementById('advBulkCount').textContent=n+' केस चुने';bar.style.display=n?'flex':'none';};
-window.advBulkSelectVisible=function(on){document.querySelectorAll('.adv-bulk-case-check').forEach(function(x){x.checked=!!on});var x=document.querySelector('.adv-bulk-case-check');if(x)window.advBulkCaseToggle(x);};
-window.advBulkDelete=function(){
- var ids=Array.from(document.querySelectorAll('.adv-bulk-case-check:checked')).map(function(x){return String(x.getAttribute('data-bulk-case')||'')}).filter(Boolean);
- if(!ids.length)return alert('पहले केस चुनें।');
- if(!confirm('क्या आप '+ids.length+' चुने हुए केस स्थायी रूप से Delete करना चाहते हैं? यह क्रिया वापस नहीं होगी।'))return;
- var chosen=new Set(ids);for(var i=cases.length-1;i>=0;i--)if(chosen.has(String(cases[i].id)))cases.splice(i,1);
- try{localStorage.setItem('advDiaryCases',JSON.stringify(cases));}catch(e){alert('डेटा सेव नहीं हुआ: '+e.message);return;}
- document.querySelectorAll('.adv-bulk-case-check').forEach(function(x){x.checked=false});
- var bar=document.getElementById('advBulkDeleteBar');if(bar)bar.style.display='none';
- try{if(typeof renderStats==='function')renderStats();if(typeof renderUpdateMatches==='function')renderUpdateMatches();if(typeof renderNext==='function')renderNext();if(typeof renderCatalogue==='function')renderCatalogue();}catch(e){}
- alert(ids.length+' केस Delete कर दिए गए।');
-};
-function card(c,i){return `<article data-case-id="${c.id}" class="case-card ${c.inactive?'inactive':''} ${c.disposed?'disposed':''} ${isMissed(c)?'missed':''} ${partialRem(c)?'partial':(pendRem(c)?'pendrem':'')}"><label class="adv-bulk-case-pick" style="display:flex;align-items:center;gap:6px;margin:0 0 7px;font-size:12px;font-weight:700;color:#142b4a"><input type="checkbox" class="adv-bulk-case-check" data-bulk-case="${c.id}" onchange="advBulkCaseToggle(this)"> इस केस को चुनें</label>${c.inactive?`<div class="badge-line"><span class="pill-off">⏸ Deactivated</span></div>`:''}${c.disposed?`<div class="badge-line"><span class="pill-disposed">✅ Disposed</span></div>`:''}${(isMissed(c)||pendRem(c))?`<div class="badge-line">${isMissed(c)?'<span class="pill-red">⚠️ Missed Date</span>':''}${partialRem(c)?'<span class="pill-part">👥 '+remProgress(c).done+'/'+remProgress(c).total+' को भेजा — बाकी को भेजें</span>':(pendRem(c)?'<span class="pill-yel">📵 SMS/WhatsApp बाकी</span>':'')}</div>`:''}<div><span class="serial">${i+1}</span><b class="case-vs">${vsName(c)}</b> <span class="small">(${esc(c.caseNo)})</span>${c.type?`<span class="type-watermark">${esc(c.type)}</span>`:''}</div><div class="meta">${c.inactive&&c.inactiveReason?`<div class="small">⏸ कारण: ${esc(c.inactiveReason)}</div>`:''}${settings.advocates&&settings.advocates.length>1?`<div class="small">👤 Advocate: ${esc(caseAdvNames(c)||'—')}</div>`:''}${caseMukhtars(c).length?`<div class="small">मुख्तार आम: ${esc(caseMukhtars(c).map(m=>m.name||m.mobile).join(', '))}</div>`:''}<b style="color:${isMissed(c)?'#c62828':'#142b4a'}">Next Date: ${fmt(c.nextDate)}${dayTag(c.nextDate,isMissed(c)?'#c62828':'#142b4a')}<br><span class="days-left">${daysRemaining(c.nextDate)}</span>${isMissed(c)?' · MISSED DATE':''}</b>${(c.notes&&String(c.notes).trim())?'<div class="p3-note" style="margin:6px 0 8px;padding:8px 10px;border-radius:10px;background:#fff7e6;border-left:4px solid #d97706;font-size:13px;color:#7c2d12;white-space:pre-wrap;line-height:1.35"><b>📝 नोट'+''+':</b> '+esc(c.notes)+'</div>':''}<br>कोर्ट: ${esc(c.court||'—')}${c.time?' · कोर्ट रूम: '+esc(c.time):''}<br>पिछली तारीख: <span style="font-family:'Poppins','Noto Sans Devanagari',system-ui,-apple-system,Arial,sans-serif;font-weight:400;font-size:inherit">${previousDateOf(c)?fmt(previousDateOf(c))+' ('+['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date(previousDateOf(c)+'T00:00:00').getDay()]+')':'—'}</span></div>${nextSpecialFieldHtml(c)}<div class="actions"><button type="button" class="btn sm gold" id="nextSpecialBtn-${c.id}" onclick="toggleNextSpecialDetails('${c.id}')">🔎 Special Details देखें</button><button class="btn" data-optbtn="1" onclick="toggleOptions('${c.id}')">⋮ विकल्प</button></div><div id="options-${c.id}" class="options-dialog hidden"><div class="actions"><button class="btn" onclick="loadEdit('${c.id}')">Edit</button>${c.inactive?'':`<button class="btn gray" onclick="toggleInlineDate('${c.id}')">Update Date</button><button class="btn green" onclick="openSendOptions('${c.id}')">📤 भेजें</button>`}<button class="btn gold" onclick="showHistory('${c.id}')">📜 History (${(c.history||[]).length})</button>${c.inactive?`<button class="btn green" onclick="activateCase('${c.id}')">▶ Activate</button>`:`<button class="btn gray" onclick="deactivateCase('${c.id}')">⏸ Deactivate</button>`}${c.disposed?`<button class="btn gray" onclick="undisposeCase('${c.id}')">↩ Mark Active</button>`:`<button class="btn green" onclick="disposeCase('${c.id}')">✅ Disposed</button>`}<button class="btn red" onclick="deleteCase('${c.id}')">Delete</button><button class="btn gray" onclick="toggleOptions('${c.id}')">⬅ Back</button></div></div><div id="inlineDate-${c.id}" class="inline-date hidden" style="margin-top:12px;padding:12px;border:1px solid #cbd5e1;border-radius:10px;background:#f8fafc"><div style="font-size:18px;font-weight:900;color:#142b4a;margin-bottom:10px;border-bottom:1px solid #dbe3ee;padding-bottom:8px">📁 ${vsName(c)} <span class="small">(${esc(c.caseNo)})</span></div><label>नई अगली तारीख</label><input id="inlineDateInput-${c.id}" type="date" value="${c.nextDate||''}" style="display:block;margin:6px 0 10px;width:100%;padding:10px"><label>नोट / अगली तारीख का विवरण</label><textarea id="inlineNote-${c.id}" placeholder="वैकल्पिक विवरण" style="display:block;width:100%;min-height:80px;margin:6px 0 10px;padding:10px;box-sizing:border-box">${esc(c.notes||'')}</textarea><div class="actions"><button class="btn green" onclick="saveInlineDate('${c.id}')">यहीं सेव करें</button><button class="btn gold" onclick="openSendOptions('${c.id}')">📤 रिमाइंडर भेजें</button><button class="btn gray" onclick="showHistory('${c.id}')">History</button><button class="btn gray" onclick="toggleInlineDate('${c.id}')">⬅ Back</button></div></div><span class="case-file-watermark">Case File Date: ${fmt(c.caseDate||c.nextDate)}</span></article>`}
+function card(c,i){return `<article data-case-id="${c.id}" class="case-card ${c.inactive?'inactive':''} ${c.disposed?'disposed':''} ${isMissed(c)?'missed':''} ${partialRem(c)?'partial':(pendRem(c)?'pendrem':'')}">${c.inactive?`<div class="badge-line"><span class="pill-off">⏸ Deactivated</span></div>`:''}${c.disposed?`<div class="badge-line"><span class="pill-disposed">✅ Disposed</span></div>`:''}${(isMissed(c)||pendRem(c))?`<div class="badge-line">${isMissed(c)?'<span class="pill-red">⚠️ Missed Date</span>':''}${partialRem(c)?'<span class="pill-part">👥 '+remProgress(c).done+'/'+remProgress(c).total+' को भेजा — बाकी को भेजें</span>':(pendRem(c)?'<span class="pill-yel">📵 SMS/WhatsApp बाकी</span>':'')}</div>`:''}<div><span class="serial">${i+1}</span><b class="case-vs">${vsName(c)}</b> <span class="small">(${esc(c.caseNo)})</span>${c.type?`<span class="type-watermark">${esc(c.type)}</span>`:''}</div><div class="meta">${c.inactive&&c.inactiveReason?`<div class="small">⏸ कारण: ${esc(c.inactiveReason)}</div>`:''}${settings.advocates&&settings.advocates.length>1?`<div class="small">👤 Advocate: ${esc(caseAdvNames(c)||'—')}</div>`:''}${caseMukhtars(c).length?`<div class="small">मुख्तार आम: ${esc(caseMukhtars(c).map(m=>m.name||m.mobile).join(', '))}</div>`:''}<b style="color:${isMissed(c)?'#c62828':'#142b4a'}">Next Date: ${fmt(c.nextDate)}${dayTag(c.nextDate,isMissed(c)?'#c62828':'#142b4a')}<br><span class="days-left">${daysRemaining(c.nextDate)}</span>${isMissed(c)?' · MISSED DATE':''}</b>${(c.notes&&String(c.notes).trim())?'<div class="p3-note" style="margin:6px 0 8px;padding:8px 10px;border-radius:10px;background:#fff7e6;border-left:4px solid #d97706;font-size:13px;color:#7c2d12;white-space:pre-wrap;line-height:1.35"><b>📝 नोट'+''+':</b> '+esc(c.notes)+'</div>':''}<br>कोर्ट: ${esc(c.court||'—')}${c.time?' · कोर्ट रूम: '+esc(c.time):''}<br>पिछली तारीख: <span style="font-family:'Poppins','Noto Sans Devanagari',system-ui,-apple-system,Arial,sans-serif;font-weight:400;font-size:inherit">${previousDateOf(c)?fmt(previousDateOf(c))+' ('+['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date(previousDateOf(c)+'T00:00:00').getDay()]+')':'—'}</span></div>${nextSpecialFieldHtml(c)}<div class="actions"><button type="button" class="btn sm gold" id="nextSpecialBtn-${c.id}" onclick="toggleNextSpecialDetails('${c.id}')">🔎 Special Details देखें</button><button class="btn" data-optbtn="1" onclick="toggleOptions('${c.id}')">⋮ विकल्प</button></div><div id="options-${c.id}" class="options-dialog hidden"><div class="actions"><button class="btn" onclick="loadEdit('${c.id}')">Edit</button>${c.inactive?'':`<button class="btn gray" onclick="toggleInlineDate('${c.id}')">Update Date</button><button class="btn green" onclick="openSendOptions('${c.id}')">📤 भेजें</button>`}<button class="btn gold" onclick="showHistory('${c.id}')">📜 History (${(c.history||[]).length})</button>${c.inactive?`<button class="btn green" onclick="activateCase('${c.id}')">▶ Activate</button>`:`<button class="btn gray" onclick="deactivateCase('${c.id}')">⏸ Deactivate</button>`}${c.disposed?`<button class="btn gray" onclick="undisposeCase('${c.id}')">↩ Mark Active</button>`:`<button class="btn green" onclick="disposeCase('${c.id}')">✅ Disposed</button>`}<button class="btn red" onclick="deleteCase('${c.id}')">Delete</button><button class="btn gray" onclick="toggleOptions('${c.id}')">⬅ Back</button></div></div><div id="inlineDate-${c.id}" class="inline-date hidden" style="margin-top:12px;padding:12px;border:1px solid #cbd5e1;border-radius:10px;background:#f8fafc"><div style="font-size:18px;font-weight:900;color:#142b4a;margin-bottom:10px;border-bottom:1px solid #dbe3ee;padding-bottom:8px">📁 ${vsName(c)} <span class="small">(${esc(c.caseNo)})</span></div><label>नई अगली तारीख</label><input id="inlineDateInput-${c.id}" type="date" value="${c.nextDate||''}" style="display:block;margin:6px 0 10px;width:100%;padding:10px"><label>नोट / अगली तारीख का विवरण</label><textarea id="inlineNote-${c.id}" placeholder="वैकल्पिक विवरण" style="display:block;width:100%;min-height:80px;margin:6px 0 10px;padding:10px;box-sizing:border-box">${esc(c.notes||'')}</textarea><div class="actions"><button class="btn green" onclick="saveInlineDate('${c.id}')">यहीं सेव करें</button><button class="btn gold" onclick="openSendOptions('${c.id}')">📤 रिमाइंडर भेजें</button><button class="btn gray" onclick="showHistory('${c.id}')">History</button><button class="btn gray" onclick="toggleInlineDate('${c.id}')">⬅ Back</button></div></div><span class="case-file-watermark">Case File Date: ${fmt(c.caseDate||c.nextDate)}</span></article>`}
 
 function showInline(id){let el=$('inlineDate-'+id);if(!el)return;el.classList.remove('hidden')}
 function toggleInlineDate(id){let el=$('inlineDate-'+id);if(!el)return;let wasHidden=el.classList.contains('hidden');closeAllDialogs();if(!wasHidden)return;showInline(id);let i=$('inlineDateInput-'+id);if(i)i.focus()}
@@ -13098,7 +13062,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
 </script>
 <script id="adv-cloud-module">
 /* ===== Advocate Diary — Cloud Control (Firebase) =====
-   One unified app for Master, Admin and User roles. Role is read from the signed-in Firebase profile.
+   One module for all 3 builds. BUILD = master | admin | user
    - master build : panel opens from Settings -> "Cloud Control" (diary itself is not gated)
    - admin/user   : login gate on start, real-time block/expiry, data sync, notifications
 */
@@ -13218,7 +13182,6 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     if (S.prof.notes === 'Self sign-up' && cu && !cu.emailVerified && !S.signingUp) { S.msg = 'Please verify your email first — a link was sent to ' + (S.prof.email || '') + ' (also check Spam). After verifying, sign in again.'; S.needVerify = 1; try { await S.fb.signOut(S.auth); } catch (e) { } S.prof = null; S.screen = 'login'; draw(); return; }
     if (cu && cu.emailVerified && S.prof.notes === 'Self sign-up' && !S.prof.emailVerified) { try { await S.fb.updateDoc(ref('users/' + S.prof.id), { emailVerified: true }); S.prof.emailVerified = true; } catch (e) { } }
     if (S.asRole && S.asRole !== 'auto' && S.asRole !== role()) { var rn = role(); S.msg = 'This account is a ' + (rn === 'master' ? 'Master Admin' : rn === 'admin' ? 'Admin' : 'User') + ' account. Please select the correct option above.'; try { await S.fb.signOut(S.auth); } catch (e) { } S.prof = null; S.screen = 'login'; draw(); return; }
-    window.__advMe = S.prof.name || S.prof.email || ''; window.__advRole = role(); window.__advActor = { name: window.__advMe, role: role(), uid: S.prof.id }; window.__advPerms = (role() === 'user') ? { create: true, date: true, edit: true, del: false } : null;
     var why = lockReason(); cacheSet(S.prof);
     if (why) { S.locked = why; S.screen = 'locked'; draw(); }
     else {
@@ -13262,10 +13225,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     }
     if (BUILD !== 'master' && role() !== 'master') { listenNotes(); masterWatch(); }
     editsWatch();
-    restoreOwnCloud().then(function(){ if (!S.syncTimer && S.prof) { S.syncTimer = setInterval(function () { syncNow('auto'); }, 2500); } });
-    // Refresh / tab hide / reconnect पर force upload नहीं होगा; कम केस होने पर केवल Manual Sync पूछेगा।
-    document.addEventListener('visibilitychange', function () { if (!document.hidden && S.prof) syncNow('auto'); });
-    window.addEventListener('online', function(){ if(S.prof) setTimeout(function(){ syncNow('auto'); },500); });
+    S.syncTimer = setInterval(function () { syncNow('auto'); }, 2500); document.addEventListener('visibilitychange', function () { if (document.hidden) syncNow('fast'); });
     S.chk = setInterval(function () { if (S.prof && S.screen === 'panel' && lockReason()) recheck(true); }, 30000);
   }
   function recheck(wasOk) {
@@ -13427,7 +13387,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   }
 
   async function fetchList() {
-    var F = S.fb, q = role() === 'master' ? col('users') : F.query(col('users'), F.where('parentId', '==', (role() === 'user' ? S.prof.parentId : S.prof.id)));
+    var F = S.fb, q = role() === 'master' ? col('users') : F.query(col('users'), F.where('parentId', '==', S.prof.id));
     var s = await F.getDocs(q); S.list = s.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); }).filter(function (x) { return x.id !== S.prof.id; });
     S.listAt = Date.now(); draw();
   }
@@ -13476,71 +13436,22 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   async function gunz(u8) { var ds = new Blob([u8]).stream().pipeThrough(new DecompressionStream('gzip')); return await new Response(ds).text(); }
   function b64(u8) { var s = '', n = 0x8000; for (var i = 0; i < u8.length; i += n) s += String.fromCharCode.apply(null, u8.subarray(i, i + n)); return btoa(s); }
   function unb64(s) { var b = atob(s), u = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
-  // Shared group storage: Master + Master Users share Master's uid; each Admin + its Users share that Admin's uid.
-  function storageOwnerUid() {
-    if (!S.prof) return '';
-    return (S.prof.role === 'user' && S.prof.parentId) ? S.prof.parentId : S.prof.id;
-  }
-  async function restoreOwnCloud() {
-    if (!S.prof || !S.fb || !navigator.onLine) return false;
-    try {
-      var localRaw = localStorage.getItem('advDiaryCases') || '[]';
-      var local = JSON.parse(localRaw);
-      if (!Array.isArray(local)) local = [];
-      var groupUid = storageOwnerUid(), knownHash = localStorage.getItem('advCloudLastHash:' + groupUid) || '';
-      var F = S.fb, m = await F.getDoc(ref('userData/' + groupUid));
-      if (!m.exists()) return false;
-      var meta = m.data() || {}, serverCount = Number(meta.caseCount || 0);
-      // खाली लोकल डेटा पर सर्वर का सुरक्षित बैकअप वापस लाएँ; इससे refresh पर केस शून्य नहीं रहेंगे।
-      // यदि लोकल में कुछ केस हैं लेकिन सर्वर से कम हैं और लोकल बदला हुआ है, तो उसे चुपचाप overwrite न करें।
-      if (local.length > 0 && knownHash && fnv(localRaw) !== knownHash && local.length < serverCount) {
-        S.cloudGuard = { local: local.length, server: serverCount, uid: groupUid };
-        return false;
-      }
-      if (local.length > 0 && knownHash && fnv(localRaw) !== knownHash) return false;
-      var snap = await F.getDocs(col('userData/' + groupUid + '/chunks'));
-      var parts = snap.docs.map(function(d){return d.data();}).sort(function(a,b){return a.i-b.i;});
-      if (!parts.length) return false;
-      var obj = JSON.parse(await gunz(unb64(parts.map(function(p){return p.d||'';}).join(''))));
-      if (!Array.isArray(obj.cases)) return false;
-      if (local.length && !knownHash) {
-        try { localStorage.setItem('advGroupMigrationBackup:' + S.prof.id, localRaw); } catch (e) { }
-      }
-      localStorage.setItem('advDiaryCases', JSON.stringify(obj.cases));
-      // App की live in-memory list भी restore करें, केवल localStorage नहीं।
-      try { cases = obj.cases; if (typeof renderAll === 'function') renderAll(); } catch (e) { }
-      localStorage.setItem('advCloudLastHash:' + groupUid, fnv(JSON.stringify(obj.cases))); localStorage.setItem('advCloudLastHash', fnv(JSON.stringify(obj.cases)));
-      S.cloudGuard = null; S.lastSync = Date.now();
-      return true;
-    } catch(e) { S.syncErr = (e && (e.code || e.message)) || 'restore-error'; return false; }
-  }
   async function syncNow(force) {
     if (S.prof) S.lastChk = Date.now();
-    if (!S.prof || !S.fb || !S.db || !navigator.onLine || S.syncing || (force !== true && force !== 'auto' && force !== 'fast')) return;
-    var groupUid = storageOwnerUid(), raw = localStorage.getItem('advDiaryCases') || '[]', h = fnv(raw), hashKey = 'advCloudLastHash:' + groupUid;
-    var localCases;
-    try { localCases = JSON.parse(raw); if (!Array.isArray(localCases)) localCases = []; } catch (e) { return; }
-    if (localCases.length === 0) {
-      if (force !== true) return; // खाली डेटा कभी भी अपने-आप सर्वर पर न भेजें
-      if (!confirm('इस फोन में 0 केस हैं। क्या आप सचमुच सर्वर के सभी केस हटाकर 0 केस सेव करना चाहते हैं?')) return;
-    }
-    if (force !== true && h === localStorage.getItem(hashKey)) { S.pend = null; return; }
+    if (!S.prof || S.screen !== 'panel' || !navigator.onLine || S.syncing || (force !== true && force !== 'auto' && force !== 'fast')) return;
+    var raw = localStorage.getItem('advDiaryCases') || '[]', h = fnv(raw);
+    try { if (JSON.parse(raw).length === 0 && (force === 'auto' || force === 'fast' || !confirm('There are no cases on this phone. Clear the server copy?'))) return; } catch (e) { }
+    if (force !== true && h === localStorage.getItem('advCloudLastHash')) { S.pend = null; return; }
     if (force === 'auto' && S.pend !== h) { S.pend = h; return; }
-    S.syncing = true; var F = S.fb, uid = groupUid;
+    S.syncing = true; var F = S.fb, uid = S.prof.id;
     try {
-      var cases = localCases, m0 = await F.getDoc(ref('userData/' + uid)), old = 0, serverCount = 0;
-      if (m0.exists()) { var meta0 = m0.data() || {}; old = meta0.n || 0; serverCount = Number(meta0.caseCount || 0); }
-      if (cases.length < serverCount) {
-        S.cloudGuard = { local: cases.length, server: serverCount, uid: uid };
-        if (force !== true) { S.syncErr = 'लोकल केस सर्वर से कम हैं; सुरक्षित रखने के लिए मैनुअल Sync आवश्यक है।'; return; }
-        if (!confirm('⚠️ डेटा सुरक्षा चेतावनी\n\nइस फोन में ' + cases.length + ' केस हैं, जबकि सर्वर पर ' + serverCount + ' केस हैं।\n\nक्या आप कम केस वाला डेटा सर्वर पर भेजकर पुराने ' + (serverCount - cases.length) + ' केस हटाना चाहते हैं?\n\nरद्द करने पर सर्वर का डेटा सुरक्षित रहेगा।')) return;
-      }
-      var b = b64(await gz(JSON.stringify({ v: 1, at: Date.now(), cases: cases }))), CH = 700000, n = Math.ceil(b.length / CH) || 1;
+      var cases = JSON.parse(raw), b = b64(await gz(JSON.stringify({ v: 1, at: Date.now(), cases: cases }))), CH = 700000, n = Math.ceil(b.length / CH) || 1;
+      var old = 0; try { var m0 = await F.getDoc(ref('userData/' + uid)); if (m0.exists()) old = m0.data().n || 0; } catch (e) { }
       var w = [], i; for (i = 0; i < n; i++) w.push(['set', 'userData/' + uid + '/chunks/c' + String(i).padStart(3, '0'), { i: i, d: b.slice(i * CH, (i + 1) * CH) }]);
       for (i = n; i < old; i++) w.push(['del', 'userData/' + uid + '/chunks/c' + String(i).padStart(3, '0')]);
       for (i = 0; i < w.length; i += 4) { var bt = F.writeBatch(S.db); w.slice(i, i + 4).forEach(function (x) { x[0] === 'set' ? bt.set(ref(x[1]), x[2]) : bt.delete(ref(x[1])); }); await bt.commit(); }
-      await F.setDoc(ref('userData/' + uid), { n: n, size: b.length, caseCount: cases.length, hash: h, name: (S.prof.role === 'user' && S.parent && S.parent.name) ? S.parent.name : (S.prof.name || ''), email: S.prof.email, groupOwnerUid: uid, groupOwnerRole: (S.prof.role === 'user' && S.parent ? S.parent.role : S.prof.role), updatedAt: F.serverTimestamp(), updatedByUid:S.prof.id, updatedByName:S.prof.name || S.prof.email || 'User', updatedByRole:role(), updatedByAt:F.serverTimestamp() });
-      localStorage.setItem(hashKey, h); localStorage.setItem('advCloudLastHash', h); S.cloudGuard = null; S.lastSync = Date.now(); S.syncErr = ''; try { localStorage.setItem('advCloudPubAt', new Date().toLocaleString()); } catch (e) { } try { if (typeof renderAll === 'function') renderAll(); } catch (e) { } if (S.panelOpen) draw();
+      await F.setDoc(ref('userData/' + uid), { n: n, size: b.length, caseCount: cases.length, hash: h, name: S.prof.name || '', email: S.prof.email, updatedAt: F.serverTimestamp() });
+      localStorage.setItem('advCloudLastHash', h); S.lastSync = Date.now(); S.syncErr = ''; try { localStorage.setItem('advCloudPubAt', new Date().toLocaleString()); } catch (e) { } if (S.panelOpen) draw();
     } catch (e) { S.syncErr = (e && (e.code || e.message)) || 'error'; if (e && e.code === 'permission-denied') { await loadProf().catch(function () { }); recheck(true); } }
     finally { S.syncing = false; }
   }
@@ -13548,24 +13459,16 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     if (S.mwOff) { try { S.mwOff(); } catch (e) { } S.mwOff = null; }
     if (role() === 'master' || !S.prof || S.prof.canViewMaster !== true || !S.pub || !S.pub.masterUid) return;
     var first = true;
-    S.mwOff = S.fb.onSnapshot(ref('userData/' + S.pub.masterUid), function (snap) {
-      if (first) { first = false; return; }
-      var meta = snap && snap.exists() ? (snap.data() || {}) : {};
-      // सर्वर के रिकॉर्ड में जिस अकाउंट ने बदलाव किया है, उसी का नाम दिखाएँ।
-      if (meta.updatedByUid && S.prof && String(meta.updatedByUid) === String(S.prof.id)) return;
-      masterPopup(meta.updatedByName || meta.updatedByEmail || 'Master', meta.updatedByRole || '');
-    }, function () { });
+    S.mwOff = S.fb.onSnapshot(ref('userData/' + S.pub.masterUid), function () { if (first) { first = false; return; } masterPopup(); }, function () { });
   }
-  function masterPopup(actorName, actorRole) {
-    var actorText = String(actorName || 'User') + (actorRole ? ' (' + String(actorRole) + ')' : '');
-    var noticeText = 'केस डेटा में बदलाव ' + actorText + ' द्वारा किया गया है।';
-    try { if (window.Notification && Notification.permission === 'granted') new Notification('Advocate Diary', { body: noticeText }); } catch (e) { }
+  function masterPopup() {
+    try { if (window.Notification && Notification.permission === 'granted') new Notification('Advocate Diary', { body: 'Case data was updated by the Master.' }); } catch (e) { }
     var o = document.getElementById('cc-mp'); if (o) o.remove();
     o = document.createElement('div'); o.id = 'cc-mp';
     o.style.cssText = 'position:fixed;left:10px;right:10px;top:10px;z-index:2147483640;background:#0f2a4a;color:#fff;border-radius:14px;padding:12px 14px;font:600 14px system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.35);display:flex;gap:10px;align-items:center';
-    o.innerHTML = '<div style="flex:1">🔔 ' + noticeText.replace(/[&<>"']/g, function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch]}) + '</div><button style="border:0;border-radius:9px;padding:8px 12px;font:inherit;background:#d9a441;color:#1b1405">View / Refresh</button><button style="border:0;border-radius:9px;padding:8px 10px;font:inherit;background:#334155;color:#fff">✕</button>';
+    o.innerHTML = '<div style="flex:1">🔔 Case data was updated by the Master.</div><button style="border:0;border-radius:9px;padding:8px 12px;font:inherit;background:#d9a441;color:#1b1405">View</button><button style="border:0;border-radius:9px;padding:8px 10px;font:inherit;background:#334155;color:#fff">✕</button>';
     var bs = o.querySelectorAll('button');
-    bs[0].onclick = function () { o.remove(); try { if (typeof renderAll === 'function') renderAll(); } catch(e) {} S.panelOpen = true; S.tab = 'mym'; S.mymAt = 0; S.mymErr = ''; draw(); };
+    bs[0].onclick = function () { o.remove(); S.panelOpen = true; S.tab = 'mym'; S.mymAt = 0; S.mymErr = ''; draw(); };
     bs[1].onclick = function () { o.remove(); };
     document.body.appendChild(o); setTimeout(function () { if (o.parentNode) o.remove(); }, 10000);
   }
@@ -13592,74 +13495,26 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
 
   /* ---------- User edits inside the app -> pending request to Master ---------- */
   var OFF = { t: null };
-  async function writeSharedCase(op, caseId, ch, owner) {
-    var F = S.fb, uid = owner || S.prof.parentId || (S.pub && S.pub.masterUid);
-    if (!uid || !S.prof) throw new Error('डेटा मालिक नहीं मिला');
-    var md = await F.getDoc(ref('userData/' + uid)), list = [], oldN = 0;
-    if (md.exists()) {
-      oldN = Number(md.data().n || 0);
-      var snap = await F.getDocs(col('userData/' + uid + '/chunks'));
-      var parts = snap.docs.map(function (d) { return d.data(); }).sort(function (a,b) { return a.i-b.i; });
-      if (parts.length) { var packed = parts.map(function (p) { return p.d || ''; }).join(''); var obj = JSON.parse(await gunz(unb64(packed))); list = Array.isArray(obj.cases) ? obj.cases : []; }
-    }
-    var now = new Date().toISOString(), actor = { uid:S.prof.id, name:S.prof.name || S.prof.email || 'User', role:role(), at:now };
-    if (op === 'delete' && !(role() === 'master' || (role() === 'admin' && uid === S.prof.id))) throw new Error('केस डिलीट करने का अधिकार केवल Admin या Master को है');
-    var item = null;
-    if (op === 'update') {
-      item = list.find(function (x) { return String(x.id) === String(caseId); });
-      if (!item && ch && ch.caseNo) item = list.find(function (x) { return String(x.caseNo) === String(ch.caseNo) && String(x.type||'') === String(ch.type||'') && String(x.court||'') === String(ch.court||''); });
-      if (!item) throw new Error('यह केस सर्वर पर नहीं मिला; डेटा रीफ्रेश करके दोबारा कोशिश करें');
-      var hist = Array.isArray(item.hist) ? item.hist.slice() : [];
-      Object.keys(ch || {}).forEach(function (k) { if (ED_KEYS.indexOf(k) < 0) return; var before = String(item[k] || ''), after = String(ch[k] || ''); if (before !== after) hist.push({ at:Date.now(), by:actor.name, byUid:actor.uid, r:actor.role, f:k, o:before.slice(0,80), n:after.slice(0,80) }); item[k] = ch[k]; });
-      item.hist = hist.slice(-30); item.editedBy = actor.name + ' (' + actor.role + ')'; item.editedByUid = actor.uid; item.editedAt = now; item.updatedAt = now;
-    } else if (op === 'add') {
-      var newId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'shared_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
-      item = { id:newId, history:[], hist:[{at:Date.now(),by:actor.name,byUid:actor.uid,r:actor.role,f:'new',o:'',n:String(ch.caseNo||'')}], customFields:{}, advocateId:(typeof settings!=='undefined' && settings.activeAdvocateId)||'', advocateIds:[], caseNo:ch.caseNo||'', mukhtars:[], mukhtarAam:'', vadiName:ch.vadiName||'', prativadiName:ch.prativadiName||'', vadiMobile:ch.vadiMobile||'', vadiEmail:'', prativadiMobile:'', prativadiEmail:'', side:'vadi', smsGreetTarget:'auto', remLang:'default', party:ch.vadiName||'', mobile:ch.vadiMobile||'', email:'', court:ch.court||'', type:ch.type||'', subCaseType:'', caseDate:ch.caseDate||'', nextDate:ch.nextDate||'', time:ch.time||'', notes:ch.notes||'', created:now, updatedAt:now, addedBy:actor.name+' ('+actor.role+')', addedByUid:actor.uid, addedAt:now, editedBy:actor.name+' ('+actor.role+')', editedByUid:actor.uid, editedAt:now, reminderSentAt:null, lastSent:null, sent:null, inactive:false, inactiveReason:'', inactiveAt:null };
-      list.push(item);
-    } else if (op === 'delete') {
-      var before = list.length;
-      list = list.filter(function (x) { return String(x.id) !== String(caseId); });
-      if (list.length === before) throw new Error('यह केस सर्वर पर नहीं मिला');
-      item = null;
-    } else throw new Error('अमान्य बदलाव');
-    var raw = JSON.stringify({ v:1, at:Date.now(), cases:list }), packed64 = b64(await gz(raw)), CH = 700000, n = Math.ceil(packed64.length/CH) || 1;
-    var writes=[]; for (var i=0;i<n;i++) writes.push(['set','userData/'+uid+'/chunks/c'+String(i).padStart(3,'0'),{i:i,d:packed64.slice(i*CH,(i+1)*CH)}]);
-    for (var j=n;j<oldN;j++) writes.push(['del','userData/'+uid+'/chunks/c'+String(j).padStart(3,'0')]);
-    for (var k=0;k<writes.length;k+=4) { var batch=F.writeBatch(S.db); writes.slice(k,k+4).forEach(function(w){ if(w[0]==='set') batch.set(ref(w[1]),w[2]); else batch.delete(ref(w[1])); }); await batch.commit(); }
-    await F.setDoc(ref('userData/'+uid), { n:n, size:packed64.length, caseCount:list.length, hash:fnv(JSON.stringify(list)), name:(md.exists() && md.data().name)||'', email:(md.exists() && md.data().email)||'', updatedAt:F.serverTimestamp(), updatedByUid:actor.uid, updatedByName:actor.name, updatedByRole:actor.role, updatedByAt:F.serverTimestamp() });
-    return { ownerUid:uid, case:item };
-  }
   function sendEdit(op, caseId, ch, owner) {
-    return writeSharedCase(op, caseId, ch, owner).then(function (r) {
-      if (owner && OV.srcs[owner]) { var a = OV.srcs[owner].cases || [], ix = a.findIndex(function(x){return String(x.id)===String(caseId);}); if (op === 'delete') { if (ix >= 0) a.splice(ix,1); } else if (r && r.case) { if (ix >= 0) a[ix] = Object.assign({},a[ix],ch,{editedBy:S.prof.name||S.prof.email,editedByUid:S.prof.id,editedAt:new Date().toISOString()}); else if (op === 'add') a.push(r.case); } }
-      try { if (typeof renderAll === 'function') renderAll(); } catch(e) {} try { if (op === 'delete') ovApply(); } catch(e) {} toast(op === 'delete' ? '✔ केस डिलीट हो गया' : '✔ बदलाव सीधे सर्वर पर सेव हो गया'); return r;
-    }).catch(function (e) { toast(errText(e)); throw e; });
+    var F = S.fb;
+    return F.addDoc(F.collection(S.db, 'edits'), { ownerUid: (owner || S.prof.parentId || (S.pub && S.pub.masterUid)), byUid: S.prof.id, byName: S.prof.name || S.prof.email, byRole: S.prof.role, op: op, caseId: caseId || '', case: ch, applied: false, at: F.serverTimestamp() })
+      .then(function () { toast('📤 बदलाव भेज दिया गया'); })
+      .catch(function (e) { toast(errText(e)); });
   }
-  function canDeleteSrc(uid) { if (!S.prof) return false; if (role() === 'master') return true; if (role() === 'admin') return uid === S.prof.id; return false; }
   function canEditSrc(uid) {
     if (!S.prof) return false; var r = role();
     if (r === 'master') return true;
-    if (r === 'admin') return (S.list || []).some(function (x) { return x.id === uid && x.parentId === S.prof.id && x.role === 'user'; });
-    var pid = S.prof.parentId || (S.pub && S.pub.masterUid);
-    if (uid === pid) return true;
-    return (S.list || []).some(function (x) { return x.id === uid && x.role === 'user' && x.parentId === pid; });
+    if (r === 'admin') return (S.list || []).some(function (x) { return x.id === uid && x.parentId === S.prof.id; });
+    var pp = S.prof.perms || {}; return uid === (S.prof.parentId || (S.pub && S.pub.masterUid)) && (S.prof.canEditMaster === true || pp.edit === true || pp.date === true);
+  }
+
+  function permFilter(ch) {
+    if (role() !== 'user' || !S.prof || !S.prof.perms) return ch; var pp = S.prof.perms; if (pp.edit) return ch;
+    var ok = pp.date ? ['nextDate', 'time', 'notes'] : [], o = {}; Object.keys(ch).forEach(function (k) { if (k === 'caseNo' || ok.indexOf(k) > -1) o[k] = ch[k]; }); return o;
   }
   function ovDiffNow() {
     try {
       if (!S.prof || !S.fb || typeof cases === 'undefined') return;
-      // Persist deletion of an overlay case only for Admin/Master roles.
-      var liveOverlay = {}, shadowMap = OV.shadow || {};
-      cases.forEach(function(c){ if(c && c._ov) liveOverlay[String(c.id)] = 1; });
-      OV._deleting = OV._deleting || {};
-      Object.keys(shadowMap).forEach(function(k){
-        if(liveOverlay[k] || OV._deleting[k]) return;
-        var sh = shadowMap[k]; if(!sh || !canDeleteSrc(sh.uid)) return;
-        OV._deleting[k] = 1;
-        writeSharedCase('delete', sh.raw, {}, sh.uid).then(function(){
-          if(OV.srcs[sh.uid] && Array.isArray(OV.srcs[sh.uid].cases)) OV.srcs[sh.uid].cases = OV.srcs[sh.uid].cases.filter(function(x){return String(x.id)!==String(sh.raw);});
-          delete OV._deleting[k]; try { ovApply(); } catch(e) {} try { toast('✔ केस क्लाउड से डिलीट हो गया'); } catch(e) {}
-        }).catch(function(e){ delete OV._deleting[k]; try { toast(errText(e)); } catch(x) {} });
-      });
       var saveNeeded = false;
       cases.forEach(function (c) {
         if (c._ov || !c.id || String(c.id).indexOf('ov_') !== 0) return;
@@ -13675,11 +13530,11 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
         ED_KEYS.forEach(function (k) { c._disp[k] = c[k]; });
         if (c._merged) {
           var own = (OV.hidden || []).filter(function (h) { return h.id === c._ownId; })[0];
-          if (own) { var h = histOf(own).slice(); Object.keys(chg).forEach(function (k) { h.push({ at: Date.now(), by: window.__advMe || '', r: role(), f: k, o: String(own[k] || '').slice(0, 80), n: String(chg[k] || '').slice(0, 80) }); own[k] = chg[k]; }); own.hist = h.slice(-10); saveNeeded = true; }
+          if (own) { var h = histOf(own).slice(); Object.keys(chg).forEach(function (k) { h.push({ at: Date.now() + (window.__advSkew || 0), by: window.__advMe || '', r: role(), f: k, o: String(own[k] || '').slice(0, 80), n: String(chg[k] || '').slice(0, 80) }); own[k] = chg[k]; }); own.hist = h.slice(-10); saveNeeded = true; }
         }
         if (c._srcUid && canEditSrc(c._srcUid)) {
-          var ch = {}; Object.keys(chg).forEach(function (k) { if (chg[k]) ch[k] = String(chg[k]).slice(0, 300); });
-          if (Object.keys(ch).length) {
+          var ch = {}; Object.keys(chg).forEach(function (k) { if (chg[k]) ch[k] = String(chg[k]).slice(0, 300); }); ch = permFilter(ch);
+          if (Object.keys(ch).filter(function (k) { return k !== 'caseNo'; }).length) {
             ch.caseNo = c.caseNo || ''; sendChange(c._srcUid, c._rawId, ch);
             var src = OV.srcs[c._srcUid], o = src && (src.cases || []).filter(function (x) { return String(x.id) === String(c._rawId); })[0]; if (o) ED_KEYS.forEach(function (k) { o[k] = c[k]; });
           }
@@ -13849,11 +13704,11 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     var v = S.edv || (S.edv = {});
     var f = function (k, lab, type) { return '<label>' + lab + '</label><input class="cc-in" type="' + (type || 'text') + '" value="' + esc(v[k] || '') + '" oninput="advCloud.edv(\'' + k + '\',this.value)">'; };
     if (!S.prof || S.prof.canEditMaster !== true) return '<div class="cc-box">Editing has not been enabled for your account.</div>';
-    return '<div class="cc-box"><b>' + (S.edId ? '✏ Update existing case' : '＋ Add a new case') + '</b><div class="cc-muted">आपका बदलाव सर्वर पर सीधे सेव होगा और उसी Admin समूह के सभी अधिकृत सदस्यों को दिखेगा।</div>' +
+    return '<div class="cc-box"><b>' + (S.edId ? '✏ Update existing case' : '＋ Add a new case') + '</b><div class="cc-muted">Your entry is sent to the Master and joins the diary when the Master app next syncs. To change an existing case, type its case number and tap Load (open the Master Data tab first).</div>' +
       '<label>Case number</label><div class="cc-row"><input class="cc-in" style="flex:1;margin:0" value="' + esc(v.caseNo || '') + '" oninput="advCloud.edv(\'caseNo\',this.value)"><button class="cc-b sm" onclick="advCloud.edLoad()">Load</button></div>' +
       f('type', 'Case type') + f('court', 'Court') + f('vadiName', 'Plaintiff / Petitioner') + f('prativadiName', 'Defendant / Respondent') + f('caseDate', 'Case filing date', 'date') + f('nextDate', 'Next date', 'date') + f('time', 'Time') + f('vadiMobile', 'Mobile') + f('notes', 'Notes') +
       (S.edErr ? '<div class="cc-err">' + esc(S.edErr) + '</div>' : '') + (S.edOk ? '<div class="cc-info">' + esc(S.edOk) + '</div>' : '') +
-      '<button class="cc-b grn wide" onclick="advCloud.edSubmit()">Save directly to server</button><button class="cc-b gray wide" style="margin-top:6px" onclick="advCloud.edClear()">Clear form</button></div>';
+      '<button class="cc-b grn wide" onclick="advCloud.edSubmit()">Send to Master</button><button class="cc-b gray wide" style="margin-top:6px" onclick="advCloud.edClear()">Clear form</button></div>';
   }
   async function edSubmit() {
     var v = S.edv || {}, F = S.fb; S.edOk = '';
@@ -13862,8 +13717,8 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     if (!S.edId && !v.nextDate) { S.edErr = 'Next date is required for a new case.'; return draw(); }
     var c = {}; ED_KEYS.forEach(function (k) { if (v[k]) c[k] = String(v[k]).trim().slice(0, 300); });
     try {
-      await sendEdit(S.edId ? 'update' : 'add', S.edId || '', c, S.prof.parentId || (S.pub && S.pub.masterUid));
-      S.edv = {}; S.edId = ''; S.edErr = ''; S.edOk = 'बदलाव सर्वर पर सीधे सेव हो गया।'; draw();
+      await F.addDoc(F.collection(S.db, 'edits'), { ownerUid: (S.prof.parentId || (S.pub && S.pub.masterUid)), byUid: S.prof.id, byName: S.prof.name || S.prof.email, byRole: S.prof.role, op: S.edId ? 'update' : 'add', caseId: S.edId || '', case: c, applied: false, at: F.serverTimestamp() });
+      S.edv = {}; S.edId = ''; S.edErr = ''; S.edOk = 'Sent to the Master. It will appear in the diary when the Master app next syncs.'; draw();
     } catch (e) { S.edErr = errText(e); draw(); }
   }
   function editsBox() { return editsBox0() + edUndoHtml() + tsTrashHtml(); }
@@ -14005,26 +13860,39 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   function tsPath(owner, cid) { return 'teams/' + TS.id + '/cases/' + owner + '__' + cid; }
   function tsLoadPushed() { try { TS.pushed = JSON.parse(localStorage.getItem('advTeamPushed:' + S.prof.id) || '{}'); } catch (e) { TS.pushed = {}; } }
   function tsSavePushed() { try { localStorage.setItem('advTeamPushed:' + S.prof.id, JSON.stringify(TS.pushed)); } catch (e) { } }
+
+  function tsStatus() {
+    if (!S.prof || !TS.id) return '';
+    if (S.tsErr) { var e = String(S.tsErr); return ' · ❌ सर्वर पर सेव नहीं हो रहा: ' + (/permission/i.test(e) ? 'Rules publish नहीं हुए या खाता बंद/वैधता ख़त्म' : e); }
+    var m = 0; Object.keys(TS.docs || {}).forEach(function (k) { var x = TS.docs[k]; if (x && x.owner === S.prof.id && x.del === false) m++; });
+    var ln = TS.localN, t = TS.lastPushAt ? ' · अंतिम सेव ' + new Date(TS.lastPushAt).toLocaleTimeString() : '';
+    if (!TS.okAt) return ' · ⏳ सर्वर से जुड़ रहे हैं';
+    return ' · ☁ सर्वर पर ' + m + ' केस सेव' + ((ln != null && ln !== m) ? ' (फ़ोन में ' + ln + ' — भेजना जारी)' : ' ✔') + t;
+  }
+
   function tsLastAt(c) { var h = (c && c.hist) || [], t = 0; for (var i = 0; i < h.length; i++) if (h[i].at > t) t = h[i].at; return t; }
   function tsAtMs(x) { try { return x && x.at && x.at.toMillis ? x.at.toMillis() : 0; } catch (e) { return 0; } }
   async function teamPush() {
     if (!S.prof || !S.fb || !TS.id || TS.busy || TS.first || window.__advViewOnly) return; TS.busy = true;
     try {
       var raw = []; try { raw = JSON.parse(localStorage.getItem('advDiaryCases') || '[]'); } catch (e) { }
+      TS.localN = raw.filter(function (c) { return c && !c._ov && String(c.id).indexOf('ov_') !== 0; }).length;
       var F = S.fb, me = S.prof.id, nm = S.prof.name || S.prof.email || '', ops = [], seen = {};
       raw.forEach(function (c) {
         if (!c || c._ov || String(c.id).indexOf('ov_') === 0) return; seen[c.id] = 1;
+        if (isBlankCase(c)) return;
         var js = JSON.stringify(c), h = fnv(js); if (TS.pushed[c.id] === h) return;
-        var sx = TS.docs[me + '__' + c.id]; if (sx && sx.del === false && TS.pushed[c.id] === undefined && sx.h !== h && tsAtMs(sx) > tsLastAt(c)) return;
+        var sx = TS.docs[me + '__' + c.id]; if (!TS.force && sx && sx.del === false && TS.pushed[c.id] === undefined && sx.h !== h && tsAtMs(sx) > tsLastAt(c)) return;
         ops.push({ id: c.id, h: h, data: { owner: me, ownerName: nm, cid: String(c.id), c: js, h: h, by: nm, byUid: me, role: role(), at: F.serverTimestamp(), del: false, delBy: '', delByUid: '', rest: false } });
       });
       var gone = Object.keys(TS.pushed).filter(function (id) { return !seen[id]; });
-      if (raw.length && gone.length <= 20) gone.forEach(function (id) { ops.push({ id: id, del: true, data: { owner: me, cid: String(id), del: true, delBy: nm, delByUid: me, delAt: F.serverTimestamp() } }); });
+      if ((raw.length || TS.allowMass) && (gone.length <= 20 || TS.allowMass)) gone.forEach(function (id) { ops.push({ id: id, del: true, data: { owner: me, cid: String(id), del: true, delBy: nm, delByUid: me, delAt: F.serverTimestamp() } }); });
+      TS.pushStart = Date.now();
       for (var i = 0; i < ops.length; i += 400) {
         var bt = F.writeBatch(S.db); ops.slice(i, i + 400).forEach(function (o) { bt.set(ref(tsPath(me, o.id)), o.data, { merge: true }); }); await bt.commit();
         ops.slice(i, i + 400).forEach(function (o) { if (o.del) delete TS.pushed[o.id]; else TS.pushed[o.id] = o.h; });
       }
-      if (ops.length) tsSavePushed();
+      if (ops.length) { tsSavePushed(); TS.lastPushAt = Date.now(); }
       S.tsErr = '';
     } catch (e) { S.tsErr = (e && (e.code || e.message)) || 'error'; }
     finally { TS.busy = false; }
@@ -14035,7 +13903,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     var rc = JSON.parse(x.c), F = S.fb, nm = S.prof.name || S.prof.email, hh = (rc.hist || []).slice();
     Object.keys(chg).forEach(function (k) {
       if (k === 'caseNo') return; var o = String(rc[k] || ''), n = String(chg[k] || ''); if (o === n) return;
-      hh.push({ at: Date.now(), by: nm, r: role(), f: k, o: o.slice(0, 80), n: n.slice(0, 80) });
+      hh.push({ at: Date.now() + (window.__advSkew || 0), by: nm, r: role(), f: k, o: o.slice(0, 80), n: n.slice(0, 80) });
       if (k === 'nextDate') { var h2 = Array.isArray(rc.history) ? rc.history : []; if (rc.nextDate) h2.unshift({ date: rc.nextDate }); rc.history = h2.slice(0, 10); }
       rc[k] = chg[k];
     });
@@ -14044,7 +13912,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   }
   function sendChange(uid, rawId, ch) {
     var src = OV.srcs[uid];
-    if (src && src.team && (TS.id === S.prof.id || role() === 'master')) return tsEditDoc(uid, rawId, ch).then(function () { toast('✔ अपडेट हो गया'); }).catch(function (e) { toast(errText(e)); });
+    if (src && src.team && ((src.tid || TS.id) === TS.id || role() === 'master')) return tsEditDoc(uid, rawId, ch).then(function () { toast('✔ अपडेट हो गया'); }).catch(function (e) { toast(errText(e)); });
     return sendEdit('update', rawId, ch, uid);
   }
   function tsStored(cid) { try { return JSON.parse(localStorage.getItem('advDiaryCases') || '[]').filter(function (c) { return String(c.id) === String(cid); })[0]; } catch (e) { return null; } }
@@ -14056,6 +13924,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     Object.keys(docs).forEach(function (k) {
       var x = docs[k]; if (!x || !x.cid) return;
       if (x.owner === me) {
+        if (x.byUid === me && TS.pushStart && x.at && x.at.toMillis) { var sk = tsAtMs(x) - TS.pushStart; TS.pushStart = 0; if (Math.abs(sk) > 3000 && Math.abs(sk) < 86400000) { window.__advSkew = sk; try { localStorage.setItem('advSkew', String(sk)); } catch (e) { } } else if (Math.abs(sk) <= 3000) { window.__advSkew = 0; try { localStorage.setItem('advSkew', '0'); } catch (e) { } } }
         var loc = tsOwnLocal(x.cid);
         if (x.del === false && x.c && TS.pushed[x.cid] === undefined) {
           var st0 = tsStored(x.cid);
@@ -14167,14 +14036,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     function put(k, v) { window.__advRaw = 1; try { localStorage.setItem(k, v); } finally { window.__advRaw = 0; } }
     function done() { try { localStorage.setItem(OWN, uid); } catch (e) { } }
     function reload() { window.__advPrev = null; if (!window.__advTestNoReload) setTimeout(function () { location.reload(); }, 150); }
-    if (!prev) {
-      var list = []; try { list = JSON.parse(raw) || []; } catch (e) { }
-      var me = S.prof.name || S.prof.email || '', foreign = list.filter(function (c) { return c && c.createdByName && c.createdByName !== me; });
-      if (list.length && foreign.length >= Math.ceil(list.length / 2) && confirm('इस फ़ोन में किसी और खाते का डेटा मिला है (जैसे: ' + foreign[0].createdByName + '). क्या इसे इस खाते से अलग कर दें?\n\nOK = अलग कर दो · Cancel = यह इसी खाते का डेटा है')) {
-        try { localStorage.setItem('advStash:previous', raw); } catch (e) { } put(KEY, '[]'); done(); reload(); return;
-      }
-      done(); return;
-    }
+    if (!prev) { done(); return; }
     if (prev !== uid) {
       try { localStorage.setItem('advStash:' + prev, raw); } catch (e) { }
       var next = '[]'; try { next = localStorage.getItem('advStash:' + uid) || '[]'; } catch (e) { }
@@ -14195,6 +14057,96 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       return out;
     } catch (e) { return []; }
   };
+
+
+  /* ---------- Sync check: shows exactly what is on the phone vs the server ---------- */
+  async function syncCheck() {
+    if (!S.prof) return; var F = S.fb, rows = [], stored = [];
+    try { stored = JSON.parse(localStorage.getItem('advDiaryCases') || '[]'); } catch (e) { }
+    var own = stored.filter(function (c) { return c && !c._ov; }), me = S.prof.id;
+    var mine = Object.keys(TS.docs).filter(function (k) { return TS.docs[k].owner === me && TS.docs[k].del === false; });
+    var pend = 0, sNew = 0, lNew = 0, same = 0;
+    own.forEach(function (c) { var d = TS.docs[me + '__' + c.id]; if (!d) { pend++; return; } if (d.h === fnv(JSON.stringify(c))) { same++; return; } if (tsAtMs(d) > tsLastAt(c)) sNew++; else lNew++; });
+    var wr = '—';
+    if (mine.length) { try { await F.setDoc(ref('teams/' + TS.id + '/cases/' + mine[0]), { ping: F.serverTimestamp() }, { merge: true }); wr = '✔ चल रहा है'; } catch (e) { wr = '❌ ' + (e.code || e.message) + (/permission/i.test(e.code || e.message || '') ? ' (Rules publish नहीं हुए)' : ''); } }
+    var rd = S.tsErr ? '❌ ' + S.tsErr : (TS.okAt ? '✔ चल रहा है' : '⏳ अभी जुड़ा नहीं');
+    var ex = S.prof.expiresAt, exMs = ex && ex.toMillis ? ex.toMillis() : (ex && ex.seconds ? ex.seconds * 1000 : (+ex || 0)), exOk = !exMs || exMs > Date.now(), stOk = (S.prof.status || 'active') === 'active';
+    var validRow = '<div style="border-bottom:1px solid #e2e8f0;padding:6px 0">' + (exOk && stOk ? '✔ खाता चालू' + (exMs ? ' · वैधता ' + new Date(exMs).toLocaleDateString() + ' तक' : '') : '<b style="color:#b91c1c">⚠ खाता बंद या वैधता ख़त्म (' + esc(String(S.prof.status || '')) + (exMs ? ' · ' + new Date(exMs).toLocaleDateString() : '') + ') — इस वजह से सर्वर पढ़ना-लिखना रुका रहता है। Master से वैधता बढ़वाइए।</b>') + '</div>';
+    var line = function (a, b) { return '<div style="display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #e2e8f0;padding:6px 0"><span>' + a + '</span><b>' + b + '</b></div>'; };
+    modalBox('ccSync', '<div style="display:flex;align-items:center;gap:8px"><b style="flex:1;font-size:15px">🔍 सिंक जाँच</b><button style="border:0;background:#e2e8f0;border-radius:8px;padding:6px 10px;font-weight:800" onclick="document.getElementById(\'ccSync\').remove()">✕</button></div>' +
+      line('खाता', esc(role() + ' · ' + (S.prof.name || S.prof.email))) + validRow + line('टीम', esc(TS.id || '—')) + line('सर्वर से पढ़ना', rd) + line('सर्वर पर लिखना', wr) +
+      line('इस फ़ोन में मेरे केस', own.length) + line('खाली केस (नाम नहीं)', blankOwnIds().length) + line('सर्वर पर मेरे केस', mine.length) + line('दोनों में एक जैसे', same) + line('फ़ोन नया — सर्वर पर भेजना बाकी', pend + lNew) + line('सर्वर नया — फ़ोन पुराना', sNew) +
+      '<div style="font-size:12px;color:#64748b;margin:8px 0">"लिखना ❌" दिखे तो Rules publish नहीं हुए हैं। "फ़ोन नया" की संख्या बनी रहे तो नीचे वाला पहला बटन दबाइए।</div>' +
+      '<button style="width:100%;margin-top:6px;border:0;border-radius:10px;padding:11px;font:800 14px system-ui;background:#137547;color:#fff" onclick="advCloud.syncPush()">⬆ फ़ोन का डेटा अभी सर्वर पर भेजो</button>' +
+      '<button style="width:100%;margin-top:8px;border:0;border-radius:10px;padding:11px;font:800 14px system-ui;background:#142b4a;color:#fff" onclick="advCloud.syncPull()">⬇ सर्वर का डेटा अभी फ़ोन में लो</button>' +
+      '<button style="width:100%;margin-top:8px;border:0;border-radius:10px;padding:11px;font:800 14px system-ui;background:#7f1d1d;color:#fff" onclick="advCloud.cleanBlank()">🧹 खाली केस हटाओ (फ़ोन से)</button>');
+  }
+  async function syncPush() { TS.pushed = {}; TS.force = 1; try { await teamPush(); } finally { TS.force = 0; } toast(S.tsErr ? '❌ ' + S.tsErr : '⬆ फ़ोन का डेटा सर्वर पर भेज दिया'); var m = document.getElementById('ccSync'); if (m) m.remove(); }
+  function syncPull() {
+    var me = S.prof.id, n = 0;
+    window.__advSys = 1;
+    try {
+      edOwn(function () {
+        Object.keys(TS.docs).forEach(function (k) {
+          var x = TS.docs[k]; if (!x || x.owner !== me || x.del !== false || !x.c) return; var rc; try { rc = JSON.parse(x.c); } catch (e) { return; }
+          var i = cases.findIndex(function (c) { return !c._ov && String(c.id) === String(x.cid); });
+          if (i > -1) cases[i] = Object.assign({}, cases[i], rc); else cases.push(rc); TS.pushed[x.cid] = x.h; n++;
+        });
+      });
+    } finally { window.__advSys = 0; }
+    tsSavePushed(); toast('⬇ सर्वर से ' + n + ' केस लिए'); var m = document.getElementById('ccSync'); if (m) m.remove();
+  }
+
+
+  /* ---------- Multi-select delete ---------- */
+  function mdList() {
+    return cases.filter(function (c) { return c && c.id != null; }).map(function (c) { return { id: String(c.id), c: c, owner: c._ov ? ((OV.srcs[c._srcUid] || {}).name || 'User') : (window.__advMe || 'मेरा') }; });
+  }
+  function mdOpen() {
+    S._md = S._md || { q: '', own: '', sel: {} };
+    var L = mdList(), owners = {}; L.forEach(function (x) { owners[x.owner] = 1; });
+    var q = (S._md.q || '').toLowerCase(), f = L.filter(function (x) { if (S._md.own && x.owner !== S._md.own) return false; if (!q) return true; var c = x.c; return [c.caseNo, c.vadiName, c.prativadiName, c.court].join(' ').toLowerCase().indexOf(q) > -1; });
+    var shown = f.slice(0, 300), nSel = Object.keys(S._md.sel).filter(function (k) { return S._md.sel[k]; }).length;
+    var rows = shown.map(function (x) { var c = x.c; return '<label style="display:flex;gap:8px;align-items:flex-start;padding:7px 0;border-bottom:1px solid #e2e8f0"><input type="checkbox" ' + (S._md.sel[x.id] ? 'checked' : '') + ' onchange="advCloud.mdTog(\'' + esc(x.id).replace(/\'/g, '') + '\',this.checked)"><span style="flex:1"><b>' + esc(c.caseNo || '—') + '</b> · ' + esc(c.vadiName || '—') + ' vs ' + esc(c.prativadiName || '—') + '<br><span style="font-size:12px;color:#64748b">' + esc(x.owner) + ' · ' + esc(c.nextDate || '') + '</span></span></label>'; }).join('') || '<div style="color:#64748b;padding:10px">कोई केस नहीं</div>';
+    var opts = '<option value="">सब</option>' + Object.keys(owners).map(function (o) { return '<option value="' + esc(o) + '"' + (S._md.own === o ? ' selected' : '') + '>' + esc(o) + '</option>'; }).join('');
+    modalBox('ccMd', '<div style="display:flex;align-items:center;gap:8px"><b style="flex:1;font-size:15px">🗑 Multi-delete (' + f.length + ' केस, ' + nSel + ' चुने)</b><button style="border:0;background:#e2e8f0;border-radius:8px;padding:6px 10px;font-weight:800" onclick="document.getElementById(\'ccMd\').remove()">✕</button></div>' +
+      '<div style="display:flex;gap:6px;margin:8px 0"><input id="ccMdQ" value="' + esc(S._md.q || '') + '" placeholder="खोजें…" style="flex:1;padding:8px;border:1.5px solid #cbd5e1;border-radius:9px" onchange="advCloud.mdQ(this.value)"><select style="padding:8px;border-radius:9px" onchange="advCloud.mdOwn(this.value)">' + opts + '</select></div>' +
+      '<div style="display:flex;gap:6px;margin-bottom:6px"><button style="flex:1;border:0;border-radius:9px;padding:9px;font:800 13px system-ui;background:#e2e8f0" onclick="advCloud.mdAll(true)">☑ सब चुनें (' + f.length + ')</button><button style="flex:1;border:0;border-radius:9px;padding:9px;font:800 13px system-ui;background:#e2e8f0" onclick="advCloud.mdAll(false)">☐ सब हटाएँ</button><button style="flex:1;border:0;border-radius:9px;padding:9px;font:800 13px system-ui;background:#fde68a" onclick="advCloud.mdBlank()">🧹 खाली केस चुनें</button></div>' +
+      '<div style="max-height:46vh;overflow:auto">' + rows + '</div>' + (f.length > 300 ? '<div style="font-size:12px;color:#64748b">पहले 300 दिख रहे हैं — खोज/फ़िल्टर से छाँटिए। "सब चुनें" फ़िल्टर किए सारे केस चुनता है।</div>' : '') +
+      '<button style="width:100%;margin-top:8px;border:0;border-radius:10px;padding:12px;font:800 14px system-ui;background:#b91c1c;color:#fff" onclick="advCloud.mdDel()">🗑 चुने हुए ' + nSel + ' केस हटाएँ</button>');
+  }
+  function mdFiltered() { var q = (S._md.q || '').toLowerCase(); return mdList().filter(function (x) { if (S._md.own && x.owner !== S._md.own) return false; if (!q) return true; var c = x.c; return [c.caseNo, c.vadiName, c.prativadiName, c.court].join(' ').toLowerCase().indexOf(q) > -1; }); }
+  async function mdDel() {
+    var ids = Object.keys(S._md.sel).filter(function (k) { return S._md.sel[k]; }); if (!ids.length) { toast('कोई केस चुना नहीं गया'); return; }
+    if (!confirm(ids.length + ' केस हटाएँ? दूसरों के केस टीम से हटेंगे (Master/एडमिन "Recently deleted" से वापस ला सकता है)।')) return;
+    var pr = window.__advPerms; if (role() === 'user' && pr && !pr.del) { toast('🔒 आपको केस हटाने की अनुमति नहीं है'); return; }
+    var F = S.fb, mine = [], theirs = [];
+    mdList().forEach(function (x) { if (ids.indexOf(x.id) < 0) return; if (x.c._ov) theirs.push(x.c); else mine.push(x.id); });
+    try {
+      var ops = []; theirs.forEach(function (c) {
+        if (!canDelSrc(c._srcUid)) return;
+        ops.push([ 'teams/' + srcTid(c._srcUid) + '/cases/' + c._srcUid + '__' + c._rawId, { del: true, delBy: S.prof.name || S.prof.email, delByUid: S.prof.id, delAt: F.serverTimestamp(), rest: false } ]);
+        if (c._merged) { OV.hidden = (OV.hidden || []).filter(function (h) { return h.id !== c._ownId; }); OV.own = (OV.own || []).filter(function (h) { return h.id !== c._ownId; }); mine.push(String(c._ownId)); }
+      });
+      for (var i = 0; i < ops.length; i += 400) { var bt = F.writeBatch(S.db); ops.slice(i, i + 400).forEach(function (o) { bt.set(ref(o[0]), o[1], { merge: true }); }); await bt.commit(); }
+      if (mine.length) { cases = cases.filter(function (c) { return mine.indexOf(String(c.id)) < 0; }); OV.own = (OV.own || []).filter(function (c) { return mine.indexOf(String(c.id)) < 0; }); try { persist(); } catch (e) { } }
+      S._md.sel = {}; TS.allowMass = 1; try { await teamPush(); } finally { TS.allowMass = 0; }
+      try { ovApply(); } catch (e) { } try { ovRefresh(); } catch (e) { }
+      var m = document.getElementById('ccMd'); if (m) m.remove(); toast('🗑 ' + (mine.length + ops.length) + ' केस हटा दिए');
+    } catch (e) { toast(errText(e)); }
+  }
+
+
+  /* ---------- Blank cases (no party names): never pushed, easy to clean ---------- */
+  function isBlankCase(c) { return !!c && !c.vadiName && !c.prativadiName && !c.party; }
+  function blankOwnIds() { try { return JSON.parse(localStorage.getItem('advDiaryCases') || '[]').filter(function (c) { return c && !c._ov && isBlankCase(c); }).map(function (c) { return String(c.id); }); } catch (e) { return []; } }
+  async function cleanBlank() {
+    var ids = blankOwnIds(); if (!ids.length) { toast('कोई खाली केस नहीं मिला'); return; }
+    if (!confirm('इस फ़ोन के ' + ids.length + ' खाली केस (वादी/प्रतिवादी का नाम नहीं) हटाएँ?')) return;
+    cases = cases.filter(function (c) { return c._ov || ids.indexOf(String(c.id)) < 0; }); OV.own = (OV.own || []).filter(function (c) { return ids.indexOf(String(c.id)) < 0; }); OV.hidden = (OV.hidden || []).filter(function (c) { return ids.indexOf(String(c.id)) < 0; });
+    try { persist(); } catch (e) { } TS.allowMass = 1; try { await teamPush(); } finally { TS.allowMass = 0; }
+    try { ovApply(); } catch (e) { } var m = document.getElementById('ccSync'); if (m) m.remove(); toast('🧹 ' + ids.length + ' खाली केस हटाए');
+  }
 
   /* ---------- Per-user permissions ---------- */
   function permsOf(a) { var p = a && a.perms; return p ? { create: !!p.create, date: !!p.date, edit: !!p.edit, del: !!p.del } : { create: true, date: true, edit: true, del: true }; }
@@ -14252,21 +14204,13 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   }
   async function autoSources() {
     if (!S.prof || !S.fb) return false; var want = [];
-    if (!(S.list && S.list.length) || Date.now() - (S.listAt || 0) > 60000) { try { await fetchList(); } catch (e) { } }
     if (role() === 'user') {
       var pid = S.prof.parentId || (S.pub && S.pub.masterUid); if (!pid) return false;
-      // Include the parent account and every sibling under the same Admin/Master.
       var pn = (S.parent && (S.parent.name || S.parent.email)) || ((S.pub && pid === S.pub.masterUid) ? 'Master' : 'Admin');
       want.push({ id: pid, name: pn });
-      (S.list || []).forEach(function (a) { if (a.id !== S.prof.id && a.parentId === pid && a.role === 'user') want.push({ id: a.id, name: a.name || a.email }); });
     } else {
-      var adminIds = {};
-      if (role() === 'master') (S.list || []).forEach(function (a) { if (a.role === 'admin' && a.parentId === S.prof.id) adminIds[a.id] = 1; });
-      (S.list || []).forEach(function (a) {
-        if (a.id === S.prof.id) return;
-        var ok = role() === 'master' ? (a.parentId === S.prof.id || (a.role === 'user' && adminIds[a.parentId])) : (a.parentId === S.prof.id && a.role === 'user');
-        if (ok) want.push({ id: a.id, name: a.name || a.email, noLWW: false });
-      });
+      if (!(S.list && S.list.length) || Date.now() - (S.listAt || 0) > 60000) { try { await fetchList(); } catch (e) { } }
+      (S.list || []).forEach(function (a) { if (a.id === S.prof.id) return; var ok = role() === 'master' ? (a.parentId === S.prof.id || a.masterCanView === true) : (a.adminCanView === true && a.parentId === S.prof.id); if (ok) want.push({ id: a.id, name: a.name || a.email, noLWW: a.needsApproval === true }); });
     }
     var got = 0;
     for (var i = 0; i < want.length; i++) { try { var l = await fetchCasesOf(want[i]); OV.srcs[want[i].id] = { name: want[i].name, cases: l, noLWW: want[i].noLWW }; ovLiveMulti(want[i]); got++; } catch (e) { } }
@@ -14302,10 +14246,11 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
           if (k) seenK[k] = 1;
           if (c.caseNo) ow = (ownByNo[nno(c.caseNo)] || []).filter(function (o) { return !usedOwn[o.id] && teq(o.type, c.type) && teq(o.court, c.court); })[0] || null;
           if (ow) {
-            usedOwn[ow.id] = 1; var oh = histOf(ow); x = Object.assign({}, ow, c); x._merged = 1; x._ownId = ow.id; hidden.push(ow);
+            usedOwn[ow.id] = 1; var oh = histOf(ow); x = Object.assign({}, ow); Object.keys(c).forEach(function (k3) { var v3 = c[k3]; if (v3 === undefined || v3 === null || v3 === '' || (Array.isArray(v3) && !v3.length && Array.isArray(x[k3]) && x[k3].length)) return; x[k3] = v3; }); x._merged = 1; x._ownId = ow.id; hidden.push(ow);
             if (!sc.noLWW) ED_KEYS.forEach(function (f) { var ot = 0, pt = 0, i; for (i = 0; i < oh.length; i++) if (oh[i].f === f && oh[i].at > ot) ot = oh[i].at; var ph = c.hist || []; for (i = 0; i < ph.length; i++) if (ph[i].f === f && ph[i].at > pt) pt = ph[i].at; if (ot > pt && ow[f] !== undefined) x[f] = ow[f]; });
             x.hist = (oh.concat(c.hist || [])).sort(function (a, b) { return a.at - b.at; }).slice(-10);
           } else x = Object.assign({}, c);
+          ED_KEYS.forEach(function (f) { if (!x[f]) { if (ow && ow[f]) x[f] = ow[f]; else if (c[f]) x[f] = c[f]; } });
           x._disp = {}; ED_KEYS.forEach(function (f) { x._disp[f] = x[f]; });
           x.id = 'ov_' + uid + '_' + c.id; x._rawId = c.id; x._ov = 1; x._srcUid = uid; x.createdByName = c.createdByName || sc.name; x.advocateIds = ids.slice(); x.advocateId = ids[0]; OV.shadow[x.id] = { d: Object.assign({}, x._disp), merged: !!x._merged, own: x._ownId, raw: c.id, uid: uid }; ov.push(x);
         });
@@ -14360,9 +14305,9 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   function lineUpdate() {
     var el = $('ccLoginLine'); if (!el) return;
     if (!S.prof) { el.style.display = 'none'; return; }
-    el.style.display = 'block'; window.__advMe = S.prof.name || S.prof.email || ''; window.__advRole = role(); window.__advActor = { name: window.__advMe, role: role(), uid: S.prof.id }; window.__advPerms = (role() === 'user') ? { create: true, date: true, edit: true, del: false } : null;
+    el.style.display = 'block'; window.__advMe = S.prof.name || S.prof.email || ''; window.__advRole = role(); window.__advPerms = (role() === 'user' && S.prof.perms) ? { create: !!S.prof.perms.create, date: !!S.prof.perms.date, edit: !!S.prof.perms.edit, del: !!S.prof.perms.del } : null;
     var pub = ''; try { pub = (localStorage.getItem('advCloudPubAt') || '').split(', ').pop(); } catch (e) { }
-    var t = $('ccLoginTxt'); if (t) t.textContent = '☁ ' + titleRole() + ' · ' + (S.prof.email || '') + (S.prevLogin ? ' · Last login: ' + S.prevLogin : '') + (S.syncErr ? ' · ⚠ सिंक: ' + S.syncErr : (pub ? ' · ✓ सर्वर पर आख़िरी अपडेट: ' + pub : '')) + (S.tsErr ? ' · ⚠ टीम-सिंक: ' + (/permission/i.test(S.tsErr) ? 'Rules publish नहीं हुए' : S.tsErr) : (TS.okAt ? ' · 👥 टीम ✔ ' + new Date(TS.okAt).toLocaleTimeString() : ''));
+    var t = $('ccLoginTxt'); if (t) t.textContent = '☁ ' + titleRole() + ' · ' + (S.prof.email || '') + (S.prevLogin ? ' · Last login: ' + S.prevLogin : '') + (S.syncErr ? ' · ⚠ सिंक: ' + S.syncErr : (pub ? ' · ✓ सर्वर पर आख़िरी अपडेट: ' + pub : '')) + tsStatus();
     var op = $('ccLoginOpts'); if (op) op.style.display = (role() === 'master' || role() === 'admin') ? 'flex' : 'none'; var fs0 = $('ccFilterSel'); if (fs0) fs0.style.display = (role() === 'master' || role() === 'admin') ? '' : 'none';
   }
   function fillFilter() {
@@ -14370,12 +14315,10 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     var L = S.list || [], saved = '';
     try { saved = localStorage.getItem('advCloudFilter') || ''; } catch (e) { }
     function opt(x) { var n = OV.srcs[x.id] ? ' (' + OV.srcs[x.id].cases.length + ')' : ''; return '<option value="' + esc(x.id) + '">' + esc(x.name || x.email) + n + '</option>'; }
-    var ad = L.filter(function (x) { return x.role === 'admin'; }), us = L.filter(function (x) { return x.role === 'user'; }), html = '<option value="">☁ User/Admin</option>';
-    if (S.prof && role() === 'master') html += '<option value="' + esc(S.prof.id) + '">👑 Master — ' + esc(S.prof.name || S.prof.email) + ' (' + (OV.own || []).length + ')</option>';
-    var direct = us.filter(function (u) { return u.parentId === S.prof.id; });
-    if (direct.length) html += '<optgroup label="' + (role() === 'master' ? '👑 Master के Direct Users' : '👤 इस Admin के Users') + '">' + direct.map(opt).join('') + '</optgroup>';
-    ad.forEach(function (a) { var children = us.filter(function (u) { return u.parentId === a.id; }); html += '<optgroup label="🧑‍💼 ' + esc(a.name || a.email) + ' — Admin">' + opt(a) + children.map(opt).join('') + '</optgroup>'; });
-    sel.innerHTML = html;
+    var ad = L.filter(function (x) { return x.role === 'admin'; }), us = L.filter(function (x) { return x.role === 'user'; });
+    sel.innerHTML = '<option value="">☁ User/Admin</option>' + (S.prof && role() === 'master' ? '<option value="' + esc(S.prof.id) + '">👑 Master — ' + esc(S.prof.name || S.prof.email) + ' (' + (OV.own || []).length + ')</option>' : '') +
+      (ad.length ? '<optgroup label="🧑‍💼 Admin">' + ad.map(opt).join('') + '</optgroup>' : '') +
+      (us.length ? '<optgroup label="👤 User">' + us.map(opt).join('') + '</optgroup>' : '');
     sel.value = saved; if (sel.value !== saved) sel.value = '';
   }
   function acctById(id) { var a = (S.list || []).filter(function (x) { return x.id === id; })[0]; return a || (S.prof && S.prof.id === id ? S.prof : null); }
@@ -14472,7 +14415,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     var r = document.createElement('div'); r.id = 'cc-root'; document.body.appendChild(r);
     var f = document.createElement('button'); f.id = 'cc-fab'; f.type = 'button'; f.textContent = '☁'; f.title = 'Cloud Control'; f.onclick = function () { api.open(); }; document.body.appendChild(f);
     {
-      var hd = document.querySelector('header'); if (hd && !$('ccLoginLine')) { var ln = document.createElement('div'); ln.id = 'ccLoginLine'; ln.innerHTML = '<span id="ccLoginTxt"></span><span id="ccLoginOpts" style="display:none;gap:14px;flex-wrap:wrap;margin-top:3px"><label><input type="checkbox" id="ccOvMerge"> 🔀 मेरे साथ मिलाकर दिखाएँ</label><label><input type="checkbox" id="ccOvNotif"> 🔔 Notification में जोड़ें</label><label><input type="checkbox" id="ccColorOn"> 🎨 रंग</label><button type="button" id="ccUpdBtn" style="border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:#d9a441;color:#1b1405">📋 Updates</button><button type="button" id="ccTxBtn" style="border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:#e2e8f0;color:#0f2a4a">👥 टीमें</button><button type="button" id="ccNameBtn" style="border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:#e2e8f0;color:#0f2a4a">✏ नाम</button></span>'; hd.parentNode.insertBefore(ln, hd.nextSibling); var m1 = $('ccOvMerge'), m2 = $('ccOvNotif'), m3 = $('ccColorOn'), bU = $('ccUpdBtn'), bN = $('ccNameBtn'), bT = $('ccTxBtn'); if (bT) bT.onclick = function () { txOpen(); }; if (m3) { m3.checked = colorOn(); m3.onchange = function () { try { localStorage.setItem('advColorOn', this.checked ? '1' : '0'); } catch (e) { } ovRefresh(); }; } if (bU) bU.onclick = function () { updOpen(); }; if (bN) bN.onclick = function () { renameMe(); }; if (m1) { m1.checked = OV.mode !== 'only'; m1.onchange = function () { OV.mode = this.checked ? 'merge' : 'only'; ovSaveOpts(); ovApply(); }; } if (m2) { m2.checked = !!OV.notif; m2.onchange = function () { OV.notif = this.checked; ovSaveOpts(); ovApply(); }; } }
+      var hd = document.querySelector('header'); if (hd && !$('ccLoginLine')) { var ln = document.createElement('div'); ln.id = 'ccLoginLine'; ln.innerHTML = '<span id="ccLoginTxt"></span><span id="ccLoginOpts" style="display:none;gap:14px;flex-wrap:wrap;margin-top:3px"><label><input type="checkbox" id="ccOvMerge"> 🔀 मेरे साथ मिलाकर दिखाएँ</label><label><input type="checkbox" id="ccOvNotif"> 🔔 Notification में जोड़ें</label><label><input type="checkbox" id="ccColorOn"> 🎨 रंग</label><button type="button" id="ccUpdBtn" style="border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:#d9a441;color:#1b1405">📋 Updates</button><button type="button" id="ccTxBtn" style="border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:#e2e8f0;color:#0f2a4a">👥 टीमें</button><button type="button" id="ccNameBtn" style="border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:#e2e8f0;color:#0f2a4a">✏ नाम</button></span>'; hd.parentNode.insertBefore(ln, hd.nextSibling); var sb = document.createElement('button'); sb.type = 'button'; sb.textContent = '🔍 सिंक जाँच'; sb.style.cssText = 'border:0;border-radius:8px;padding:2px 8px;font:800 11px system-ui;background:#334155;color:#fff;margin-left:6px'; sb.onclick = function () { syncCheck(); }; var mb = document.createElement('button'); mb.type = 'button'; mb.textContent = '🗑 Multi-delete'; mb.style.cssText = 'border:0;border-radius:8px;padding:2px 8px;font:800 11px system-ui;background:#7f1d1d;color:#fff;margin-left:6px'; mb.onclick = function () { advCloud.md(); }; ln.appendChild(mb); var tx0 = ln.firstChild; if (tx0 && tx0.nextSibling) ln.insertBefore(sb, tx0.nextSibling); else ln.appendChild(sb); var m1 = $('ccOvMerge'), m2 = $('ccOvNotif'), m3 = $('ccColorOn'), bU = $('ccUpdBtn'), bN = $('ccNameBtn'), bT = $('ccTxBtn'); if (bT) bT.onclick = function () { txOpen(); }; if (m3) { m3.checked = colorOn(); m3.onchange = function () { try { localStorage.setItem('advColorOn', this.checked ? '1' : '0'); } catch (e) { } ovRefresh(); }; } if (bU) bU.onclick = function () { updOpen(); }; if (bN) bN.onclick = function () { renameMe(); }; if (m1) { m1.checked = OV.mode !== 'only'; m1.onchange = function () { OV.mode = this.checked ? 'merge' : 'only'; ovSaveOpts(); ovApply(); }; } if (m2) { m2.checked = !!OV.notif; m2.onchange = function () { OV.notif = this.checked; ovSaveOpts(); ovApply(); }; } }
       var as = $('activeAdvocateSelect'); if (as && !$('ccFilterSel')) { var fs = document.createElement('select'); fs.id = 'ccFilterSel'; fs.title = 'User / Admin / Master चुनें'; fs.innerHTML = '<option value="">☁ User/Admin</option>'; fs.onchange = function () { onFilter(this.value); }; as.parentNode.insertBefore(fs, as.nextSibling); }
     }
   }
@@ -14625,30 +14568,21 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     return h;
   }
   function vData() {
-    var isM = role() === 'master';
+    var isM = role() === 'master', L = S.list.filter(function (x) { return isM ? x.role !== 'master' : x.parentId === S.prof.id; });
     if (!S.listAt) { setTimeout(function () { fetchList().catch(function () { }); }, 0); return '<div class="cc-box">Loading…</div>'; }
-    if (isM) {
-      var admins = S.list.filter(function (x) { return x.role === 'admin'; }).sort(function(a,b){return (a.name||a.email||'').localeCompare(b.name||b.email||'');});
-      return '<div class="cc-box cc-muted">हर Admin का अलग shared storage group है। उस Admin और उसके सभी Users का डेटा एक साथ खुलेगा। Master Group में Master और उसके सीधे बनाए गए Users का डेटा रहेगा।</div>' +
-        '<div class="cc-box cc-row"><div style="flex:1"><b>🟢 Storage A — Master Group</b><br><span class="cc-muted">' + esc(S.prof.name || S.prof.email) + ' + Master के Users</span></div><button class="cc-b sm" onclick="advCloud.data(\'' + S.prof.id + '\')">Open</button></div>' +
-        (admins.length ? admins.map(function(a,i){return '<div class="cc-box cc-row"><div style="flex:1"><b>🗂 Storage ' + String.fromCharCode(66+i) + ' — ' + esc(a.name || a.email) + '</b><br><span class="cc-muted">Admin + उसके सभी Users · ' + esc(a.email) + '</span></div><button class="cc-b sm" onclick="advCloud.data(\'' + a.id + '\')">Open Group</button></div>';}).join('') : '<div class="cc-box">अभी कोई Admin Group नहीं है।</div>');
-    }
-    return '<div class="cc-box cc-muted">आपके Admin और उसके Users का साझा डेटा इसी ग्रुप में रहेगा।</div>' +
-      '<div class="cc-box cc-row"><div style="flex:1"><b>🗂 आपका साझा Group</b><br><span class="cc-muted">' + esc(S.prof.name || S.prof.email) + ' + आपके सभी Users</span></div><button class="cc-b sm" onclick="advCloud.data(\'' + S.prof.id + '\')">Open Group</button></div>';
+    return '<div class="cc-box cc-muted">' + (isM ? 'Master can open the data of every Admin and User.' : 'You can open the data of your own Users only.') + '</div>' +
+      (L.length ? L.map(function (a) { return '<div class="cc-box cc-row"><div style="flex:1"><b>' + esc(a.name || a.email) + '</b> <span class="cc-muted">(' + a.role + ')</span><br><span class="cc-muted">' + esc(a.email) + '</span></div><button class="cc-b sm" onclick="advCloud.data(\'' + a.id + '\')">Open</button></div>'; }).join('') : '<div class="cc-box">No account has enabled access.</div>');
   }
   function vView() {
     var v = S.view; if (!v) return ''; var q = (v.q || '').toLowerCase();
     var cs = v.cases.filter(function (c) { return !q || JSON.stringify(c).toLowerCase().indexOf(q) > -1; });
     var pref = ['caseNo', 'caseNumber', 'court', 'vadiName', 'prativadiName', 'nextDate', 'caseType', 'status'], keys = pref.filter(function (k) { return v.cases.some(function (c) { return c && c[k] != null && typeof c[k] !== 'object'; }); });
     if (!keys.length && v.cases[0]) keys = Object.keys(v.cases[0]).filter(function (k) { return typeof v.cases[0][k] !== 'object'; }).slice(0, 6);
-    var canManage = role() === 'master';
-    var selected = v.selected || [];
     return '<div class="cc-row" style="margin-bottom:8px"><button class="cc-b gray sm" onclick="advCloud.tab(\'data\')">← Back</button><b style="flex:1">' + esc(v.acct.name || v.acct.email) + '</b></div>' +
-      '<div class="cc-muted">Cases: <b>' + v.cases.length + '</b> · Last sync: ' + fmtT(v.meta.updatedAt) + (canManage ? ' · Master controls enabled' : ' · Read-only') + '</div>' +
+      '<div class="cc-muted">Cases: <b>' + v.cases.length + '</b> · Last sync: ' + fmtT(v.meta.updatedAt) + ' · View only (read-only)</div>' +
       '<div class="cc-row" style="margin:8px 0"><input class="cc-in" style="flex:1;margin:0" placeholder="🔍 Search" value="' + esc(v.q) + '" oninput="advCloud.vq(this.value)"><button class="cc-b sm" onclick="advCloud.dl()">⬇ JSON</button></div>' +
-      (canManage ? '<div class="cc-row" style="margin:6px 0"><label class="cc-muted"><input type="checkbox" onchange="advCloud.vselAll(this.checked)"> इस पेज के सभी केस चुनें</label><button class="cc-b sm red" onclick="advCloud.vbulkDel()">🗑 चुने हुए Delete (<span id="advCloudBulkN">' + selected.length + '</span>)</button></div>' : '') +
-      '<div style="overflow:auto"><table class="cc-tbl"><tr>' + (canManage ? '<th>✓</th>' : '') + '<th>#</th>' + keys.map(function (k) { return '<th>' + esc(k) + '</th>'; }).join('') + '</tr>' +
-      cs.slice(0, 300).map(function (c, i) { return '<tr>' + (canManage ? '<td><input type="checkbox" ' + (selected.indexOf(String(c.id)) >= 0 ? 'checked' : '') + ' onchange="advCloud.vsel(\'' + esc(c.id) + '\',this.checked)"></td>' : '') + '<td>' + (i + 1) + '</td>' + keys.map(function (k) { return '<td>' + esc(c[k]) + '</td>'; }).join('') + '</tr>'; }).join('') + '</table></div>' + (cs.length > 300 ? '<div class="cc-muted">Showing the first 300 — use search to narrow down.</div>' : '');
+      '<div style="overflow:auto"><table class="cc-tbl"><tr><th>#</th>' + keys.map(function (k) { return '<th>' + esc(k) + '</th>'; }).join('') + '</tr>' +
+      cs.slice(0, 300).map(function (c, i) { return '<tr><td>' + (i + 1) + '</td>' + keys.map(function (k) { return '<td>' + esc(c[k]) + '</td>'; }).join('') + '</tr>'; }).join('') + '</table></div>' + (cs.length > 300 ? '<div class="cc-muted">Showing the first 300 — use search to narrow down.</div>' : '');
   }
   function pageBox() {
     var v = parseInt(localStorage.getItem('advPageSize')) || 100;
@@ -14748,6 +14682,11 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     last: function (id) { lastOpen(id); },
     tsDel: function (id) { tsDel(id); }, tsRestore: function (k) { tsRestore(k); },
     txSave: function () { txSave(); }, tx: function () { txOpen(); },
+    md: function () { S._md = null; mdOpen(); }, mdTog: function (id, on) { S._md.sel[id] = !!on; mdOpen(); }, mdQ: function (v) { S._md.q = v; mdOpen(); }, mdOwn: function (v) { S._md.own = v; mdOpen(); },
+    mdBlank: function () { S._md.sel = {}; mdList().forEach(function (x) { if (!x.c.vadiName && !x.c.prativadiName) S._md.sel[x.id] = true; }); mdOpen(); },
+    mdAll: function (on) { mdFiltered().forEach(function (x) { S._md.sel[x.id] = !!on; }); mdOpen(); }, mdDel: function () { mdDel(); },
+    cleanBlank: function () { cleanBlank(); }, mdBlank: function () { mdList().forEach(function (x) { if (isBlankCase(x.c)) S._md.sel[x.id] = true; }); mdOpen(); },
+    syncCheck: function () { syncCheck(); }, syncPush: function () { syncPush(); }, syncPull: function () { syncPull(); },
     perms: function (id) { permsOpen(id); }, permsSave: function (id) { permsSave(id); },
     hist: function (id) { histOpen(id); }, histRevert: function (i) { histRevert(i); },
     updAll: function (on) { var names = {}; Object.keys(OV.srcs).forEach(function (u) { names[OV.srcs[u].name] = 1; }); if (S.prof) names[S.prof.name || S.prof.email] = 1; S._updSel = on ? Object.keys(names) : []; updOpen(); },
@@ -14802,9 +14741,6 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     del: function (id) { var a = S.list.filter(function (x) { return x.id === id; })[0]; if (a) delAccount(a).catch(function (e) { toast(errText(e)); }); },
     data: function (id) { var a = S.list.filter(function (x) { return x.id === id; })[0]; if (!a) return; if (role() === 'master' || role() === 'admin') { var fs = $('ccFilterSel'); S.panelOpen = false; draw(); onFilter(a.id).then(function () { if (fs) fs.value = a.id; }); } else loadData(a).catch(function (e) { toast(errText(e)); }); },
     vq: function (v) { S.view.q = v; draw(); var i = $('cc-root').querySelector('.cc-in'); if (i) { i.focus(); i.setSelectionRange(v.length, v.length); } },
-    vsel: function (id, on) { if (!S.view) return; var a = S.view.selected || (S.view.selected = []); id = String(id); S.view.selected = on ? (a.indexOf(id) < 0 ? a.concat([id]) : a) : a.filter(function (x) { return x !== id; }); draw(); },
-    vselAll: function (on) { if (!S.view) return; var q = (S.view.q || '').toLowerCase(); S.view.selected = on ? S.view.cases.filter(function (c) { return !q || JSON.stringify(c).toLowerCase().indexOf(q) > -1; }).slice(0,300).map(function (c) { return String(c.id); }) : []; draw(); },
-    vbulkDel: async function () { if (role() !== 'master' || !S.view || !S.view.acct || !S.view.selected || !S.view.selected.length) return toast('पहले केस चुनें'); var ids = S.view.selected.slice(); if (!confirm(ids.length + ' चुने हुए केस स्थायी रूप से Delete करें?')) return; try { for (var i=0;i<ids.length;i++) await writeSharedCase('delete', ids[i], null, S.view.acct.id); S.view.cases = S.view.cases.filter(function (c) { return ids.indexOf(String(c.id)) < 0; }); S.view.selected = []; S.view.meta.updatedAt = new Date(); toast(ids.length + ' केस Delete हो गए और सर्वर पर सेव हो गए'); draw(); } catch(e) { toast('Delete पूरा नहीं हुआ: ' + errText(e)); } },
     dl: function () { var b = new Blob([JSON.stringify(S.view.cases, null, 1)], { type: 'application/json' }), a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'cases-' + (S.view.acct.email || 'user') + '.json'; a.click(); },
     sync: function () { syncNow(true).then(function () { toast('Sync complete'); }); },
     compose: function () {
@@ -14870,11 +14806,8 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   }
   function start() {
     ensureRoot(); fabMove();
-    // Unified app: every role must sign in before the diary opens.
-    S.panelOpen = true;
-    $('cc-fab').style.display = 'block';
-    addMasterButton();
-    if (cfgGet()) boot();
+    if (BUILD === 'master') { $('cc-fab').style.display = 'block'; addMasterButton(); if (cfgGet()) boot(); }   // master: no gate
+    else { S.panelOpen = true; $('cc-fab').style.display = 'block'; boot(); }                                                                      // admin/user: gate
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();

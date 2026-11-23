@@ -44,7 +44,7 @@ import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from 'https:/
 import { initializeFirestore, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 const cfg = { apiKey: 'AIzaSyBmHLu3JoX-CssXo_3m5yJrxkqD5rCV_U0', authDomain: 'advocate-diary-366f8.firebaseapp.com', projectId: 'advocate-diary-366f8', storageBucket: 'advocate-diary-366f8.firebasestorage.app', messagingSenderId: '982808690791', appId: '1:982808690791:web:fe644f22f4ddaf0fea14c2' };
 const app = initializeApp(cfg), auth = getAuth(app), db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
-const PAGE = { master: 'master.html', admin: 'index.html', user: 'user.html' };
+const PAGE = { master: 'master.html', admin: 'admin.html', user: 'user.html' };
 const $ = id => document.getElementById(id);
 const msg = t => { $('msg').textContent = t || ''; };
 function showForm() { $('wait').style.display = 'none'; $('f').style.display = 'block'; }
