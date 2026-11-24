@@ -13355,7 +13355,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     var uid = await authCreate(v.email.trim(), v.pass);
     var data = {
       email: v.email.trim().toLowerCase(), name: v.name.trim(), mobile: (v.mobile || '').trim(), role: r, parentId: me.id, status: 'active',
-      expiresAt: F.Timestamp.fromDate(exp), masterCanView: isM ? !!v.mview : false, adminCanView: !!v.aview, perms: { create: false, date: true, edit: false, del: false }, createdAt: F.serverTimestamp(), createdBy: me.id, notes: v.notes || '', offlineDays: og, userId: lid
+      expiresAt: F.Timestamp.fromDate(exp), masterCanView: isM ? !!v.mview : false, adminCanView: !!v.aview, perms: { create: true, date: true, edit: true, del: false }, createdAt: F.serverTimestamp(), createdBy: me.id, notes: v.notes || '', offlineDays: og, userId: lid
     };
     if (r === 'admin') { data.maxUsers = v.unl ? -1 : (parseInt(v.max, 10) || 0); data.userCount = 0; data.canCreateUsers = v.cu !== false; data.peerView = !!v.pv; }
     var b = F.writeBatch(S.db); b.set(ref('users/' + uid), data); if (lid) b.set(ref('ids/' + lid), { email: data.email, uid: uid });
@@ -13870,6 +13870,43 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     return ' · ☁ सर्वर पर ' + m + ' केस सेव' + ((ln != null && ln !== m) ? ' (फ़ोन में ' + ln + ' — भेजना जारी)' : ' ✔') + t;
   }
 
+
+  function tsJs(c) { var x = c; try { var n = (typeof caseAdvNames === 'function') ? caseAdvNames(c) : ''; x = Object.assign({}, c); x.advNames = n ? n.split(', ').filter(Boolean) : []; } catch (e) { } return JSON.stringify(x); }
+  function wrapAdvNames() {
+    try {
+      if (typeof window.caseAdvNames !== 'function' || window.caseAdvNames.__w) return; var o = window.caseAdvNames;
+      var w = function (c) { try { if (c && c._ov && c._advNames && c._advNames.length) return c._advNames.join(', '); } catch (e) { } return o(c); };
+      w.__w = 1; window.caseAdvNames = w;
+    } catch (e) { }
+  }
+  /* what changed, shown as a popup until it is tapped */
+  function chgDiff(a, b) { var out = []; ED_KEYS.forEach(function (k) { var o = String((a && a[k]) || ''), n = String((b && b[k]) || ''); if (o !== n && (o || n)) out.push({ f: k, o: o, n: n }); }); return out; }
+  function chgPush(it) {
+    TS.pop = TS.pop || []; TS.pop.unshift(it); TS.pop = TS.pop.slice(0, 8);
+    clearTimeout(TS.popT); TS.popT = setTimeout(chgRender, 300);
+  }
+  function chgRender() {
+    var L = TS.pop || [], o = document.getElementById('ccChg');
+    if (!L.length) { if (o) o.remove(); return; }
+    if (!o) { o = document.createElement('div'); o.id = 'ccChg'; o.style.cssText = 'position:fixed;left:8px;right:8px;top:8px;z-index:2147483640;background:#fff;color:#142b4a;border-radius:14px;padding:10px 12px;box-shadow:0 10px 34px rgba(0,0,0,.45);border:2px solid #d9a441;font:13px/1.4 system-ui,sans-serif;max-height:60vh;overflow:auto'; document.body.appendChild(o); }
+    var rows = L.map(function (it) {
+      var tm = ''; try { var d = it.at && it.at.toDate ? it.at.toDate() : new Date(it.ts || Date.now()); tm = d.toLocaleString('hi-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch (e) { }
+      var head = '<b style="color:' + ucolor(it.by) + '">' + esc(it.by || 'User') + '</b> · ' + tm + ' — ' + (it.kind === 'del' ? '🗑 केस हटाया' : it.kind === 'new' ? '＋ नया केस' : '✏ बदलाव') + ' <b>' + esc(it.caseNo || '') + '</b> <span style="color:#64748b">(' + esc(it.names || '') + ')</span>';
+      var ch = (it.changes || []).map(function (c) { return '<div style="margin-left:10px">' + esc(HLAB[c.f] || c.f) + ': <span style="color:#b91c1c;text-decoration:line-through">' + esc(c.o || '—') + '</span> → <span style="color:#137547;font-weight:700">' + esc(c.n || '—') + '</span></div>'; }).join('');
+      return '<div style="padding:6px 0;border-bottom:1px solid #e2e8f0">' + head + ch + '</div>';
+    }).join('');
+    o.innerHTML = '<div style="display:flex;align-items:center;gap:8px"><b style="flex:1;font-size:14px">🔔 नए अपडेट (' + L.length + ')</b><button style="border:0;border-radius:8px;padding:6px 14px;font:800 13px system-ui;background:#142b4a;color:#fff" onclick="advCloud.chgOk()">ठीक है</button></div>' + rows;
+  }
+
+
+  function wrapCardAdv() {
+    try {
+      if (typeof window.card !== 'function' || window.card.__a) return; var o = window.card;
+      var w = function (c, i) { var h = o(c, i); try { if (c && c._ov && c._advNames && c._advNames.length && h.indexOf('👤 Advocate:') < 0) h = h.replace('<div class="meta">', '<div class="meta"><div class="small">👤 Advocate: ' + esc(c._advNames.join(', ')) + '</div>'); } catch (e) { } return h; };
+      w.__a = 1; w.__w = o.__w; w.__d = o.__d; window.card = w;
+    } catch (e) { }
+  }
+
   function tsLastAt(c) { var h = (c && c.hist) || [], t = 0; for (var i = 0; i < h.length; i++) if (h[i].at > t) t = h[i].at; return t; }
   function tsAtMs(x) { try { return x && x.at && x.at.toMillis ? x.at.toMillis() : 0; } catch (e) { return 0; } }
   async function teamPush() {
@@ -13881,7 +13918,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       raw.forEach(function (c) {
         if (!c || c._ov || String(c.id).indexOf('ov_') === 0) return; seen[c.id] = 1;
         if (isBlankCase(c)) return;
-        var js = JSON.stringify(c), h = fnv(js); if (TS.pushed[c.id] === h) return;
+        var js = tsJs(c), h = fnv(js); if (TS.pushed[c.id] === h) return;
         var sx = TS.docs[me + '__' + c.id]; if (!TS.force && sx && sx.del === false && TS.pushed[c.id] === undefined && sx.h !== h && tsAtMs(sx) > tsLastAt(c)) return;
         ops.push({ id: c.id, h: h, data: { owner: me, ownerName: nm, cid: String(c.id), c: js, h: h, by: nm, byUid: me, role: role(), at: F.serverTimestamp(), del: false, delBy: '', delByUid: '', rest: false } });
       });
@@ -13928,8 +13965,8 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
         var loc = tsOwnLocal(x.cid);
         if (x.del === false && x.c && TS.pushed[x.cid] === undefined) {
           var st0 = tsStored(x.cid);
-          if (!st0) { try { var rc0 = JSON.parse(x.c); window.__advSys = 1; try { edOwn(function () { cases.push(rc0); }); } finally { window.__advSys = 0; } TS.pushed[x.cid] = x.h; tsSavePushed(); } catch (e) { } return; }
-          var lh0 = fnv(JSON.stringify(st0));
+          if (!st0) { try { var rc0 = JSON.parse(x.c); window.__advSys = 1; try { edOwn(function () { cases.push(rc0); }); } finally { window.__advSys = 0; } TS.pushed[x.cid] = x.h; tsSavePushed(); TS.impN = (TS.impN || 0) + 1; } catch (e) { } return; }
+          var lh0 = fnv(tsJs(st0));
           if (lh0 === x.h) { TS.pushed[x.cid] = x.h; tsSavePushed(); return; }
           if (tsAtMs(x) > tsLastAt(st0)) {
             try { var rc1 = JSON.parse(x.c); window.__advActor = { name: x.by || 'User', role: x.role || '' }; window.__advSys = 1; try { edOwn(function () { var i = cases.findIndex(function (c) { return !c._ov && String(c.id) === String(x.cid); }); if (i > -1) cases[i] = Object.assign({}, cases[i], rc1); }); } finally { window.__advActor = null; window.__advSys = 0; } TS.pushed[x.cid] = x.h; tsSavePushed(); } catch (e) { }
@@ -13939,13 +13976,15 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
         if (x.del === true && x.delByUid && x.delByUid !== me && loc) {
           window.__advSys = 1; try { edOwn(function () { cases = cases.filter(function (c) { return String(c.id) !== String(x.cid); }); }); } catch (e) { } window.__advSys = 0;
           delete TS.pushed[x.cid]; tsSavePushed();
+          try { chgPush({ kind: 'del', by: x.delBy || 'Master', at: x.delAt, caseNo: (loc && loc.caseNo) || '', names: ((loc && loc.vadiName) || '—') + ' vs ' + ((loc && loc.prativadiName) || '—'), changes: [] }); } catch (e) { }
           var msg = '🗑 आपका केस ' + ((loc && loc.caseNo) || '') + ' ' + (x.delBy || 'Master') + ' ने हटा दिया है';
           toast(msg); try { if (window.Notification && Notification.permission === 'granted') new Notification('Advocate Diary', { body: msg }); } catch (e) { }
         } else if (x.del === false && x.byUid && x.byUid !== me && x.c && loc && !x.rest && x.h !== TS.pushed[x.cid]) {
-          var st = tsStored(x.cid), lh = st ? fnv(JSON.stringify(st)) : '';
+          var st = tsStored(x.cid), lh = st ? fnv(tsJs(st)) : '';
           if (lh === TS.pushed[x.cid]) {
             try {
               var rc2 = JSON.parse(x.c); window.__advActor = { name: x.by || 'User', role: x.role || '' };
+              try { var chR = chgDiff(loc, rc2); if (chR.length) chgPush({ by: x.by || 'User', at: x.at, caseNo: rc2.caseNo, names: (rc2.vadiName || '—') + ' vs ' + (rc2.prativadiName || '—'), changes: chR }); } catch (e) { }
               window.__advSys = 1; try { edOwn(function () { var i = cases.findIndex(function (c) { return !c._ov && String(c.id) === String(x.cid); }); if (i > -1) { var keepH = cases[i].hist; cases[i] = Object.assign({}, cases[i], rc2); if (keepH) cases[i].hist = keepH; else delete cases[i].hist; } }); } finally { window.__advActor = null; window.__advSys = 0; }
               toast('✏ ' + (x.by || 'Master') + ' ने केस ' + (rc2.caseNo || '') + ' अपडेट किया');
             } catch (e) { }
@@ -13957,10 +13996,12 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       }
       if (x.del === true) { trash.push(x); return; }
       (owners[x.owner] = owners[x.owner] || { name: x.ownerName || 'User', cases: [] }).cases.push(JSON.parse(x.c || '{}'));
+      try { TS.prevC = TS.prevC || {}; var cur0 = JSON.parse(x.c || '{}'), pv0 = TS.prevC[k]; if (!TS.base) { var nm0 = (cur0.vadiName || '—') + ' vs ' + (cur0.prativadiName || '—'); if (pv0) { var ch0 = chgDiff(pv0, cur0); if (ch0.length && TS.seenH[k] !== x.h) chgPush({ by: x.by || x.ownerName, at: x.at, caseNo: cur0.caseNo, names: nm0, changes: ch0 }); } else if (TS.seenH[k] === undefined) chgPush({ kind: 'new', by: x.by || x.ownerName, at: x.at, caseNo: cur0.caseNo, names: nm0, changes: [] }); } TS.prevC[k] = cur0; } catch (e) { }
       if (TS.seenH[k] !== undefined && TS.seenH[k] !== x.h && !TS.base) notes.push(x); TS.seenH[k] = x.h;
     });
-    if (notes.length) { var n0 = notes[0], tm = ''; try { var dt = n0.at && n0.at.toDate ? n0.at.toDate() : new Date(); tm = dt.toLocaleTimeString(); } catch (e) { } var cn = ''; try { cn = JSON.parse(n0.c || '{}').caseNo || ''; } catch (e) { } var msg2 = '🔔 ' + (n0.by || n0.ownerName || 'User') + ' ने केस ' + cn + ' अपडेट किया' + (notes.length > 1 ? ' (+' + (notes.length - 1) + ' और)' : '') + ' · सर्वर पर पहुँचा ' + tm; toast(msg2); try { if (window.Notification && Notification.permission === 'granted') new Notification('Advocate Diary', { body: msg2 }); } catch (e) { } }
+    if (notes.length) { var n0 = notes[0], tm = ''; try { var dt = n0.at && n0.at.toDate ? n0.at.toDate() : new Date(); tm = dt.toLocaleTimeString(); } catch (e) { } var cn = ''; try { cn = JSON.parse(n0.c || '{}').caseNo || ''; } catch (e) { } var msg2 = '🔔 ' + (n0.by || n0.ownerName || 'User') + ' ने केस ' + cn + ' अपडेट किया' + (notes.length > 1 ? ' (+' + (notes.length - 1) + ' और)' : '') + ' · सर्वर पर पहुँचा ' + tm; try { if (window.Notification && Notification.permission === 'granted') new Notification('Advocate Diary', { body: msg2 }); } catch (e) { } }
     TS.base = false;
+    if (TS.impN) { toast('⬇ सर्वर से ' + TS.impN + ' केस आपके फ़ोन में आए'); TS.impN = 0; }
     TS.trash = trash;
     Object.keys(OV.srcs).forEach(function (u) { if (OV.srcs[u].team && !owners[u]) delete OV.srcs[u]; });
     Object.keys(owners).forEach(function (u) { var pv = OV.srcs[u]; OV.srcs[u] = { name: owners[u].name, cases: owners[u].cases, noLWW: pv && pv.noLWW, team: true }; });
@@ -14066,7 +14107,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     var own = stored.filter(function (c) { return c && !c._ov; }), me = S.prof.id;
     var mine = Object.keys(TS.docs).filter(function (k) { return TS.docs[k].owner === me && TS.docs[k].del === false; });
     var pend = 0, sNew = 0, lNew = 0, same = 0;
-    own.forEach(function (c) { var d = TS.docs[me + '__' + c.id]; if (!d) { pend++; return; } if (d.h === fnv(JSON.stringify(c))) { same++; return; } if (tsAtMs(d) > tsLastAt(c)) sNew++; else lNew++; });
+    own.forEach(function (c) { var d = TS.docs[me + '__' + c.id]; if (!d) { pend++; return; } if (d.h === fnv(tsJs(c))) { same++; return; } if (tsAtMs(d) > tsLastAt(c)) sNew++; else lNew++; });
     var wr = '—';
     if (mine.length) { try { await F.setDoc(ref('teams/' + TS.id + '/cases/' + mine[0]), { ping: F.serverTimestamp() }, { merge: true }); wr = '✔ चल रहा है'; } catch (e) { wr = '❌ ' + (e.code || e.message) + (/permission/i.test(e.code || e.message || '') ? ' (Rules publish नहीं हुए)' : ''); } }
     var rd = S.tsErr ? '❌ ' + S.tsErr : (TS.okAt ? '✔ चल रहा है' : '⏳ अभी जुड़ा नहीं');
@@ -14160,7 +14201,8 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
         else if (v.t === 'del') { if (!cases.some(function (c) { return c.id === v.id; })) cases.push(v.obj); }
       });
       ovRefresh();
-      toast('🔒 आपको यह करने की अनुमति नहीं है (' + Object.keys(kinds).map(function (k) { return k === 'create' ? 'केस बनाना' : k === 'del' ? 'केस हटाना' : 'यह फ़ील्ड बदलना'; }).join(', ') + ')');
+      var what = {}; viol.forEach(function (v) { what[v.t === 'create' ? 'केस बनाना' : v.t === 'del' ? 'केस हटाना' : ((HLAB[v.f] || v.f) + ' बदलना')] = 1; });
+      toast('🔒 अनुमति नहीं: ' + Object.keys(what).join(', ') + ' — Master/एडमिन से 🔑 अधिकार बदलवाइए');
     } catch (e) { }
   };
   function permsOpen(id) {
@@ -14252,7 +14294,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
           } else x = Object.assign({}, c);
           ED_KEYS.forEach(function (f) { if (!x[f]) { if (ow && ow[f]) x[f] = ow[f]; else if (c[f]) x[f] = c[f]; } });
           x._disp = {}; ED_KEYS.forEach(function (f) { x._disp[f] = x[f]; });
-          x.id = 'ov_' + uid + '_' + c.id; x._rawId = c.id; x._ov = 1; x._srcUid = uid; x.createdByName = c.createdByName || sc.name; x.advocateIds = ids.slice(); x.advocateId = ids[0]; OV.shadow[x.id] = { d: Object.assign({}, x._disp), merged: !!x._merged, own: x._ownId, raw: c.id, uid: uid }; ov.push(x);
+          x.id = 'ov_' + uid + '_' + c.id; x._rawId = c.id; x._ov = 1; x._srcUid = uid; x.createdByName = c.createdByName || sc.name; var mids = ids; if (OV.notif && c.advNames && c.advNames.length) { var m2 = []; (settings.advocates || []).forEach(function (a) { if (c.advNames.some(function (n) { return String(n).trim().toLowerCase() === String(a.name || '').trim().toLowerCase(); })) m2.push(a.id); }); if (m2.length) mids = m2; } x.advocateIds = mids.slice(); x.advocateId = mids[0]; x._advNames = c.advNames || []; OV.shadow[x.id] = { d: Object.assign({}, x._disp), merged: !!x._merged, own: x._ownId, raw: c.id, uid: uid }; ov.push(x);
         });
       });
       OV.hidden = hidden; var hid = {}; hidden.forEach(function (h) { hid[h.id] = 1; });
@@ -14308,10 +14350,15 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     el.style.display = 'block'; window.__advMe = S.prof.name || S.prof.email || ''; window.__advRole = role(); window.__advPerms = (role() === 'user' && S.prof.perms) ? { create: !!S.prof.perms.create, date: !!S.prof.perms.date, edit: !!S.prof.perms.edit, del: !!S.prof.perms.del } : null;
     var pub = ''; try { pub = (localStorage.getItem('advCloudPubAt') || '').split(', ').pop(); } catch (e) { }
     var t = $('ccLoginTxt'); if (t) t.textContent = '☁ ' + titleRole() + ' · ' + (S.prof.email || '') + (S.prevLogin ? ' · Last login: ' + S.prevLogin : '') + (S.syncErr ? ' · ⚠ सिंक: ' + S.syncErr : (pub ? ' · ✓ सर्वर पर आख़िरी अपडेट: ' + pub : '')) + tsStatus();
-    var op = $('ccLoginOpts'); if (op) op.style.display = (role() === 'master' || role() === 'admin') ? 'flex' : 'none'; var fs0 = $('ccFilterSel'); if (fs0) fs0.style.display = (role() === 'master' || role() === 'admin') ? '' : 'none';
+    var op = $('ccLoginOpts'); if (op) op.style.display = 'flex'; var fs0 = $('ccFilterSel'); if (fs0) fs0.style.display = ''; var lm = $('ccOvMerge'); if (lm && lm.parentNode) lm.parentNode.style.display = (role() === 'master' || role() === 'admin') ? '' : 'none'; var tb = $('ccTxBtn'); if (tb) tb.style.display = role() === 'master' ? '' : 'none';
   }
   function fillFilter() {
     var sel = $('ccFilterSel'); if (!sel) return;
+    if (role() === 'user') {
+      var cur = window.__nextSrc || '', h = '<option value="">👥 पूरी टीम</option><option value="own">👤 सिर्फ़ मेरा</option>';
+      Object.keys(OV.srcs).forEach(function (u) { h += '<option value="' + esc(u) + '">' + esc(OV.srcs[u].name) + ' (' + (OV.srcs[u].cases || []).length + ')</option>'; });
+      sel.innerHTML = h; sel.value = cur; if (sel.value !== cur) sel.value = ''; return;
+    }
     var L = S.list || [], saved = '';
     try { saved = localStorage.getItem('advCloudFilter') || ''; } catch (e) { }
     function opt(x) { var n = OV.srcs[x.id] ? ' (' + OV.srcs[x.id].cases.length + ')' : ''; return '<option value="' + esc(x.id) + '">' + esc(x.name || x.email) + n + '</option>'; }
@@ -14363,6 +14410,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     } catch (e) { toast('Notification set नहीं हुए'); }
   }
   async function onFilter(v) {
+    if (role() === 'user') { window.__nextSrc = v || ''; try { localStorage.setItem('advNextSrc', v || ''); } catch (e) { } try { renderNext(); } catch (e) { } try { fillNextSrc(); } catch (e) { } toast(v ? '✔ फ़िल्टर लगा' : 'पूरी टीम दिख रही है'); return; }
     try { localStorage.setItem('advCloudFilter', v || ''); } catch (e) { }
     OV.sel = v || '';
     if (!v) { ovApply(); toast('Filter हटा दिया — सारा मिला हुआ डेटा'); return; }
@@ -14382,7 +14430,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       if (!S._lu) S._lu = setInterval(function () { try { lineUpdate(); var ck = document.getElementById('ccChkTxt'); if (ck) ck.textContent = S.lastChk ? 'अंतिम जाँच: ' + new Date(S.lastChk).toLocaleTimeString() + (S.syncErr ? ' ⚠ ' + S.syncErr : ' ✔ सर्वर से मिला हुआ') : ''; } catch (e) { } }, 2000);
       if (S._lt !== S.tab + '|' + S.screen) { S._lt = S.tab + '|' + S.screen; S.dOpen = {}; } instUpdate();
       var asx = $('activeAdvocateSelect'); if (asx && !asx._ovw) { asx._ovw = 1; asx.addEventListener('change', function () { setTimeout(function () { try { ovApply(); } catch (e) { } }, 80); }); }
-      wrapAdvSwitch(); lineUpdate(); acctGuard(); wrapCard(); wrapCardDel(); wrapAdvFilt(); wrapNb(); if (S.prof && S.fb && !TS.off) teamStart(); if (role() === 'master' && S.fb && S.list && !S._txOk) { S._txOk = 1; txSync(); } if (S.prof && S.fb && !S._asBusy && !S._asOk && (!S._asAt || Date.now() - S._asAt > 30000)) { S._asBusy = true; S._asAt = Date.now(); autoSources().then(function (ok) { S._asOk = !!ok; S._asBusy = false; }).catch(function () { S._asBusy = false; }); }
+      wrapAdvSwitch(); lineUpdate(); acctGuard(); wrapAdvNames(); wrapCard(); wrapCardDel(); wrapCardAdv(); wrapAdvFilt(); wrapNb(); if (S.prof && S.fb && !TS.off) teamStart(); if (role() === 'master' && S.fb && S.list && !S._txOk) { S._txOk = 1; txSync(); } if (S.prof && S.fb && !S._asBusy && !S._asOk && (!S._asAt || Date.now() - S._asAt > 30000)) { S._asBusy = true; S._asAt = Date.now(); autoSources().then(function (ok) { S._asOk = !!ok; S._asBusy = false; }).catch(function () { S._asBusy = false; }); }
       if (S.prof && S.fb && (role() === 'master' || role() === 'admin')) {
         if (!S._fl) { S._fl = true; fetchList().then(function () { fillFilter(); restoreFilter(); }).catch(function () { S._fl = false; }); }
         var key = (S.list ? S.list.length : -1) + ':' + S.prof.id;
@@ -14686,6 +14734,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     mdBlank: function () { S._md.sel = {}; mdList().forEach(function (x) { if (!x.c.vadiName && !x.c.prativadiName) S._md.sel[x.id] = true; }); mdOpen(); },
     mdAll: function (on) { mdFiltered().forEach(function (x) { S._md.sel[x.id] = !!on; }); mdOpen(); }, mdDel: function () { mdDel(); },
     cleanBlank: function () { cleanBlank(); }, mdBlank: function () { mdList().forEach(function (x) { if (isBlankCase(x.c)) S._md.sel[x.id] = true; }); mdOpen(); },
+    chgOk: function () { TS.pop = []; chgRender(); },
     syncCheck: function () { syncCheck(); }, syncPush: function () { syncPush(); }, syncPull: function () { syncPull(); },
     perms: function (id) { permsOpen(id); }, permsSave: function (id) { permsSave(id); },
     hist: function (id) { histOpen(id); }, histRevert: function (i) { histRevert(i); },
