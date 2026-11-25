@@ -13108,6 +13108,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   function role() { return S.prof ? S.prof.role : ''; }
 
   function tmo(pr, sec, msg) { return new Promise(function (ok, no) { var t = setTimeout(function () { no(new Error(msg)); }, sec * 1000); pr.then(function (v) { clearTimeout(t); ok(v); }, function (e) { clearTimeout(t); no(e); }); }); }
+  async function safeSignOut() { try { if (S.fb && S.auth && S.fb.signOut) await tmo(S.fb.signOut(S.auth), 5, 'Firebase sign-out timed out'); } catch (e) { } }
 
   /* ---------- config ---------- */
   function cfgGet() {
@@ -13128,8 +13129,8 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     if (S.db) return true;
     var cfg = cfgGet(); if (!cfg) return false;
     var base = 'https://www.gstatic.com/firebasejs/' + FB_VER + '/';
-    var m = await tmo(Promise.all([import(base + 'firebase-app.js'), import(base + 'firebase-auth.js'), import(base + 'firebase-firestore.js')]), 20, 'Firebase library failed to load (internet or blocked). Open the file from an https link in Chrome.');
-    S.fb = Object.assign({}, m[0], m[1], m[2]);
+    var m = await tmo(Promise.all([import(base + 'firebase-app.js'), import(base + 'firebase-auth.js'), import(base + 'firebase-firestore.js'), import(base + 'firebase-functions.js')]), 20, 'Firebase library failed to load (internet or blocked). Open the file from an https link in Chrome.');
+    S.fb = Object.assign({}, m[0], m[1], m[2], m[3]);
     S.app = S.fb.initializeApp(cfg); S.auth = S.fb.getAuth(S.app); S.db = S.fb.initializeFirestore ? S.fb.initializeFirestore(S.app, { experimentalAutoDetectLongPolling: true }) : S.fb.getFirestore(S.app); S.cfg = cfg;
     try { S.auth.languageCode = 'hi'; } catch (e) { }
     return true;
@@ -13146,21 +13147,21 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     var F = S.fb, d = await tmo(F.getDoc(ref('users/' + S.user.uid)), 20, 'No response from Firestore — is the database created? Are the Rules published? Check your internet.');
     if (!d.exists()) {
       if (isMasterEmail() && S.user.emailVerified) {
-        await F.setDoc(ref('users/' + S.user.uid), {
+        await tmo(F.setDoc(ref('users/' + S.user.uid), {
           email: S.user.email.toLowerCase(), name: S.user.displayName || 'Master', role: 'master', parentId: null, status: 'active',
           expiresAt: F.Timestamp.fromDate(new Date('2099-12-31T23:59:59')), userCount: 0, maxUsers: 0, masterCanView: false, adminCanView: false,
           createdAt: F.serverTimestamp()
-        });
-        d = await F.getDoc(ref('users/' + S.user.uid));
+        }), 10, 'Master profile Firestore में सेव नहीं हो पाया। Rules और कनेक्शन जाँचें।');
+        d = await tmo(F.getDoc(ref('users/' + S.user.uid)), 10, 'Master profile दोबारा पढ़ने में Firestore ने जवाब नहीं दिया।');
       } else if (isMasterEmail()) { throw new Error('Master email is not verified — sign in with Google, or reset your password via "Forgot password" and then verify'); }
       else return null;
     }
     S.prof = Object.assign({ id: d.id }, d.data());
     if (S.prof.role === 'master' && isMasterEmail()) { try { await F.setDoc(ref('config/app'), { masterUid: S.prof.id }, { merge: true }); } catch (e) { } }
-    try { var cd = await F.getDoc(ref('config/app')); S.pub = cd.exists() ? cd.data() : {}; S.pubC = S.pub.contact || ''; if (S.pub.pageSize) localStorage.setItem('advPageSize', S.pub.pageSize); } catch (e) { }
+    try { var cd = await tmo(F.getDoc(ref('config/app')), 8, 'Firebase config पढ़ने में समय लगा'); S.pub = cd.exists() ? cd.data() : {}; S.pubC = S.pub.contact || ''; if (S.pub.pageSize) localStorage.setItem('advPageSize', S.pub.pageSize); } catch (e) { }
     S.parent = null;
     if (S.prof.parentId && S.prof.role !== 'master') {
-      try { var pd = await F.getDoc(ref('users/' + S.prof.parentId)); S.parent = pd.exists() ? Object.assign({ id: pd.id }, pd.data()) : { missing: true }; } catch (e) { S.parent = { missing: true }; }
+      try { var pd = await tmo(F.getDoc(ref('users/' + S.prof.parentId)), 8, 'Admin profile पढ़ने में Firestore ने जवाब नहीं दिया'); S.parent = pd.exists() ? Object.assign({ id: pd.id }, pd.data()) : { missing: true }; } catch (e) { S.parent = { missing: true }; }
     }
     return S.prof;
   }
@@ -13180,11 +13181,11 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   async function afterLogin() {
     S.screen = 'loading'; draw();
     var p = await loadProf();
-    if (!p) { S.msg = 'This account was not created by a Master or Admin. Please ask them to create an account for you first.'; await S.fb.signOut(S.auth); S.screen = 'login'; draw(); return; }
+    if (!p) { S.msg = 'This account was not created by a Master or Admin. Please ask them to create an account for you first.'; S.screen = 'login'; draw(); await safeSignOut(); return; }
     var cu = S.auth.currentUser;
-    if (S.prof.notes === 'Self sign-up' && cu && !cu.emailVerified && !S.signingUp) { S.msg = 'Please verify your email first — a link was sent to ' + (S.prof.email || '') + ' (also check Spam). After verifying, sign in again.'; S.needVerify = 1; try { await S.fb.signOut(S.auth); } catch (e) { } S.prof = null; S.screen = 'login'; draw(); return; }
+    if (S.prof.notes === 'Self sign-up' && cu && !cu.emailVerified && !S.signingUp) { S.msg = 'Please verify your email first — a link was sent to ' + (S.prof.email || '') + ' (also check Spam). After verifying, sign in again.'; S.needVerify = 1; S.prof = null; S.screen = 'login'; draw(); await safeSignOut(); return; }
     if (cu && cu.emailVerified && S.prof.notes === 'Self sign-up' && !S.prof.emailVerified) { try { await S.fb.updateDoc(ref('users/' + S.prof.id), { emailVerified: true }); S.prof.emailVerified = true; } catch (e) { } }
-    if (S.asRole && S.asRole !== 'auto' && S.asRole !== role()) { var rn = role(); S.msg = 'This account is a ' + (rn === 'master' ? 'Master Admin' : rn === 'admin' ? 'Admin' : 'User') + ' account. Please select the correct option above.'; try { await S.fb.signOut(S.auth); } catch (e) { } S.prof = null; S.screen = 'login'; draw(); return; }
+    if (S.asRole && S.asRole !== 'auto' && S.asRole !== role()) { var rn = role(); S.msg = 'This account is a ' + (rn === 'master' ? 'Master Admin' : rn === 'admin' ? 'Admin' : 'User') + ' account. Please select the correct option above.'; S.prof = null; S.screen = 'login'; draw(); await safeSignOut(); return; }
     var why = lockReason(); cacheSet(S.prof);
     if (why) { S.locked = why; S.screen = 'locked'; draw(); }
     else {
@@ -13242,11 +13243,31 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   function loginIds() { try { return JSON.parse(localStorage.getItem('advLoginIds') || '[]'); } catch (e) { return []; } }
   function rememberId(v) { v = String(v || '').trim(); if (!v) return; try { var L = loginIds().filter(function (x) { return x.toLowerCase() !== v.toLowerCase(); }); L.unshift(v); localStorage.setItem('advLoginIds', JSON.stringify(L.slice(0, 80))); } catch (e) { } }
   function idList() { return '<datalist id="ccIds">' + loginIds().map(function (i) { return '<option value="' + esc(i) + '">'; }).join('') + '</datalist>'; }
-  async function resolveId(e) { if (e.indexOf('@') > -1) return e; var d = await S.fb.getDoc(ref('ids/' + e.toLowerCase())); if (!d.exists()) throw new Error('User ID not found'); return d.data().email; }
+  async function resolveId(e) {
+    if (e.indexOf('@') > -1) return e;
+    var d = await tmo(S.fb.getDoc(ref('ids/' + e.toLowerCase())), 15,
+      'यूज़र ID खोजने में Firestore से जवाब नहीं मिला। इंटरनेट और Firestore Rules जाँचें।');
+    if (!d.exists()) throw new Error('User ID not found');
+    return d.data().email;
+  }
   async function doLogin() {
+    if (S._loginBusy) return;
     var e = $('cc-em').value.trim(), p = $('cc-pw').value;
     if (!e || !p) { S.msg = 'Enter email and password'; return draw(); }
-    var typed = e; try { S.msg = ''; e = String(await resolveId(e) || '').trim().toLowerCase(); await S.fb.signInWithEmailAndPassword(S.auth, e, p); rememberId(typed); rememberId(e); try { if (window.PasswordCredential && navigator.credentials && navigator.credentials.store) navigator.credentials.store(new PasswordCredential({ id: typed, password: p, name: typed })); } catch (z) { } } catch (x) { S.msg = errText(x); draw(); }
+    S._loginBusy = true;
+    var typed = e;
+    try {
+      S.msg = '';
+      e = String(await tmo(resolveId(e), 20,
+        'लॉगिन ID की जाँच 20 सेकंड में पूरी नहीं हुई। इंटरनेट कनेक्शन जाँचें।') || '').trim().toLowerCase();
+      if (!e || e.indexOf('@') < 1) throw new Error('इस User ID से जुड़ी ईमेल ID नहीं मिली।');
+      await tmo(S.fb.signInWithEmailAndPassword(S.auth, e, p), 30,
+        'Firebase Authentication से 30 सेकंड में जवाब नहीं मिला। इंटरनेट, Firebase Authentication और Authorized domains जाँचें।');
+      rememberId(typed); rememberId(e);
+      try { if (window.PasswordCredential && navigator.credentials && navigator.credentials.store) navigator.credentials.store(new PasswordCredential({ id: typed, password: p, name: typed })); } catch (z) { }
+    } catch (x) {
+      S.msg = errText(x); draw();
+    } finally { S._loginBusy = false; }
   }
   async function doGoogle() {
     try {
@@ -13923,6 +13944,28 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   function tsPath(owner, cid) { return 'teams/' + TS.id + '/cases/' + owner + '__' + cid; }
   function tsLoadPushed() { try { TS.pushed = JSON.parse(localStorage.getItem('advTeamPushed:' + S.prof.id) || '{}'); } catch (e) { TS.pushed = {}; } }
   function tsSavePushed() { try { localStorage.setItem('advTeamPushed:' + S.prof.id, JSON.stringify(TS.pushed)); } catch (e) { } }
+  function masterEmailAuto() { return true; }
+  async function emailAuthOpen() {
+    if (role() !== 'master') return;
+    try { if (!(S.list || []).length || Date.now() - (S.listAt || 0) > 60000) await fetchList(); } catch (e) {}
+    var groups = [{id:S.prof.id, name:(S.prof.name || S.prof.email || 'Master') + ' — अपना Group'}].concat((S.list || []).filter(function(x){ return x.role === 'admin' && x.parentId === S.prof.id; }).map(function(x){ return {id:x.id, name:(x.name || x.email || x.id) + ' — Admin Group'}; }));
+    var F=S.fb, states={};
+    await Promise.all(groups.map(async function(g){ try { var d=await F.getDoc(ref('emailSettings/'+g.id)); states[g.id]=!(d.exists() && d.data().enabled===false); } catch(e) { states[g.id]=true; } }));
+    var old=$('ccEmailAuthModal'); if(old) old.remove();
+    var m=document.createElement('div'); m.id='ccEmailAuthModal'; m.className='cc-modal';
+    m.innerHTML='<div class="cc-card"><h3>✉ Group-wise Email Authorization</h3><p class="cc-muted">हर Group का ईमेल अलग से चालू या बंद करें। बंद करने पर उस Group के किसी भी केस अपडेट पर ऑटोमैटिक ईमेल नहीं जाएगा।</p><div id="ccEmailAuthRows"></div><div class="cc-row" style="justify-content:flex-end;margin-top:12px"><button class="cc-b gray" id="ccEmailAuthClose">बंद करें</button></div></div>';
+    document.body.appendChild(m);
+    var box=$('ccEmailAuthRows');
+    groups.forEach(function(g){
+      var row=document.createElement('label'); row.className='cc-chk';
+      row.style.cssText='display:flex;justify-content:space-between;gap:12px;border:1px solid #e2e8f0;border-radius:10px;padding:10px;margin:8px 0';
+      var name=document.createElement('span'); name.textContent=g.name;
+      var cb=document.createElement('input'); cb.type='checkbox'; cb.style.cssText='width:22px;height:22px'; cb.checked=!!states[g.id];
+      cb.onchange=async function(){ cb.disabled=true; try { await F.setDoc(ref('emailSettings/'+g.id),{enabled:!!cb.checked,updatedAt:F.serverTimestamp(),updatedBy:S.prof.id},{merge:true}); toast(cb.checked?'✔ इस Group का Auto Email चालू':'✉ इस Group का Auto Email बंद'); } catch(e){ cb.checked=!cb.checked; toast('सेटिंग सेव नहीं हुई: '+errText(e)); } finally { cb.disabled=false; } };
+      row.appendChild(name); row.appendChild(cb); box.appendChild(row);
+    });
+    $('ccEmailAuthClose').onclick=function(){m.remove();}; m.onclick=function(e){if(e.target===m)m.remove();};
+  }
 
   function tsStatus() {
     if (!S.prof || !TS.id) return '';
@@ -13983,7 +14026,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
         if (isBlankCase(c)) return;
         var js = tsJs(c), h = fnv(js); if (TS.pushed[c.id] === h) return;
         var sx = TS.docs[me + '__' + c.id]; if (!TS.force && sx && sx.del === false && TS.pushed[c.id] === undefined && sx.h !== h && tsAtMs(sx) > tsLastAt(c)) return;
-        ops.push({ id: c.id, h: h, data: { owner: me, ownerName: nm, cid: String(c.id), c: js, h: h, by: nm, byUid: me, byEmail: S.prof.email || '', role: role(), at: F.serverTimestamp(), del: false, delBy: '', delByUid: '', rest: false } });
+        ops.push({ id: c.id, h: h, data: { owner: me, ownerName: nm, cid: String(c.id), c: js, h: h, by: nm, byUid: me, byEmail: S.prof.email || '', role: role(), emailEnabled: role() === 'master' ? masterEmailAuto() : true, at: F.serverTimestamp(), del: false, delBy: '', delByUid: '', rest: false } });
       });
       var gone = Object.keys(TS.pushed).filter(function (id) { return !seen[id]; });
       if ((raw.length || TS.allowMass) && (gone.length <= 20 || TS.allowMass)) gone.forEach(function (id) { ops.push({ id: id, del: true, data: { owner: me, cid: String(id), del: true, delBy: nm, delByUid: me, delAt: F.serverTimestamp() } }); });
@@ -14008,7 +14051,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       rc[k] = chg[k];
     });
     rc.hist = hh.slice(-10); var js = JSON.stringify(rc), h = fnv(js);
-    await F.setDoc(ref('teams/' + tidx + '/cases/' + key), { c: js, h: h, by: nm, byUid: S.prof.id, byEmail: S.prof.email || '', role: role(), at: F.serverTimestamp(), del: false }, { merge: true });
+    await F.setDoc(ref('teams/' + tidx + '/cases/' + key), { c: js, h: h, by: nm, byUid: S.prof.id, byEmail: S.prof.email || '', role: role(), emailEnabled: role() === 'master' ? masterEmailAuto() : true, at: F.serverTimestamp(), del: false }, { merge: true });
   }
   function sendChange(uid, rawId, ch) {
     var src = OV.srcs[uid];
@@ -14076,7 +14119,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       TS.off = S.fb.onSnapshot(col('teams/' + TS.id + '/cases'), function (snap) { TS.okAt = Date.now(); S.tsErr = ''; try { tsApply(snap); } catch (e) { } if (TS.first) { TS.first = false; teamPush(); } }, function (e) { S.tsErr = (e && e.code) || 'error'; });
     } catch (e) { }
   }
-  function canDelSrc(uid) { return !!(S.prof && OV.srcs[uid] && OV.srcs[uid].team && ((TS.id && TS.id === S.prof.id) || role() === 'master')); }
+  function canDelSrc(uid) { return !!(S.prof && role() === 'master' && OV.srcs[uid] && OV.srcs[uid].team); }
   async function tsDel(id) {
     var c = cases.filter(function (x) { return x.id === id; })[0]; if (!c || !c._ov || !canDelSrc(c._srcUid)) return;
     if (!confirm('केस ' + (c.caseNo || '') + ' (' + ((OV.srcs[c._srcUid] || {}).name || '') + ') टीम से हटाएँ? बाद में "Recently deleted" से वापस लाया जा सकता है।')) return;
@@ -14417,7 +14460,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     var el = $('ccLoginLine'); if (!el) return;
     if (!S.prof) { el.style.display = 'none'; return; }
     el.style.display = 'block'; window.__advMe = S.prof.name || S.prof.email || ''; window.__advRole = role(); window.__advUid = S.prof.id || ''; window.__advEmail = S.prof.email || ''; window.__advActor = { name: window.__advMe, role: window.__advRole, uid: window.__advUid, email: window.__advEmail }; window.__advPerms = (role() === 'user' && S.prof.perms) ? { create: !!S.prof.perms.create, date: !!S.prof.perms.date, edit: !!S.prof.perms.edit, del: !!S.prof.perms.del } : null;
-    var nameBtn = $('ccNameBtn'); if (nameBtn) { nameBtn.textContent = '👤 ' + (S.prof.name || 'नाम नहीं') + '  ✏'; nameBtn.title = 'अपना नाम संपादित करें'; }
+    var nameBtn = $('ccNameBtn'); window.__advLoginName = (S.user && (S.user.displayName || S.user.name)) ? String(S.user.displayName || S.user.name).trim() : ''; if (nameBtn) { var _pn=String(S.prof.name || 'नाम नहीं').trim(), _ln=String(window.__advLoginName||'').trim(); nameBtn.textContent = '👤 ' + _pn + (_ln && _ln.toLowerCase()!==_pn.toLowerCase() ? ' | Login: ' + _ln : '') + ' · ' + (S.prof.id || '') + '  ✏'; nameBtn.title = 'Profile नाम और Login नाम'; }
     var mergeToggle = $('ccOvMerge'); if (mergeToggle && mergeToggle.parentNode) mergeToggle.parentNode.style.display = 'none';
     var pub = ''; try { pub = (localStorage.getItem('advCloudPubAt') || '').split(', ').pop(); } catch (e) { }
     var t = $('ccLoginTxt'); if (t) t.textContent = '☁ ' + titleRole() + ' · ' + (S.prof.email || '') + (S.prevLogin ? ' · Last login: ' + S.prevLogin : '') + (S.syncErr ? ' · ⚠ सिंक: ' + S.syncErr : (pub ? ' · ✓ सर्वर पर आख़िरी अपडेट: ' + pub : '')) + tsStatus();
@@ -14577,7 +14620,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     var r = document.createElement('div'); r.id = 'cc-root'; document.body.appendChild(r);
     var f = document.createElement('button'); f.id = 'cc-fab'; f.type = 'button'; f.textContent = '☁'; f.title = 'Cloud Control'; f.onclick = function () { api.open(); }; document.body.appendChild(f);
     {
-      var hd = document.querySelector('header'); if (hd && !$('ccLoginLine')) { var ln = document.createElement('div'); ln.id = 'ccLoginLine'; ln.innerHTML = '<span id="ccLoginTxt"></span><span id="ccLoginOpts" style="display:none;gap:7px;flex-wrap:nowrap;align-items:center;margin-top:3px;max-width:100%;overflow-x:auto;white-space:nowrap;padding-bottom:2px"><label style="flex:0 0 auto"><input type="checkbox" id="ccOvMerge"> 🔀 मेरे साथ मिलाकर दिखाएँ</label><label style="flex:0 0 auto"><input type="checkbox" id="ccOvNotif"> 🔔 Notification में जोड़ें</label><label style="flex:0 0 auto"><input type="checkbox" id="ccColorOn"> 🎨 रंग</label><button type="button" id="ccUpdBtn" style="flex:0 0 auto;border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:#d9a441;color:#1b1405">📋 Updates</button><button type="button" id="ccTxBtn" style="flex:0 0 auto;border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:#e2e8f0;color:#0f2a4a">👥 टीमें</button><button type="button" id="ccNameBtn" style="flex:0 0 auto;border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:#e2e8f0;color:#0f2a4a">✏ नाम</button><button type="button" id="ccMultiDelBtn" style="flex:0 0 auto;border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:#7f1d1d;color:#fff">🗑 Multiple Delete</button></span>'; hd.parentNode.insertBefore(ln, hd.nextSibling); var sb = document.createElement('button'); sb.type = 'button'; sb.textContent = '🔍 सिंक जाँच'; sb.style.cssText = 'border:0;border-radius:8px;padding:2px 8px;font:800 11px system-ui;background:#334155;color:#fff;margin-left:6px'; sb.onclick = function () { syncCheck(); }; var mb = $('ccMultiDelBtn'); if (mb) mb.onclick = function () { advCloud.md(); }; var tx0 = ln.firstChild; if (tx0 && tx0.nextSibling) ln.insertBefore(sb, tx0.nextSibling); else ln.appendChild(sb); var m1 = $('ccOvMerge'), m2 = $('ccOvNotif'), m3 = $('ccColorOn'), bU = $('ccUpdBtn'), bN = $('ccNameBtn'), bT = $('ccTxBtn'); if (bT) bT.onclick = function () { txOpen(); }; if (m3) { m3.checked = colorOn(); m3.onchange = function () { try { localStorage.setItem('advColorOn', this.checked ? '1' : '0'); } catch (e) { } ovRefresh(); }; } if (bU) bU.onclick = function () { updOpen(); }; if (bN) bN.onclick = function () { renameMe(); }; if (m1) { m1.checked = OV.mode !== 'only'; m1.onchange = function () { OV.mode = this.checked ? 'merge' : 'only'; ovSaveOpts(); ovApply(); }; } if (m2) { m2.checked = !!OV.notif; m2.onchange = function () { OV.notif = this.checked; ovSaveOpts(); ovApply(); }; } }
+      var hd = document.querySelector('header'); if (hd && !$('ccLoginLine')) { var ln = document.createElement('div'); ln.id = 'ccLoginLine'; ln.innerHTML = '<span id="ccLoginTxt"></span><span id="ccLoginOpts" style="display:none;gap:7px;flex-wrap:nowrap;align-items:center;margin-top:3px;max-width:100%;overflow-x:auto;white-space:nowrap;padding-bottom:2px"><label style="flex:0 0 auto"><input type="checkbox" id="ccOvMerge"> 🔀 मेरे साथ मिलाकर दिखाएँ</label><label style="flex:0 0 auto"><input type="checkbox" id="ccOvNotif"> 🔔 Notification में जोड़ें</label><label style="flex:0 0 auto"><input type="checkbox" id="ccColorOn"> 🎨 रंग</label><button type="button" id="ccUpdBtn" style="flex:0 0 auto;border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:#d9a441;color:#1b1405">📋 Updates</button><button type="button" id="ccTxBtn" style="flex:0 0 auto;border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:#e2e8f0;color:#0f2a4a">👥 टीमें</button><button type="button" id="ccNameBtn" style="flex:0 0 auto;border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:#e2e8f0;color:#0f2a4a">✏ नाम</button><button type="button" id="ccMultiDelBtn" style="flex:0 0 auto;border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:#7f1d1d;color:#fff">🗑 Multiple Delete</button></span>'; hd.parentNode.insertBefore(ln, hd.nextSibling); if (role() === 'master') { var eb=document.createElement('button'); eb.type='button'; eb.id='ccEmailAuthBtn'; eb.textContent='✉ Group Email Authorization'; eb.style.cssText='flex:0 0 auto;border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:#dbeafe;color:#123'; eb.onclick=emailAuthOpen; var eo=$('ccLoginOpts'); if(eo) eo.insertBefore(eb,eo.firstChild); } var sb = document.createElement('button'); sb.type = 'button'; sb.textContent = '🔍 सिंक जाँच'; sb.style.cssText = 'border:0;border-radius:8px;padding:2px 8px;font:800 11px system-ui;background:#334155;color:#fff;margin-left:6px'; sb.onclick = function () { syncCheck(); }; var mb = $('ccMultiDelBtn'); if (mb) mb.onclick = function () { advCloud.md(); }; var tx0 = ln.firstChild; if (tx0 && tx0.nextSibling) ln.insertBefore(sb, tx0.nextSibling); else ln.appendChild(sb); var m1 = $('ccOvMerge'), m2 = $('ccOvNotif'), m3 = $('ccColorOn'), bU = $('ccUpdBtn'), bN = $('ccNameBtn'), bT = $('ccTxBtn'); if (bT) bT.onclick = function () { txOpen(); }; if (m3) { m3.checked = colorOn(); m3.onchange = function () { try { localStorage.setItem('advColorOn', this.checked ? '1' : '0'); } catch (e) { } ovRefresh(); }; } if (bU) bU.onclick = function () { updOpen(); }; if (bN) bN.onclick = function () { renameMe(); }; if (m1) { m1.checked = OV.mode !== 'only'; m1.onchange = function () { OV.mode = this.checked ? 'merge' : 'only'; ovSaveOpts(); ovApply(); }; } if (m2) { m2.checked = !!OV.notif; m2.onchange = function () { OV.notif = this.checked; ovSaveOpts(); ovApply(); }; } }
       var as = $('activeAdvocateSelect'); if (as && !$('ccFilterSel')) { var fs = document.createElement('select'); fs.id = 'ccFilterSel'; fs.title = 'User / Admin / Master चुनें'; fs.innerHTML = '<option value="">☁ User/Admin</option>'; fs.onchange = function () { onFilter(this.value); }; as.parentNode.insertBefore(fs, as.nextSibling); }
     }
   }
@@ -14822,6 +14865,45 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     return f;
   }
 
+  /* ---------- Group Updates + Master Server Trash ---------- */
+  function groupChoices() {
+    var tid0 = teamId(); var a = [{id: tid0, name: (S.prof.name || 'मेरा Group') + ' — अपना ग्रुप'}];
+    if (role() === 'master') (S.list || []).filter(function(x){return x.role === 'admin';}).forEach(function(x){a.push({id:x.id,name:(x.name||x.email||x.id)+' — Admin Group'});});
+    return a;
+  }
+  function featureModal(kind) {
+    if (!S.prof || !S.fb) return toast('पहले लॉगिन करें');
+    if (kind === 'trash' && role() !== 'master') return toast('Server Dustbin केवल Master के लिए है');
+    var opts = groupChoices(), saved = opts[0].id;
+    var select = '<select id="advFeatureTeam" style="width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:9px;margin:8px 0">'+opts.map(function(x){return '<option value="'+esc(x.id)+'">'+esc(x.name)+'</option>';}).join('')+'</select>';
+    var title = kind === 'trash' ? '🗑 Server Dustbin' : '📋 Group Updates';
+    var body = '<div style="display:flex;align-items:center;gap:8px"><b style="flex:1;font-size:16px">'+title+'</b><button onclick="document.getElementById(\'advFeatureModal\').remove()" style="border:0;border-radius:8px;padding:7px 11px">✕</button></div><label style="font-weight:800">Group चुनें</label>'+select;
+    if (kind === 'trash') body += '<label>Auto delete कितने दिन में? (1 से 3650)</label><div style="display:flex;gap:8px"><input id="advRetentionDays" type="number" min="1" max="3650" value="30" style="width:100px;padding:8px"><button class="cc-b" onclick="advCloud.saveRetention()">सेव अवधि</button></div>';
+    body += '<div id="advFeatureRows" style="margin-top:10px">लोड हो रहा है…</div><button class="cc-b" style="width:100%;margin-top:10px" onclick="advCloud.loadFeature(\''+kind+'\')">↻ Refresh</button>';
+    modalBox('advFeatureModal', body);
+    var el=document.getElementById('advFeatureTeam'); if(el){el.value=saved;el.onchange=function(){advCloud.loadFeature(kind);};}
+    window.__advFeatureKind=kind; loadFeature(kind);
+  }
+  async function loadFeature(kind) {
+    var host=document.getElementById('advFeatureRows'), sel=document.getElementById('advFeatureTeam'); if(!host||!sel)return;
+    var tid=sel.value; host.textContent='लोड हो रहा है…';
+    try {
+      if(kind==='updates') {
+        var snap=await S.fb.getDocs(S.fb.query(col('teamUpdates/'+tid+'/items'),S.fb.orderBy('at','desc'),S.fb.limit(100)));
+        if(snap.empty){host.innerHTML='<div style="padding:12px;color:#64748b">इस ग्रुप में अभी कोई अपडेट नहीं है।</div>';return;}
+        function updateDate(v){if(!v)return '—';var z=String(v).slice(0,10).split('-');if(z.length!==3)return String(v);var m=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return z[2]+'-'+(m[Number(z[1])-1]||z[1])+'-'+z[0];}
+        host.innerHTML=snap.docs.map(function(d){var x=d.data(),dt=x.at&&x.at.toDate?x.at.toDate().toLocaleString('hi-IN'):'अभी',mail=String(x.byEmail||'');return '<article style="padding:10px 2px;border-bottom:1px solid #e2e8f0"><b>'+esc(x.caseNo||'')+'</b> · '+esc(x.kind==='new'?'नया केस':'अपडेट')+'<div>'+esc(x.plaintiff||'—')+' बनाम '+esc(x.defendant||'—')+'</div><div style="font-size:12px;color:#475569">'+esc(x.court||'')+' · '+esc(x.courtRoom||'')+'</div><div style="font-size:12px">पिछली तारीख: '+esc(updateDate(x.previousDate))+' · अगली तारीख: '+esc(updateDate(x.nextDate))+' · '+esc(dt)+'</div><div style="margin-top:4px">अपडेटकर्ता: <button type="button" style="border:0;background:transparent;color:#1d4ed8;text-decoration:underline;padding:0;font-weight:700;cursor:pointer" onclick="alert(\'अपडेट करने वाले की Email ID: \'+decodeURIComponent(\''+encodeURIComponent(mail)+'\'))">'+esc(x.byName||'नाम उपलब्ध नहीं')+'</button> ('+esc(x.byRole||'')+')</div><div style="font-size:12px">नोट: '+esc(x.note||'—')+'</div></article>';}).join('');
+      } else {
+        var settingsDoc=await S.fb.getDoc(ref('trashSettings/'+tid)); var inp=document.getElementById('advRetentionDays'); if(inp)inp.value=settingsDoc.exists()?(settingsDoc.data().retentionDays||30):30;
+        var snap=await S.fb.getDocs(col('teams/'+tid+'/cases')); var rows=[]; snap.forEach(function(d){var x=d.data();if(x.del===true){var c={};try{c=JSON.parse(x.c||'{}')}catch(e){};rows.push({id:d.id,x:x,c:c});}});
+        if(!rows.length){host.innerHTML='<div style="padding:12px;color:#64748b">Dustbin खाली है।</div>';return;}
+        host.innerHTML=rows.map(function(r){var exp=r.x.purgeAt&&r.x.purgeAt.toDate?r.x.purgeAt.toDate().toLocaleDateString('en-GB'):'अवधि तय हो रही है';return '<article style="padding:10px 2px;border-bottom:1px solid #e2e8f0"><b>'+esc(r.c.caseNo||r.x.cid||r.id)+'</b><div>'+esc(r.c.vadiName||'')+' बनाम '+esc(r.c.prativadiName||'')+'</div><div style="font-size:12px">हटाया: '+esc(r.x.delBy||'')+' · स्थायी हटेगा: '+esc(exp)+'</div><button class="cc-b" style="background:#b91c1c;color:#fff;margin-top:6px" onclick="advCloud.permanentDelete(\''+esc(tid)+'\',\''+esc(r.id)+'\')">स्थायी रूप से Delete</button></article>';}).join('');
+      }
+    } catch(e){host.textContent='लोड नहीं हुआ: '+errText(e);}
+  }
+  async function saveRetention(){var tid=document.getElementById('advFeatureTeam')?.value,n=Number(document.getElementById('advRetentionDays')?.value);if(role()!=='master'||!tid||!Number.isInteger(n)||n<1||n>3650)return toast('1 से 3650 दिन चुनें');try{await S.fb.setDoc(ref('trashSettings/'+tid),{retentionDays:n},{merge:true});toast('Auto delete अवधि सेव हो गई');}catch(e){toast(errText(e));}}
+  async function permanentDelete(teamId,caseKey){if(role()!=='master')return toast('केवल Master');if(!confirm('यह केस हमेशा के लिए हट जाएगा। वापस नहीं आएगा। जारी रखें?'))return;try{var call=S.fb.httpsCallable(S.app,'permanentDeleteCase');await call({teamId:teamId,caseKey:caseKey});toast('केस स्थायी रूप से डिलीट हो गया');loadFeature('trash');}catch(e){toast(errText(e));}}
+
   /* ---------- public API ---------- */
   var api = window.advCloud = {
     build: BUILD,
@@ -14854,7 +14936,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     fixAdv: function () { fixAdv(); },
     det: function (k, open) { S.dOpen = S.dOpen || {}; S.dOpen[k] = !!open; if (open && k === 'ed' && !S.edLog) { try { advCloud.edLog(); } catch (e) { } } },
     last: function (id) { lastOpen(id); },
-    tsDel: function (id) { tsDel(id); }, tsRestore: function (k) { tsRestore(k); },
+    tsDel: function (id) { tsDel(id); }, tsRestore: function (k) { tsRestore(k); }, groupUpdates:function(){featureModal('updates');}, trash:function(){featureModal('trash');}, loadFeature:function(k){loadFeature(k||window.__advFeatureKind||'updates');}, saveRetention:function(){saveRetention();}, permanentDelete:function(t,k){permanentDelete(t,k);},
     txSave: function () { txSave(); }, tx: function () { txOpen(); },
     md: function () { S._md = null; mdOpen(); }, mdTog: function (id, on) { S._md.sel[id] = !!on; mdOpen(); }, mdQ: function (v) { S._md.q = v; mdOpen(); }, mdOwn: function (v) { S._md.own = v; mdOpen(); },
     mdBlank: function () { S._md.sel = {}; mdList().forEach(function (x) { if (!x.c.vadiName && !x.c.prativadiName) S._md.sel[x.id] = true; }); mdOpen(); },
@@ -14946,7 +15028,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       if (S.signingUp) return;
       S.user = u;
       if (!u) { stopServices(); S.prof = null; S.screen = 'login'; if (BUILD !== 'master' || S.panelOpen) S.panelOpen = BUILD !== 'master' ? true : S.panelOpen; draw(); return; }
-      afterLogin().catch(function (e) { S.msg = errText(e); S.screen = 'login'; try { S.fb.signOut(S.auth); } catch (x) { } draw(); });
+      tmo(afterLogin(), 35000, 'लॉगिन के बाद Firebase/Firestore से प्रोफाइल डेटा 35 सेकंड में नहीं मिला। Firebase कनेक्शन, Database और Rules जाँचें।').catch(async function (e) { S.msg = errText(e); S.screen = 'login'; S.panelOpen = true; draw(); await safeSignOut(); });
     });
     try { await S.fb.getRedirectResult(S.auth); } catch (e) { S.msg = errText(e); }
   }
@@ -15100,13 +15182,15 @@ function setup(){if(busy)return;busy=true;try{
  var panel=$('advDashMenuPanel');if(!panel){panel=document.createElement('div');panel.id='advDashMenuPanel';panel.setAttribute('role','menu');document.body.appendChild(panel)}
  addAction(panel,'advDashMenuNameEdit','✏ अपना नाम बदलें',function(){if(window.advCloud&&advCloud.rename)advCloud.rename()});
  addAction(panel,'advDashMenuNotify','🔔 Notifications खोलें',function(){if(window.advCloud&&advCloud.tab)advCloud.tab('notify')});
+ addAction(panel,'advDashMenuUpdates','📋 अपने Group के Updates',function(){if(window.advCloud&&advCloud.groupUpdates)advCloud.groupUpdates()});
+ if(window.ADV_BUILD==='master')addAction(panel,'advDashMenuTrash','🗑 Server Dustbin',function(){if(window.advCloud&&advCloud.trash)advCloud.trash()});
  ['ccUpdBtn','ccTxBtn','ccMultiDelBtn'].forEach(function(id){var el=$(id);if(el&&el.parentNode!==panel)panel.appendChild(el)});
  var sync=Array.prototype.slice.call(line.querySelectorAll('button')).filter(function(b){return b.textContent.indexOf('सिंक जाँच')>=0})[0];if(sync&&sync.parentNode!==panel)panel.appendChild(sync);
  ['ccOvNotif','ccColorOn','ccOvMerge'].forEach(function(id){var el=$(id),lab=el&&el.closest('label');if(lab&&lab.parentNode!==panel)panel.appendChild(lab)});
  // Keep any remaining action buttons and labels in the same dropdown, without moving the header filter.
  Array.prototype.slice.call(opts.children).forEach(function(el){if(el.id==='ccNameBtn'||el.id==='ccFilterSel')return;if(el.tagName==='BUTTON'||el.tagName==='LABEL'||el.tagName==='SELECT'){if(el.parentNode!==panel)panel.appendChild(el)}});
  opts.style.display='none';opts.setAttribute('aria-hidden','true');line.style.overflow='visible';
- if(window.__advMe)name.textContent='👤 '+window.__advMe+'  ✏';name.title='अपना नाम और विकल्प खोलें';
+ if(window.__advMe){var _loginName=String(window.__advLoginName||'').trim(),_profileName=String(window.__advMe||'').trim();name.textContent='👤 '+_profileName+(_loginName&&_loginName.toLowerCase()!==_profileName.toLowerCase()?' | Login: '+_loginName:'')+' · '+(window.__advUid||'')+'  ✏'}name.title='Profile नाम और Login नाम सहित विकल्प खोलें';
  Array.prototype.slice.call(panel.children).forEach(function(el){if(el.tagName==='BUTTON'){el.style.width='100%';el.style.textAlign='left';el.style.whiteSpace='normal'}else if(el.tagName==='LABEL'){el.style.display='flex';el.style.width='100%';el.style.whiteSpace='normal'}});
  }catch(e){console.error('Advocate dashboard layout',e)}finally{busy=false}}
 document.addEventListener('click',function(e){var p=$('advDashMenuPanel'),w=$('advDashNameWrap');if(p&&p.classList.contains('open')&&!(w&&w.contains(e.target))&&!p.contains(e.target))closeMenu()});
