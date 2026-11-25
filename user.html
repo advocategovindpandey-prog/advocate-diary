@@ -1601,7 +1601,7 @@ function mobileList(c){return (c.mobile||'').split(/[,;\/]+/).map(s=>s.trim()).f
 function emailList(c){return (c.email||'').split(/[,;]+/).map(s=>s.trim()).filter(Boolean)}
 $('caseForm').addEventListener('submit',e=>{e.preventDefault();if(!getCaseAdvs('caseAdvocateBox').length){alert('कम से कम एक Advocate चुनें।');return}let id=$('editId').value||crypto.randomUUID();let old=cases.find(c=>c.id===id);
  const doSaveCase=()=>{
-  let advs=getCaseAdvs('caseAdvocateBox'),vadiName=$('vadiName').value.trim(),prativadiName=$('prativadiName').value.trim(),side=$('side').value||'vadi',nextDate=$('nextDate').value,subCaseType=$('subCaseType')?.value||'',customFields=collectCaseCustomFields(old,'new','new');let item={id,history:old?.history||[],customFields,advocateId:advs[0],advocateIds:advs,caseNo:$('caseNo').value.trim(),mukhtars:mkGet('mukhtarBox'),mukhtarAam:((mkGet('mukhtarBox').find(m=>m.name)||{}).name)||'',vadiName,prativadiName,vadiMobile:$('modalVadiMobile').value.trim(),vadiEmail:$('modalVadiEmail').value.trim(),prativadiMobile:$('modalPrativadiMobile').value.trim(),prativadiEmail:$('modalPrativadiEmail').value.trim(),side,smsGreetTarget:$('smsGreetTarget').value||'auto',remLang:$('remLang').value||'default',party:side==='prativadi'?prativadiName:vadiName,vadiMobile:$('vadiMobile').value.trim(),vadiEmail:$('vadiEmail').value.trim(),prativadiMobile:$('prativadiMobile').value.trim(),prativadiEmail:$('prativadiEmail').value.trim(),mobile:(side==='prativadi'?$('prativadiMobile').value.trim():$('vadiMobile').value.trim())||$('mobile').value.trim(),email:(side==='prativadi'?$('prativadiEmail').value.trim():$('vadiEmail').value.trim())||$('email').value.trim(),court:$('court').value.trim(),type:$('type').value.trim(),subCaseType,caseDate:$('caseDate').value,nextDate,time:$('time').value.trim(),notes:old?.notes||'',created:old?.created||new Date().toISOString(),reminderSentAt:old?.reminderSentAt||null,lastSent:old?.lastSent||null,sent:old?.sent||null,inactive:!!old?.inactive,inactiveReason:old?.inactiveReason||'',inactiveAt:old?.inactiveAt||null,updatedAt:(!old||old.nextDate!==nextDate)?new Date().toISOString():(old.updatedAt||old.created||new Date().toISOString())};let idx=cases.findIndex(c=>c.id===id);if(idx>=0)cases[idx]=item;else cases.push(item);persist();console.log('Part 1 Case Data:',JSON.parse(JSON.stringify(item)));resetForm();renderAll();try{lastSig='';if(getLN())schedule({ask:true});}catch(e){};alert((idx>=0?'Case अपडेट हो गया।':'नया केस सेव हो गया।')+'\nAdvocate: '+(caseAdvNames(item)||'—'))
+  let advs=getCaseAdvs('caseAdvocateBox'),vadiName=$('vadiName').value.trim(),prativadiName=$('prativadiName').value.trim(),side=$('side').value||'vadi',nextDate=$('nextDate').value,subCaseType=$('subCaseType')?.value||'',customFields=collectCaseCustomFields(old,'new','new');let item={id,history:old?.history||[],customFields,advocateId:advs[0],advocateIds:advs,caseNo:$('caseNo').value.trim(),mukhtars:mkGet('mukhtarBox'),mukhtarAam:((mkGet('mukhtarBox').find(m=>m.name)||{}).name)||'',vadiName,prativadiName,vadiMobile:$('modalVadiMobile').value.trim(),vadiEmail:$('modalVadiEmail').value.trim(),prativadiMobile:$('modalPrativadiMobile').value.trim(),prativadiEmail:$('modalPrativadiEmail').value.trim(),side,smsGreetTarget:$('smsGreetTarget').value||'auto',remLang:$('remLang').value||'default',party:side==='prativadi'?prativadiName:vadiName,vadiMobile:$('vadiMobile').value.trim(),vadiEmail:$('vadiEmail').value.trim(),prativadiMobile:$('prativadiMobile').value.trim(),prativadiEmail:$('prativadiEmail').value.trim(),mobile:(side==='prativadi'?$('prativadiMobile').value.trim():$('vadiMobile').value.trim())||$('mobile').value.trim(),email:(side==='prativadi'?$('prativadiEmail').value.trim():$('vadiEmail').value.trim())||$('email').value.trim(),court:$('court').value.trim(),type:$('type').value.trim(),subCaseType,caseDate:$('caseDate').value,nextDate,time:$('time').value.trim(),notes:old?.notes||'',created:old?.created||new Date().toISOString(),reminderSentAt:old?.reminderSentAt||null,lastSent:old?.lastSent||null,sent:old?.sent||null,inactive:!!old?.inactive,inactiveReason:old?.inactiveReason||'',inactiveAt:old?.inactiveAt||null,updatedAt:new Date().toISOString(),updatedByName:window.__advMe||'',updatedByEmail:window.__advEmail||'',updatedByUid:window.__advUid||''};let idx=cases.findIndex(c=>c.id===id);if(idx>=0)cases[idx]=item;else cases.push(item);persist();console.log('Part 1 Case Data:',JSON.parse(JSON.stringify(item)));resetForm();renderAll();try{lastSig='';if(getLN())schedule({ask:true});}catch(e){};alert((idx>=0?'Case अपडेट हो गया।':'नया केस सेव हो गया।')+'\nAdvocate: '+(caseAdvNames(item)||'—'))
  };
  if(old)checkAdvocateMismatch(old,doSaveCase);else doSaveCase();
 });
@@ -2442,7 +2442,7 @@ function openUpdate(id){
   $('updateDetails').classList.remove('hidden');
   $('updateDetails').classList.add('part2-editor-popup');
   $('selectedHeading').innerHTML=`<span class="case-vs">${vsName(c)}</span> <span class="small">(${esc(c.caseNo)})</span>`;
-  $('selectedInfo').innerHTML=`👤 Advocate: ${esc(caseAdvNames(c)||'—')}<br>वादी: ${esc(c.vadiName||c.party||'—')}<br>प्रतिवादी: ${esc(c.prativadiName||'—')}<br>मोबाइल: ${esc(c.mobile||'—')}<br>कोर्ट: ${esc(c.court||'—')}<br>प्रकार: ${esc(c.type||'—')}<br>Case Date: ${fmt(c.caseDate)}<br>वर्तमान Next Date: ${fmt(c.nextDate)}`;
+  $('selectedInfo').innerHTML=`👤 Advocate: ${esc(caseAdvNames(c)||'—')}<br>वादी: ${esc(c.vadiName||c.party||'—')}<br>प्रतिवादी: ${esc(c.prativadiName||'—')}<br>मोबाइल: ${esc(c.mobile||'—')}<br>कोर्ट: ${esc(c.court||'—')}<br>प्रकार: ${esc(c.type||'—')}<br>Case Date: ${fmt(c.caseDate)}<br>वर्तमान Next Date: ${fmt(c.nextDate)}<br>अपडेट करने वाला: <button type="button" class="upd-by-email" data-updater-email="${esc(c.updatedByEmail||'')}" style="border:0;background:transparent;color:#1d4ed8;text-decoration:underline;padding:0;font:inherit;font-weight:700;cursor:pointer">${esc(c.updatedByName||'—')}</button><br>ईमेल: ${esc(c.updatedByEmail||'—')}`;
   $('updatedNextDate').value=c.nextDate||'';
   renderCaseCustomFieldsForm('updateCustomFields','upd','update',c);
   document.body.classList.add('popup-open');
@@ -2459,11 +2459,13 @@ function closeUpdateSelection(){
 }
 function saveNextDate(){let c=cases.find(x=>x.id===selectedId);if(!c)return alert('पहले केस चुनें।');if(!$('updatedNextDate').value)return alert('नई तारीख चुनें।');let newDate=$('updatedNextDate').value;
  checkAdvocateMismatch(c,()=>{
-  if(newDate!==c.nextDate){c.history=c.history||[];c.history.unshift({date:c.nextDate});c.history=c.history.slice(0,10);c.updatedAt=new Date().toISOString()}c.nextDate=newDate;c.customFields=collectCaseCustomFields(c,'upd','update');persist();renderAll();openUpdate(c.id);alert('अगली तारीख अपडेट हो गई।\nAdvocate: '+(caseAdvNames(c)||'—'))
+  const actor=window.__advActor||{};const stamp=new Date().toISOString();const actorName=actor.name||window.__advMe||'';const actorEmail=actor.email||window.__advEmail||'';const actorUid=actor.uid||window.__advUid||'';
+  if(newDate!==c.nextDate){c.history=c.history||[];c.history.unshift({date:c.nextDate,changedAt:stamp,updatedByName:actorName,updatedByEmail:actorEmail,updatedByUid:actorUid});c.history=c.history.slice(0,10);}
+  c.updatedAt=stamp;c.updatedByName=actorName;c.updatedByEmail=actorEmail;c.updatedByUid=actorUid;c.nextDate=newDate;c.customFields=collectCaseCustomFields(c,'upd','update');persist();renderAll();openUpdate(c.id);alert('अगली तारीख अपडेट हो गई।\nAdvocate: '+(caseAdvNames(c)||'—'))
  });
 }
 function editSelected(){if(selectedId)loadEdit(selectedId)}
-function showHistory(id){let c=cases.find(x=>x.id===id);if(!c)return;document.querySelectorAll('.options-dialog:not(.hidden)').forEach(o=>o.classList.add('hidden'));document.querySelectorAll('.inline-date:not(.hidden)').forEach(o=>o.classList.add('hidden'));if(settings.historyEdit)return histEdit(id);let h=(c.history||[]).slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));$('sendOverlayContent').innerHTML=`<h2>📜 History</h2><p class="small">केस: ${vsName(c)} (${esc(c.caseNo)})</p>`+(h.length?h.map((x,i)=>`<div style="padding:7px 0;border-bottom:1px solid #e5eaf2">${i+1}. केस तारीख: <b>${fmt(x.date)}</b>${dayTag(x.date)}</div>`).join(''):'<div class="empty">अभी तक केस तारीख की हिस्ट्री नहीं है।</div>')+`<div class="actions"><button class="btn gray" onclick="closeSendOptions()">⬅ Back</button></div>`;$('sendOverlay').classList.remove('hidden');document.body.style.overflow='hidden'}
+function showHistory(id){let c=cases.find(x=>x.id===id);if(!c)return;document.querySelectorAll('.options-dialog:not(.hidden)').forEach(o=>o.classList.add('hidden'));document.querySelectorAll('.inline-date:not(.hidden)').forEach(o=>o.classList.add('hidden'));if(settings.historyEdit)return histEdit(id);let h=(c.history||[]).slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));$('sendOverlayContent').innerHTML=`<h2>📜 History</h2><p class="small">केस: ${vsName(c)} (${esc(c.caseNo)})</p>`+(h.length?h.map((x,i)=>`<div style="padding:7px 0;border-bottom:1px solid #e5eaf2">${i+1}. केस तारीख: <b>${fmt(x.date)}</b>${dayTag(x.date)}${x.updatedByName?`<div class="small">अपडेट किया: <button type="button" class="upd-by-email" data-updater-email="${esc(x.updatedByEmail||'')}" style="border:0;background:transparent;color:#1d4ed8;text-decoration:underline;padding:0;font:inherit;font-weight:700;cursor:pointer">${esc(x.updatedByName)}</button> · ${esc(x.updatedByEmail||'ईमेल उपलब्ध नहीं')}</div>`:''}</div>`).join(''):'<div class="empty">अभी तक केस तारीख की हिस्ट्री नहीं है।</div>')+`<div class="actions"><button class="btn gray" onclick="closeSendOptions()">⬅ Back</button></div>`;$('sendOverlay').classList.remove('hidden');document.body.style.overflow='hidden'}
 function deleteCase(id){let c=cases.find(x=>x.id===id);if(!c)return;askCaptcha({title:'⚠️ केस हटाएं?',warn:'<b>चेतावनी:</b> केस <b>'+vsName(c)+'</b> ('+esc(c.caseNo)+') स्थायी रूप से हट जाएगा — इसकी सारी तारीखें, History और Notes मिट जाएँगी।<br>यह क्रिया वापस नहीं होगी।<br>💡 सिर्फ़ केस बंद करना हो तो Delete की जगह <b>⏸ Deactivate</b> करें — डेटा सुरक्षित रहेगा।',okLabel:'केस हटाएं (Confirm)',onOk:()=>{cases=cases.filter(x=>x.id!==id);persist();renderAll();renderNextFilterButtons()}})}
 function messageFor(c,forceGreet){if(window._remType==='rem2')return rem2Message(c,forceGreet);let lang=(c.remLang&&c.remLang!=='default')?c.remLang:settings.language;let A=adminOf(c),isHi=lang==='hi';let names=caseAdvIds(c).map(advocateName).filter(Boolean).join(', ');let vsHi=`${c.vadiName||c.party||'—'} बनाम ${c.prativadiName||'—'}`;let vsEn=`${c.vadiName||c.party||'—'} vs ${c.prativadiName||'—'}`;let partyName=(c.side==='prativadi'?c.prativadiName:c.vadiName)||c.party||'';let target=c.smsGreetTarget||'auto';let greet=target==='mukhtarAam'?(c.mukhtarAam||partyName):target==='party'?partyName:(c.mukhtarAam||partyName);if(forceGreet)greet=forceGreet;greet=(greet||'').trim();let showAdv=names&&settings.remCaseAdv!==false;let noteH=(c.notes&&String(c.notes).trim())?'\nनोट - *'+String(c.notes).trim()+'*':'';let noteE=(c.notes&&String(c.notes).trim())?'\nNote - *'+String(c.notes).trim()+'*':'';let wdN=new Date(c.nextDate+'T00:00:00').getDay();let hi=`नमस्कार${greet?' *'+greet+'* जी':''},\nआपके केस *${vsHi}*\n*(Case No. ${c.caseNo})*\n\nकी अगली तारीख\n*${fmt(c.nextDate)} (${REM2_DAYS_HI[wdN]})* निर्धारित है।\n\nन्यायालय: *${c.court||'—'}*\nकृपया आवश्यक तैयारी के साथ उपस्थित रहें।${noteH}`+(showAdv?`\nआपके केस के वकील: ${names}`:'')+`\n============================`;let en=`Dear${greet?' *'+greet+'*':' Sir/Madam'},\nYour case *${vsEn}*\n*(Case No. ${c.caseNo})*\n\nNext date is\n*${fmt(c.nextDate)} (${REM2_DAYS_EN[wdN]})*.\n\nCourt: *${c.court||'—'}*\nPlease be prepared and attend as required.${noteE}`+(showAdv?`\nYour case advocate(s): ${names}`:'')+`\n============================`;let body=lang==='hi'?hi:lang==='en'?en:hi+'\n\n'+en;let L=isHi?['चैंबर','कार्यालय','मो.','ईमेल']:['Chamber','Office','Mob','Email'],f=[];if(settings.remAdmName!==false)f.push(`${A.name}, ${A.title}`);if(settings.remChamber!==false&&A.chamberAddress)f.push(L[0]+': '+A.chamberAddress);if(settings.remOffice!==false&&A.officeAddress)f.push(L[1]+': '+A.officeAddress);if(settings.remMobile!==false&&A.mobile)f.push(L[2]+': '+A.mobile);if(settings.remEmail!==false&&A.email)f.push(L[3]+': '+A.email);return body+(f.length?'\n\n'+f.join('\n'):'')}
 function closeSendOptions(){closeAllDialogs();document.body.style.overflow=''}
@@ -13034,9 +13036,30 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     } catch (x) { S.msg = errText(x); draw(); }
   }
   async function doForgot() {
-    var e = ($('cc-em') && $('cc-em').value.trim()) || prompt('Enter your email:'); if (!e) return;
-    try { e = await resolveId(e).catch(function () { return e; }); await S.fb.sendPasswordResetEmail(S.auth, e); S.msg = 'Reset link sent (if the email is registered). Check both Inbox and Spam.'; }
-    catch (x) { S.msg = errText(x); } draw();
+    var current = ($('cc-em') && $('cc-em').value.trim()) || '';
+    var overlay = document.getElementById('advForgotOverlay');
+    if (!overlay) {
+      overlay = document.createElement('div'); overlay.id = 'advForgotOverlay';
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:999999;background:rgba(10,20,40,.62);display:flex;align-items:center;justify-content:center;padding:18px';
+      overlay.innerHTML = '<div role=dialog aria-modal=true aria-labelledby=advForgotTitle style="width:min(440px,100%);background:#fff;border-radius:16px;padding:22px;box-shadow:0 16px 50px #0005;color:#17243a"><h2 id=advForgotTitle style="margin:0 0 8px;font-size:22px">पासवर्ड रीसेट करें</h2><p style="margin:0 0 14px;color:#526174;line-height:1.5">अपनी रजिस्टर्ड Gmail ID लिखें। उसी ईमेल पर पासवर्ड बदलने का लिंक भेजा जाएगा।</p><label for=advForgotEmail style="display:block;margin:0 0 6px;font-weight:600">Gmail / Email ID</label><input id=advForgotEmail type=email autocomplete=email inputmode=email placeholder="name@gmail.com" style="width:100%;box-sizing:border-box;padding:13px;border:1px solid #bac6d5;border-radius:9px;font-size:16px"><div id=advForgotError style="min-height:22px;margin-top:8px;color:#c62828;font-size:14px"></div><div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:10px"><button type=button id=advForgotCancel style="padding:11px 16px;border:1px solid #aab5c4;border-radius:9px;background:#fff;color:#263448">रद्द करें</button><button type=button id=advForgotSend style="padding:11px 16px;border:0;border-radius:9px;background:#0878ed;color:#fff;font-weight:600">Send Reset Link</button></div></div>';
+      document.body.appendChild(overlay);
+      document.getElementById('advForgotCancel').onclick = function () { overlay.remove(); };
+      document.getElementById('advForgotSend').onclick = async function () {
+        var input = document.getElementById('advForgotEmail'), error = document.getElementById('advForgotError'), btn = document.getElementById('advForgotSend');
+        var email = (input.value || '').trim();
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { error.textContent = 'कृपया सही Gmail / Email ID लिखें।'; input.focus(); return; }
+        btn.disabled = true; btn.textContent = 'भेजा जा रहा है…'; error.textContent = '';
+        try {
+          email = await resolveId(email).catch(function () { return email; });
+          await S.fb.sendPasswordResetEmail(S.auth, email);
+          overlay.remove(); S.msg = 'पासवर्ड रीसेट लिंक भेज दिया गया है। Inbox और Spam दोनों देखें।'; draw();
+        } catch (x) {
+          error.textContent = errText(x) || 'ईमेल भेजने में समस्या हुई।';
+          btn.disabled = false; btn.textContent = 'Send Reset Link';
+        }
+      };
+    }
+    var input = document.getElementById('advForgotEmail'); if (input) { input.value = current; input.focus(); }
   }
   async function openSignup() {
     S.screen = 'signup'; S.msg = ''; draw();
@@ -14155,7 +14178,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     var el = $('ccLoginLine'); if (!el) return;
     if (!S.prof) { el.style.display = 'none'; return; }
     el.style.display = 'block'; window.__advMe = S.prof.name || S.prof.email || ''; window.__advRole = role(); window.__advUid = S.prof.id || ''; window.__advEmail = S.prof.email || ''; window.__advActor = { name: window.__advMe, role: window.__advRole, uid: window.__advUid, email: window.__advEmail }; window.__advPerms = (role() === 'user' && S.prof.perms) ? { create: !!S.prof.perms.create, date: !!S.prof.perms.date, edit: !!S.prof.perms.edit, del: !!S.prof.perms.del } : null;
-    var nameBtn = $('ccNameBtn'); if (nameBtn) { nameBtn.textContent = '✏ नाम: ' + (S.prof.name || 'नाम नहीं'); nameBtn.title = 'अपना नाम बदलें'; }
+    var nameBtn = $('ccNameBtn'); if (nameBtn) { nameBtn.textContent = '👤 ' + (S.prof.name || 'नाम नहीं') + '  ✏'; nameBtn.title = 'अपना नाम संपादित करें'; }
     var mergeToggle = $('ccOvMerge'); if (mergeToggle && mergeToggle.parentNode) mergeToggle.parentNode.style.display = 'none';
     var pub = ''; try { pub = (localStorage.getItem('advCloudPubAt') || '').split(', ').pop(); } catch (e) { }
     var t = $('ccLoginTxt'); if (t) t.textContent = '☁ ' + titleRole() + ' · ' + (S.prof.email || '') + (S.prevLogin ? ' · Last login: ' + S.prevLogin : '') + (S.syncErr ? ' · ⚠ सिंक: ' + S.syncErr : (pub ? ' · ✓ सर्वर पर आख़िरी अपडेट: ' + pub : '')) + tsStatus();
@@ -14768,29 +14791,87 @@ body.chat-sidebar-open{overflow:hidden}
 <script id="advRoleDashboardLayout">
 (function(){
 'use strict';
-var BUILD='user', activeKey='', drag=null, toolbar=null, layoutBtn=null, defaultOrder=null;
-function roleName(){var r=(window.__advRole||'').toLowerCase();return (r==='master'||r==='admin'||r==='user')?r:BUILD;}
-function key(){return 'advDashButtonOrder:'+roleName();}
-function getToolbar(){return document.getElementById('ccLoginOpts');}
-function moveNotificationIntoRow(r){var n=document.getElementById('headerNotifyFilterButton');if(n&&r&&!r.contains(n)){n.style.cssText+=';flex:0 0 auto;margin:0 2px;';r.insertBefore(n,r.firstChild);}}
-function buttons(){var r=getToolbar();if(!r)return[];return Array.prototype.filter.call(r.children,function(x){return x.tagName==='BUTTON'&&x.id!=='advDashSaveLayout'&&x.id!=='advDashResetLayout'&&x.id!=='ccLayoutBtn'&&x.style.display!=='none';});}
-function apply(){var r=getToolbar();if(!r)return;moveNotificationIntoRow(r);var k=key(),saved=[];try{saved=JSON.parse(localStorage.getItem(k)||'[]')}catch(e){}var map={};buttons().forEach(function(b){map[b.id]=b});saved.forEach(function(id){if(map[id])r.appendChild(map[id])});buttons().forEach(function(b){if(saved.indexOf(b.id)<0)r.appendChild(b)});activeKey=k;}
-function save(){var ids=buttons().map(function(b){return b.id});try{localStorage.setItem(key(),JSON.stringify(ids));activeKey=key();toast('बटन का क्रम सेव हो गया');}catch(e){toast('क्रम सेव नहीं हो सका');}}
-function toast(t){var e=document.getElementById('advDashLayoutToast');if(!e){e=document.createElement('div');e.id='advDashLayoutToast';e.style.cssText='position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:2147483647;background:#142b4a;color:white;padding:9px 14px;border-radius:20px;font:700 13px system-ui;box-shadow:0 3px 12px #0005';document.body.appendChild(e)}e.textContent=t;e.style.display='block';clearTimeout(e._t);e._t=setTimeout(function(){e.style.display='none'},1800);}
-function ensureTools(r){if(!document.getElementById('advDashSaveLayout')){var b=document.createElement('button');b.id='advDashSaveLayout';b.type='button';b.textContent='💾 क्रम सेव';b.style.cssText='flex:0 0 auto;border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:#137547;color:#fff';b.onclick=save;r.appendChild(b)}if(!document.getElementById('advDashResetLayout')){var z=document.createElement('button');z.id='advDashResetLayout';z.type='button';z.textContent='↺ Reset';z.style.cssText='flex:0 0 auto;border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:#e2e8f0;color:#142b4a';z.onclick=function(){try{localStorage.removeItem(key())}catch(e){};(defaultOrder||[]).forEach(function(id){var b=document.getElementById(id);if(b&&r.contains(b))r.appendChild(b)});toast('डिफॉल्ट क्रम वापस आ गया')};r.appendChild(z)}}
-function install(){var r=getToolbar();if(!r)return;toolbar=r;moveNotificationIntoRow(r);ensureTools(r);if(!defaultOrder)defaultOrder=buttons().map(function(b){return b.id});if(activeKey!==key())apply();if(r.dataset.dragReady==='1')return;r.dataset.dragReady='1';r.style.flexWrap='nowrap';r.style.alignItems='center';r.style.gap='6px';r.style.maxWidth='100%';r.style.overflowX='auto';r.style.overscrollBehaviorX='contain';r.style.webkitOverflowScrolling='touch';
- r.querySelectorAll('button').forEach(function(b){b.style.touchAction='none';b.style.cursor='grab';b.setAttribute('draggable','true')});
- r.addEventListener('dragstart',function(e){var b=e.target.closest('button');if(!b||b.id==='advDashSaveLayout'||b.id==='advDashResetLayout'){e.preventDefault();return}drag=b;b.style.opacity='.55';try{e.dataTransfer.setData('text/plain',b.id);e.dataTransfer.effectAllowed='move'}catch(_){}});
- r.addEventListener('dragover',function(e){if(!drag)return;e.preventDefault();var t=e.target.closest('button');if(!t||t===drag||t.id==='advDashSaveLayout'||t.id==='advDashResetLayout')return;var q=t.getBoundingClientRect();r.insertBefore(drag,(e.clientX<q.left+q.width/2)?t:t.nextSibling)});
- r.addEventListener('drop',function(e){if(!drag)return;e.preventDefault();drag.style.opacity='';drag=null;save()});
- r.addEventListener('dragend',function(){if(drag){drag.style.opacity='';drag=null;save()}});
- var sx=0,sy=0,started=false,timer=null,active=null;
- r.addEventListener('pointerdown',function(e){var b=e.target.closest('button');if(!b||!r.contains(b)||b.id==='advDashSaveLayout'||b.id==='advDashResetLayout')return;active=b;sx=e.clientX;sy=e.clientY;started=false;timer=setTimeout(function(){if(active){started=true;active.style.opacity='.55';active.style.outline='2px dashed #137547';try{active.setPointerCapture(e.pointerId)}catch(_){}}},170)});
- r.addEventListener('pointermove',function(e){if(!active)return;if(!started){if(Math.abs(e.clientX-sx)+Math.abs(e.clientY-sy)>12){clearTimeout(timer);active=null}return}e.preventDefault();var t=document.elementFromPoint(e.clientX,e.clientY);t=t&&t.closest?t.closest('#ccLoginOpts > button'):null;if(!t||t===active||t.id==='advDashSaveLayout'||t.id==='advDashResetLayout')return;var q=t.getBoundingClientRect();r.insertBefore(active,(e.clientX<q.left+q.width/2)?t:t.nextSibling)});
- function end(){clearTimeout(timer);if(active){active.style.opacity='';active.style.outline='';if(started)save()}active=null;started=false}
- r.addEventListener('pointerup',end);r.addEventListener('pointercancel',end);
+function byId(id){return document.getElementById(id)}
+function sizeSelect(sel){
+  if(!sel)return;
+  var opt=sel.options&&sel.options[sel.selectedIndex];
+  var label=opt?(opt.textContent||''):(sel.title||'Select');
+  var c=document.createElement('canvas'),ctx=c.getContext('2d');
+  if(ctx){ctx.font='700 13px system-ui';}
+  var w=ctx?ctx.measureText(label).width+48:180;
+  var cap=Math.max(150,Math.min((window.innerWidth||360)-32,320));
+  sel.style.setProperty('width',Math.min(Math.max(150,w),cap)+'px','important');
+  sel.style.setProperty('min-width','150px','important');
+  sel.style.setProperty('max-width','calc(100vw - 32px)','important');
+  sel.style.setProperty('flex','0 1 auto','important');
+  sel.style.setProperty('white-space','nowrap','important');
+  sel.title=label;
+  if(!sel.dataset.watchWidth){var mo=new MutationObserver(function(){sizeSelect(sel)});mo.observe(sel,{childList:true,subtree:true});sel.dataset.watchWidth='1';}
 }
-var count=0;var timer=setInterval(function(){install();if(++count>100)clearInterval(timer)},400);
-if(window.MutationObserver)new MutationObserver(function(){install()}).observe(document.documentElement,{childList:true,subtree:true});
+function setup(){
+  var bar=byId('ccLoginOpts'),line=byId('ccLoginLine');
+  if(!bar||!line)return false;
+  var name=byId('ccNameBtn');if(!name)return false;
+  var menu=byId('advDashActionMenu'),items=byId('advDashMenuItems');
+  if(!menu){
+    menu=document.createElement('details');menu.id='advDashActionMenu';
+    menu.innerHTML='<summary>☰ सभी विकल्प ▾</summary><div id="advDashMenuItems"></div>';
+    items=menu.querySelector('#advDashMenuItems');
+  }
+  if(!items)items=menu.querySelector('#advDashMenuItems');
+  // Logged-in person's own editable name remains visible and first.
+  var own=String(window.__advMe||'').trim();
+  if(own)name.textContent='👤 '+own+'  ✏';
+  name.title='अपना नाम संपादित करें';
+  name.style.cssText='display:inline-flex!important;align-items:center;justify-content:center;flex:0 0 auto!important;min-height:42px;padding:9px 16px!important;min-width:150px;max-width:70vw;white-space:normal;overflow-wrap:anywhere;border-radius:10px;font-size:14px!important;font-weight:800;margin:0 8px 0 0;';
+  if(name.parentNode!==bar)bar.insertBefore(name,bar.firstChild);
+  if(menu.parentNode!==bar)bar.appendChild(menu);
+  // Put all remaining dashboard actions in one vertical dropdown.
+  Array.prototype.slice.call(bar.children).forEach(function(el){
+    if(el===name||el===menu)return;
+    items.appendChild(el);
+  });
+  // Keep the original Notification trigger in the top header beside the selectors.
+  var notify=byId('headerNotifyFilterButton');
+  var advocate=byId('activeAdvocateSelect');
+  if(notify&&advocate&&advocate.parentNode){
+    var holder=advocate.parentNode;
+    if(notify.parentNode!==holder)holder.insertBefore(notify,advocate);
+    notify.style.cssText+=';display:inline-flex;align-items:center;min-height:40px;flex:0 0 auto;white-space:nowrap;padding:9px 12px;font-size:13px;';
+  }
+  // Sync check is created beside the login status; move it into the dropdown too.
+  Array.prototype.slice.call(line.querySelectorAll('button')).forEach(function(b){
+    if(b===name||b===notify||b.id==='advDashMenuToggle')return;
+    if((b.textContent||'').indexOf('सिंक जाँच')>=0 && b.parentNode!==items)items.appendChild(b);
+  });
+  bar.style.cssText='display:flex!important;align-items:center;gap:8px;flex-wrap:wrap;max-width:100%;overflow:visible;white-space:normal;padding:4px 0;';
+  menu.style.cssText='position:relative;display:inline-block;flex:0 0 auto;';
+  var summary=menu.querySelector('summary');
+  if(summary)summary.style.cssText='list-style:none;cursor:pointer;border:0;border-radius:10px;padding:10px 14px;background:#e2e8f0;color:#142b4a;font:800 14px system-ui;white-space:nowrap;min-height:42px;';
+  items.style.cssText='position:absolute;left:0;top:calc(100% + 6px);z-index:999999;min-width:240px;width:max-content;max-width:min(90vw,360px);max-height:72vh;overflow:auto;background:#fff;color:#142b4a;border:1px solid #cbd5e1;border-radius:12px;padding:10px;box-shadow:0 10px 28px #0003;display:flex;flex-direction:column;gap:8px;white-space:normal;';
+  Array.prototype.slice.call(items.children).forEach(function(el){
+    if(el.tagName==='BUTTON')el.style.cssText+=';display:block;width:100%;box-sizing:border-box;text-align:left;margin:0;padding:10px 12px;white-space:normal;min-height:40px;';
+    else if(el.tagName==='LABEL')el.style.cssText+=';display:block;width:100%;box-sizing:border-box;padding:8px 9px;margin:0;white-space:normal;';
+    else if(el.tagName==='SELECT')el.style.cssText+=';display:block;width:100%;box-sizing:border-box;';
+  });
+  var as=byId('activeAdvocateSelect'),fs=byId('ccFilterSel');
+  sizeSelect(as);sizeSelect(fs);
+  [as,fs].forEach(function(sel){if(sel&&!sel.dataset.autoWidth){sel.addEventListener('change',function(){sizeSelect(sel)});sel.dataset.autoWidth='1';}});
+  // The notification filter panel floats below the header instead of occupying a spare row.
+  var quick=byId('dashNotifyQuickWrap');
+  if(quick)quick.style.cssText='position:fixed!important;top:68px!important;right:10px!important;z-index:99998!important;width:min(92vw,380px)!important;max-width:calc(100vw - 20px)!important;margin:0!important;pointer-events:none!important;';
+  var qp=byId('dashboardNotifyQuickSel');if(qp)qp.style.pointerEvents='auto';
+  if(!menu.dataset.closeBound){
+    menu.addEventListener('click',function(ev){if(ev.target.closest('button'))setTimeout(function(){menu.open=false},100)});
+    menu.dataset.closeBound='1';
+  }
+  bar.querySelectorAll('button').forEach(function(b){b.removeAttribute('draggable');b.style.touchAction='pan-y';b.style.cursor='pointer'});
+  return true;
+}
+function start(){if(setup())return;var obs=new MutationObserver(function(){if(setup())obs.disconnect()});obs.observe(document.documentElement,{childList:true,subtree:true});setTimeout(function(){try{setup()}catch(e){}},900);}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
+window.addEventListener('load',function(){try{setup()}catch(e){}});
+window.addEventListener('resize',function(){sizeSelect(byId('activeAdvocateSelect'));sizeSelect(byId('ccFilterSel'))});
+document.addEventListener('click',function(e){var b=e.target&&e.target.closest&&e.target.closest('.upd-by-email');if(!b)return;var em=b.getAttribute('data-updater-email')||'';alert(em?'अपडेट करने वाले की Email ID: '+em:'इस पुराने रिकॉर्ड में Email ID सेव नहीं है।')});
 })();
 </script>
