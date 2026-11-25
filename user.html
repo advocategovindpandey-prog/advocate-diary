@@ -13040,26 +13040,35 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     var overlay = document.getElementById('advForgotOverlay');
     if (!overlay) {
       overlay = document.createElement('div'); overlay.id = 'advForgotOverlay';
-      overlay.style.cssText = 'position:fixed;inset:0;z-index:999999;background:rgba(10,20,40,.62);display:flex;align-items:center;justify-content:center;padding:18px';
-      overlay.innerHTML = '<div role=dialog aria-modal=true aria-labelledby=advForgotTitle style="width:min(440px,100%);background:#fff;border-radius:16px;padding:22px;box-shadow:0 16px 50px #0005;color:#17243a"><h2 id=advForgotTitle style="margin:0 0 8px;font-size:22px">पासवर्ड रीसेट करें</h2><p style="margin:0 0 14px;color:#526174;line-height:1.5">अपनी रजिस्टर्ड Gmail ID लिखें। उसी ईमेल पर पासवर्ड बदलने का लिंक भेजा जाएगा।</p><label for=advForgotEmail style="display:block;margin:0 0 6px;font-weight:600">Gmail / Email ID</label><input id=advForgotEmail type=email autocomplete=email inputmode=email placeholder="name@gmail.com" style="width:100%;box-sizing:border-box;padding:13px;border:1px solid #bac6d5;border-radius:9px;font-size:16px"><div id=advForgotError style="min-height:22px;margin-top:8px;color:#c62828;font-size:14px"></div><div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:10px"><button type=button id=advForgotCancel style="padding:11px 16px;border:1px solid #aab5c4;border-radius:9px;background:#fff;color:#263448">रद्द करें</button><button type=button id=advForgotSend style="padding:11px 16px;border:0;border-radius:9px;background:#0878ed;color:#fff;font-weight:600">Send Reset Link</button></div></div>';
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:rgba(10,20,40,.68);display:flex;align-items:center;justify-content:center;padding:14px;box-sizing:border-box';
+      overlay.innerHTML = '<div role=dialog aria-modal=true aria-labelledby=advForgotTitle style="width:min(440px,100%);max-height:88dvh;overflow:auto;background:#fff;border-radius:16px;padding:22px;box-shadow:0 16px 50px #0005;color:#17243a;box-sizing:border-box"><h2 id=advForgotTitle style="margin:0 0 8px;font-size:22px">पासवर्ड रीसेट करें</h2><p style="margin:0 0 14px;color:#526174;line-height:1.5">लॉगिन किए बिना अपनी रजिस्टर्ड ईमेल ID लिखें। पासवर्ड बदलने का सुरक्षित लिंक उसी ईमेल पर भेजा जाएगा।</p><label for=advForgotEmail style="display:block;margin:0 0 6px;font-weight:600">Registered Gmail / Email ID</label><input id=advForgotEmail type=email autocomplete=email inputmode=email placeholder="name@gmail.com" style="width:100%;box-sizing:border-box;padding:13px;border:1px solid #bac6d5;border-radius:9px;font-size:16px"><div id=advForgotError role=status aria-live=polite style="min-height:22px;margin-top:8px;color:#c62828;font-size:14px;overflow-wrap:anywhere"></div><div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:10px"><button type=button id=advForgotCancel style="padding:11px 16px;border:1px solid #aab5c4;border-radius:9px;background:#fff;color:#263448">रद्द करें</button><button type=button id=advForgotSend style="padding:11px 16px;border:0;border-radius:9px;background:#0878ed;color:#fff;font-weight:600">Reset Link भेजें</button></div></div>';
       document.body.appendChild(overlay);
       document.getElementById('advForgotCancel').onclick = function () { overlay.remove(); };
       document.getElementById('advForgotSend').onclick = async function () {
         var input = document.getElementById('advForgotEmail'), error = document.getElementById('advForgotError'), btn = document.getElementById('advForgotSend');
         var email = (input.value || '').trim().toLowerCase();
-        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { error.textContent = 'कृपया सही Gmail / Email ID लिखें।'; input.focus(); return; }
-        btn.disabled = true; btn.textContent = 'भेजा जा रहा है…'; error.textContent = '';
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { error.textContent = 'कृपया सही रजिस्टर्ड ईमेल ID लिखें।'; input.focus(); return; }
+        btn.disabled = true; btn.textContent = 'भेजा जा रहा है…'; error.style.color = '#526174'; error.textContent = 'Firebase से सुरक्षित अनुरोध भेजा जा रहा है…';
         try {
-          email = await resolveId(email).catch(function () { return email; });
+          if (!S.auth || !S.fb || !S.fb.sendPasswordResetEmail) throw new Error('Firebase Authentication अभी तैयार नहीं है। पेज रिफ्रेश करके दोबारा प्रयास करें।');
+          S.auth.languageCode = 'hi';
           await S.fb.sendPasswordResetEmail(S.auth, email);
-          overlay.remove(); S.msg = 'पासवर्ड रीसेट लिंक भेज दिया गया है। Inbox और Spam दोनों देखें।'; draw();
+          error.style.color = '#167447'; error.textContent = 'यदि यह ईमेल इस ऐप में पंजीकृत है, तो पासवर्ड रीसेट लिंक भेज दिया गया है। Inbox, Spam और Promotions फ़ोल्डर देखें।';
+          btn.textContent = 'अनुरोध भेज दिया गया';
+          setTimeout(function(){ if(overlay && overlay.parentNode) overlay.remove(); }, 6500);
         } catch (x) {
-          error.textContent = errText(x) || 'ईमेल भेजने में समस्या हुई।';
-          btn.disabled = false; btn.textContent = 'Send Reset Link';
+          var code = x && x.code || '';
+          if (code === 'auth/user-not-found') error.textContent = 'इस ईमेल से Firebase Authentication अकाउंट नहीं मिला। वही ईमेल डालें जिससे अकाउंट बनाया गया था।';
+          else if (code === 'auth/invalid-email') error.textContent = 'ईमेल ID सही नहीं है।';
+          else if (code === 'auth/unauthorized-domain') error.textContent = 'यह वेबसाइट Firebase Authorized domains में नहीं है। Firebase Console में GitHub Pages डोमेन जोड़ना होगा। [auth/unauthorized-domain]';
+          else if (code === 'auth/too-many-requests') error.textContent = 'बहुत बार अनुरोध किया गया है। कुछ समय बाद पुनः प्रयास करें। [auth/too-many-requests]';
+          else if (code === 'auth/network-request-failed') error.textContent = 'इंटरनेट कनेक्शन जाँचें और फिर प्रयास करें। [auth/network-request-failed]';
+          else error.textContent = (code ? '[' + code + '] ' : '') + ((x && x.message) || 'ईमेल भेजने में समस्या हुई।');
+          error.style.color = '#c62828'; btn.disabled = false; btn.textContent = 'Reset Link भेजें';
         }
       };
     }
-    var input = document.getElementById('advForgotEmail'); if (input) { input.value = current; input.focus(); }
+    var input = document.getElementById('advForgotEmail'); if (input) { input.value = current.indexOf('@') >= 0 ? current.toLowerCase() : ''; input.focus(); }
   }
   async function openSignup() {
     S.screen = 'signup'; S.msg = ''; draw();
@@ -13246,20 +13255,27 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   async function syncNow(force) {
     if (S.prof) S.lastChk = Date.now();
     if (!S.prof || S.screen !== 'panel' || !navigator.onLine || S.syncing || (force !== true && force !== 'auto' && force !== 'fast')) return;
-    var raw = localStorage.getItem('advDiaryCases') || '[]', h = fnv(raw);
+    var raw = localStorage.getItem('advDiaryCases') || '[]', h = fnv(raw), uid = S.prof.id;
+    var hashKey = 'advCloudLastHash:' + String(uid);
     try { if (JSON.parse(raw).length === 0 && (force === 'auto' || force === 'fast' || !confirm('There are no cases on this phone. Clear the server copy?'))) return; } catch (e) { }
-    if (force !== true && h === localStorage.getItem('advCloudLastHash')) { S.pend = null; return; }
+    if (force !== true && h === localStorage.getItem(hashKey)) { S.pend = null; return; }
     if (force === 'auto' && S.pend !== h) { S.pend = h; return; }
-    S.syncing = true; var F = S.fb, uid = S.prof.id;
+    S.syncing = true; var F = S.fb;
     try {
       var cases = JSON.parse(raw), b = b64(await gz(JSON.stringify({ v: 1, at: Date.now(), cases: cases }))), CH = 700000, n = Math.ceil(b.length / CH) || 1;
-      var old = 0; try { var m0 = await F.getDoc(ref('userData/' + uid)); if (m0.exists()) old = m0.data().n || 0; } catch (e) { }
+      var m0 = await F.getDoc(ref('userData/' + uid));
+      if (force !== true && !localStorage.getItem(hashKey) && m0.exists() && Number(m0.data().caseCount || 0) > 0 && m0.data().hash !== h) {
+        S.syncErr = 'SERVER_LOCAL_MISMATCH: सर्वर पर इस खाते का अलग डेटा मौजूद है। उसे बदलने से पहले Sync विकल्प की पुष्टि करें।';
+        return;
+      }
+      if (m0.exists() && m0.data().hash === h) { localStorage.setItem(hashKey, h); S.lastSync = Date.now(); S.syncErr = ''; return; }
+      var old = m0.exists() ? (Number(m0.data().n) || 0) : 0;
       var w = [], i; for (i = 0; i < n; i++) w.push(['set', 'userData/' + uid + '/chunks/c' + String(i).padStart(3, '0'), { i: i, d: b.slice(i * CH, (i + 1) * CH) }]);
       for (i = n; i < old; i++) w.push(['del', 'userData/' + uid + '/chunks/c' + String(i).padStart(3, '0')]);
       for (i = 0; i < w.length; i += 4) { var bt = F.writeBatch(S.db); w.slice(i, i + 4).forEach(function (x) { x[0] === 'set' ? bt.set(ref(x[1]), x[2]) : bt.delete(ref(x[1])); }); await bt.commit(); }
       await F.setDoc(ref('userData/' + uid), { n: n, size: b.length, caseCount: cases.length, hash: h, name: S.prof.name || '', email: S.prof.email, updatedAt: F.serverTimestamp() });
-      localStorage.setItem('advCloudLastHash', h); S.lastSync = Date.now(); S.syncErr = ''; try { localStorage.setItem('advCloudPubAt', new Date().toLocaleString()); } catch (e) { } if (S.panelOpen) draw();
-    } catch (e) { S.syncErr = (e && (e.code || e.message)) || 'error'; if (e && e.code === 'permission-denied') { await loadProf().catch(function () { }); recheck(true); } }
+      localStorage.setItem(hashKey, h); S.lastSync = Date.now(); S.syncErr = ''; try { localStorage.setItem('advCloudPubAt', new Date().toLocaleString()); } catch (e) { } if (S.panelOpen) draw();
+    } catch (e) { S.syncErr = (e && e.code ? e.code + (e.message ? ': ' + e.message : '') : (e && e.message) || 'error'); if (e && e.code === 'permission-denied') { await loadProf().catch(function () { }); recheck(true); } }
     finally { S.syncing = false; }
   }
   function masterWatch() {
@@ -14567,7 +14583,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   /* ---------- public API ---------- */
   var api = window.advCloud = {
     build: BUILD,
-    status: function () { var n = '', r = '', c = null; if (S.prof && S.screen !== 'login') { n = S.prof.name || S.prof.email || ''; r = S.prof.role; } else { try { c = JSON.parse(localStorage.getItem('advCloudCache') || 'null'); } catch (e) { } if (c && c.nm && ['login', 'cfg', 'signup'].indexOf(S.screen) < 0) { n = c.nm; r = c.role; } } if (!n) return null; var pend = false; try { pend = fnv(localStorage.getItem('advDiaryCases') || '[]') !== localStorage.getItem('advCloudLastHash'); } catch (e) { } return { name: n, role: r, online: navigator.onLine, last: S.lastSync || 0, syncing: !!S.syncing, pending: pend, err: S.syncErr || '' }; },
+    status: function () { var n = '', r = '', c = null; if (S.prof && S.screen !== 'login') { n = S.prof.name || S.prof.email || ''; r = S.prof.role; } else { try { c = JSON.parse(localStorage.getItem('advCloudCache') || 'null'); } catch (e) { } if (c && c.nm && ['login', 'cfg', 'signup'].indexOf(S.screen) < 0) { n = c.nm; r = c.role; } } if (!n) return null; var pend = false; try { pend = fnv(localStorage.getItem('advDiaryCases') || '[]') !== localStorage.getItem(S.prof && S.prof.id ? 'advCloudLastHash:' + S.prof.id : 'advCloudLastHash'); } catch (e) { } return { name: n, role: r, online: navigator.onLine, last: S.lastSync || 0, syncing: !!S.syncing, pending: pend, err: S.syncErr || '' }; },
     open: function () { S.panelOpen = true; if (S.screen === 'loading' && !S.user) boot(); draw(); },
     close: function () { if (S.screen === 'login' || S.screen === 'cfg') { if (BUILD !== 'master') return; } if (S.screen === 'locked') return; S.panelOpen = false; draw(); },
     publish: function () { var t = S.lastSync; syncNow(true).then(function () { if (S.lastSync !== t) { try { localStorage.setItem('advCloudPubAt', new Date().toLocaleString()); } catch (e) { } toast('✅ Data updated for viewers'); if (S.panelOpen) draw(); } else toast('Could not update — check internet, login and Rules'); }); },
@@ -14814,44 +14830,51 @@ header>div:last-child{display:flex!important;flex:1 1 100%!important;min-width:0
 #ccUpd{max-width:100vw!important;box-sizing:border-box!important}#ccUpd>div{box-sizing:border-box!important;overflow-wrap:anywhere!important}
 @media(max-width:520px){header{padding-left:10px!important;padding-right:10px!important}header .brand{flex-basis:100%!important}#headerAdvocate{overflow-wrap:anywhere!important}#ccNameBtn{max-width:90vw!important}#advDashMenuPanel{width:min(92vw,350px)!important}}
 </style>
-<script id="adv-responsive-account-menu-v3-js">
+
+<style id="adv-responsive-header-sync-fix">
+header #activeAdvocateSelect,header #ccFilterSel{box-sizing:border-box!important;min-width:0!important;max-width:100%!important;width:auto!important;flex:1 1 138px!important}
+header #headerNotifyFilterButton{box-sizing:border-box!important;flex:0 0 auto!important;max-width:100%!important;white-space:normal!important}
+@media(max-width:600px){header #activeAdvocateSelect,header #ccFilterSel{min-width:128px!important;flex:1 1 128px!important}header #headerNotifyFilterButton{min-width:112px!important}}
+#advDashMenuPanel{display:none;position:fixed;z-index:2147483647;max-width:calc(100vw - 16px);max-height:74dvh;overflow:auto;box-sizing:border-box;background:#fff;color:#142b4a;border:1px solid #cbd5e1;border-radius:13px;padding:9px;box-shadow:0 12px 32px #0004;gap:7px;flex-direction:column}
+#advDashMenuPanel.open{display:flex}
+#advDashMenuPanel button{box-sizing:border-box;min-height:40px;border:1px solid #e2e8f0;border-radius:9px;background:#f8fafc;color:#142b4a;padding:9px 11px;font:700 13px system-ui;text-align:left;white-space:normal}
+#advDashNameWrap{display:inline-flex;align-items:center;max-width:100%;min-width:0}
+#ccNameBtn{max-width:100%;min-height:42px;white-space:normal;overflow-wrap:anywhere}
+</style>
+<script id="adv-responsive-account-menu-v4">
 (function(){
-'use strict';if(window.__advDashMenuV3)return;window.__advDashMenuV3=true;
+'use strict';
+var busy=false,observer=null;
 function $(id){return document.getElementById(id)}
 function closeMenu(){var p=$('advDashMenuPanel'),b=$('ccNameBtn');if(p)p.classList.remove('open');if(b)b.setAttribute('aria-expanded','false')}
 function placeMenu(){var p=$('advDashMenuPanel'),b=$('ccNameBtn');if(!p||!b)return;var r=b.getBoundingClientRect(),w=Math.min(350,window.innerWidth-16);p.style.width=w+'px';var left=Math.max(8,Math.min(window.innerWidth-w-8,r.left));p.style.left=left+'px';var h=Math.min(p.scrollHeight,window.innerHeight*.74),top=r.bottom+6;if(top+h>window.innerHeight-8)top=Math.max(8,r.top-h-6);p.style.top=top+'px'}
-function button(panel,id,label,fn){if($(id))return;var b=document.createElement('button');b.type='button';b.id=id;b.textContent=label;b.onclick=function(){closeMenu();try{fn()}catch(e){console.error(e)}};panel.appendChild(b)}
-function setup(){
- var line=$('ccLoginLine'),opts=$('ccLoginOpts'),name=$('ccNameBtn');if(!line||!opts||!name)return false;
- // Recover controls moved by the previous menu implementation.
- var old=$('advDashActionMenu'),oldItems=$('advDashMenuItems');
- if(oldItems){Array.prototype.slice.call(oldItems.children).forEach(function(el){if(el.id==='headerNotifyFilterButton')return;opts.appendChild(el)})}
- if(old)old.remove();
- var bell=$('headerNotifyFilterButton'),adv=$('activeAdvocateSelect');
- if(bell&&adv&&bell.parentNode!==adv.parentNode)adv.parentNode.insertBefore(bell,adv);
- if(bell&&adv&&bell.nextSibling!==adv)adv.parentNode.insertBefore(bell,adv);
+function addAction(panel,id,label,fn){var b=$(id);if(!b){b=document.createElement('button');b.type='button';b.id=id;b.textContent=label;b.onclick=function(){closeMenu();try{fn()}catch(e){console.error(e)}}}if(b.parentNode!==panel)panel.appendChild(b);return b}
+function setup(){if(busy)return;busy=true;try{
+ var line=$('ccLoginLine'),opts=$('ccLoginOpts'),name=$('ccNameBtn');if(!line||!opts||!name)return;
+ var old=$('advDashActionMenu'),oldItems=$('advDashMenuItems');if(oldItems){Array.prototype.slice.call(oldItems.children).forEach(function(el){if(el.id!=='headerNotifyFilterButton')opts.appendChild(el)})}if(old)old.remove();
+ var bell=$('headerNotifyFilterButton'),adv=$('activeAdvocateSelect'),fs=$('ccFilterSel');
+ if(bell&&adv&&bell.parentNode===adv.parentNode&&bell.nextSibling!==adv)adv.parentNode.insertBefore(bell,adv);
+ var row=adv&&adv.parentElement;if(row){row.style.display='flex';row.style.flexWrap='wrap';row.style.alignItems='center';row.style.justifyContent='flex-end';row.style.gap='6px';row.style.width='100%';row.style.maxWidth='100%';row.style.minWidth='0';row.style.boxSizing='border-box'}
+ if(bell){bell.style.flex='0 0 auto';bell.style.maxWidth='100%'}
+ if(adv){adv.style.flex='1 1 138px';adv.style.width='auto';adv.style.minWidth='0';adv.style.maxWidth='100%'}
+ if(fs){fs.style.flex='1 1 138px';fs.style.width='auto';fs.style.minWidth='0';fs.style.maxWidth='100%'}
  var wrap=$('advDashNameWrap');if(!wrap){wrap=document.createElement('div');wrap.id='advDashNameWrap';line.insertBefore(wrap,opts);wrap.appendChild(name)}else if(name.parentNode!==wrap)wrap.appendChild(name);
- name.onclick=null;name.removeAttribute('onclick');name.type='button';name.setAttribute('aria-haspopup','true');name.setAttribute('aria-expanded','false');
- if(!name.dataset.menuBound){name.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();var p=$('advDashMenuPanel');if(!p)return;var opening=!p.classList.contains('open');closeMenu();if(opening){p.classList.add('open');name.setAttribute('aria-expanded','true');placeMenu()}});name.dataset.menuBound='1'}
+ name.onclick=null;name.removeAttribute('onclick');name.type='button';name.setAttribute('aria-haspopup','true');if(!name.dataset.menuBound){name.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();var p=$('advDashMenuPanel');if(!p)return;var opening=!p.classList.contains('open');closeMenu();if(opening){p.classList.add('open');name.setAttribute('aria-expanded','true');placeMenu()}});name.dataset.menuBound='1'}
  var panel=$('advDashMenuPanel');if(!panel){panel=document.createElement('div');panel.id='advDashMenuPanel';panel.setAttribute('role','menu');document.body.appendChild(panel)}
- if(!panel.dataset.built){panel.dataset.built='1';
-  button(panel,'advDashMenuNameEdit','✏ अपना नाम बदलें',function(){if(window.advCloud&&advCloud.rename)advCloud.rename()});
-  button(panel,'advDashMenuNotify','🔔 Notifications खोलें',function(){if(window.advCloud&&advCloud.tab)advCloud.tab('notify')});
-  ['ccUpdBtn','ccTxBtn','ccMultiDelBtn'].forEach(function(id){var el=$(id);if(el)panel.appendChild(el)});
-  var sync=Array.prototype.slice.call(line.querySelectorAll('button')).filter(function(b){return b.textContent.indexOf('सिंक जाँच')>=0})[0];if(sync)panel.appendChild(sync);else button(panel,'advDashMenuSync','🔍 सिंक जाँच',function(){if(window.syncCheck)window.syncCheck();else if(window.advCloud&&advCloud.sync)advCloud.sync()});
-  ['ccOvNotif','ccColorOn','ccOvMerge'].forEach(function(id){var el=$(id),lab=el&&el.closest('label');if(lab)panel.appendChild(lab)});
- }
- opts.style.display='none';opts.setAttribute('aria-hidden','true');
- // Reassert the display name (lineUpdate refreshes it after profile changes).
+ addAction(panel,'advDashMenuNameEdit','✏ अपना नाम बदलें',function(){if(window.advCloud&&advCloud.rename)advCloud.rename()});
+ addAction(panel,'advDashMenuNotify','🔔 Notifications खोलें',function(){if(window.advCloud&&advCloud.tab)advCloud.tab('notify')});
+ ['ccUpdBtn','ccTxBtn','ccMultiDelBtn'].forEach(function(id){var el=$(id);if(el&&el.parentNode!==panel)panel.appendChild(el)});
+ var sync=Array.prototype.slice.call(line.querySelectorAll('button')).filter(function(b){return b.textContent.indexOf('सिंक जाँच')>=0})[0];if(sync&&sync.parentNode!==panel)panel.appendChild(sync);
+ ['ccOvNotif','ccColorOn','ccOvMerge'].forEach(function(id){var el=$(id),lab=el&&el.closest('label');if(lab&&lab.parentNode!==panel)panel.appendChild(lab)});
+ // Keep any remaining action buttons and labels in the same dropdown, without moving the header filter.
+ Array.prototype.slice.call(opts.children).forEach(function(el){if(el.id==='ccNameBtn'||el.id==='ccFilterSel')return;if(el.tagName==='BUTTON'||el.tagName==='LABEL'||el.tagName==='SELECT'){if(el.parentNode!==panel)panel.appendChild(el)}});
+ opts.style.display='none';opts.setAttribute('aria-hidden','true');line.style.overflow='visible';
  if(window.__advMe)name.textContent='👤 '+window.__advMe+'  ✏';name.title='अपना नाम और विकल्प खोलें';
- line.style.overflow='visible';
- if(bell){bell.style.flexShrink='0';bell.style.whiteSpace='normal'}
- if(adv){adv.style.minWidth='110px';adv.style.maxWidth='min(48vw,230px)'}var fs=$('ccFilterSel');if(fs){fs.style.minWidth='110px';fs.style.maxWidth='min(48vw,230px)'}
  Array.prototype.slice.call(panel.children).forEach(function(el){if(el.tagName==='BUTTON'){el.style.width='100%';el.style.textAlign='left';el.style.whiteSpace='normal'}else if(el.tagName==='LABEL'){el.style.display='flex';el.style.width='100%';el.style.whiteSpace='normal'}});
- return true;
-}
+ }catch(e){console.error('Advocate dashboard layout',e)}finally{busy=false}}
 document.addEventListener('click',function(e){var p=$('advDashMenuPanel'),w=$('advDashNameWrap');if(p&&p.classList.contains('open')&&!(w&&w.contains(e.target))&&!p.contains(e.target))closeMenu()});
 document.addEventListener('keydown',function(e){if(e.key==='Escape')closeMenu()});window.addEventListener('resize',function(){if($('advDashMenuPanel')&&$('advDashMenuPanel').classList.contains('open'))placeMenu()});window.addEventListener('scroll',function(){if($('advDashMenuPanel')&&$('advDashMenuPanel').classList.contains('open'))placeMenu()},true);
-var tries=0,t=setInterval(function(){if(setup()||++tries>150)clearInterval(t)},250);if(window.MutationObserver){var mo=new MutationObserver(function(){setup()});mo.observe(document.documentElement,{childList:true,subtree:true})}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup);else setup();window.addEventListener('load',setup);
+function start(){setup();if(!observer&&window.MutationObserver&&document.body){observer=new MutationObserver(function(){setup()});observer.observe(document.body,{childList:true,subtree:true})}}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();window.addEventListener('load',setup);
 })();
 </script>
