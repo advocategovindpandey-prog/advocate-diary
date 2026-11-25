@@ -13782,7 +13782,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   function colorOn() { try { return localStorage.getItem('advColorOn') !== '0'; } catch (e) { return true; } }
   function userColors() { try { return JSON.parse(localStorage.getItem('advUserColors') || '{}'); } catch (e) { return {}; } }
   function ucolor(n) { if (!n) return '#7a5a00'; var m = userColors(); if (m[n]) return m[n]; var h = 0; for (var i = 0; i < n.length; i++) h = (h * 31 + n.charCodeAt(i)) >>> 0; return PAL[h % PAL.length]; }
-  function fdt(t) { try { var m = t && t.toMillis ? t.toMillis() : (t && t.seconds ? t.seconds * 1000 : +new Date(t)); if (!m || isNaN(m)) return ''; var d = new Date(m), M = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC']; return String(d.getDate()).padStart(2,'0') + '-' + M[d.getMonth()] + '-' + d.getFullYear() + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'); } catch (e) { return ''; } }
+  function fdt(t) { try { var m = t && t.toMillis ? t.toMillis() : (t && t.seconds ? t.seconds * 1000 : +new Date(t)); if (!m || isNaN(m)) return ''; var d = new Date(m), M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; return String(d.getDate()).padStart(2,'0') + '-' + M[d.getMonth()] + '-' + d.getFullYear() + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'); } catch (e) { return ''; } }
   var HC = { v: -1, map: {} };
   var _hc = { raw: null, map: {} };
   function histOf(c) {
@@ -13796,15 +13796,34 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     o.innerHTML = '<div style="background:#fff;color:#142b4a;border-radius:18px 18px 0 0;max-width:520px;width:100%;max-height:86vh;overflow:auto;padding:14px;font:14px/1.45 system-ui,sans-serif">' + html + '</div>';
     o.addEventListener('click', function (e) { if (e.target === o) o.remove(); }); document.body.appendChild(o); return o;
   }
-  function actorOpen(i) {
+  async function actorOpen(i) {
     var e = (S._actorEntries || [])[i]; if (!e) return;
-    var a = e.byUid ? acctById(e.byUid) : null;
-    var nm = e.byName || e.by || (a && a.name) || 'जानकारी उपलब्ध नहीं';
-    var uid = e.byUid || (a && a.id) || 'जानकारी उपलब्ध नहीं';
-    var email = e.byEmail || (a && a.email) || 'जानकारी उपलब्ध नहीं';
-    var rl = e.byRole || e.r || (a && a.role) || 'जानकारी उपलब्ध नहीं';
+    var uid = e.byUid || '', a = uid ? acctById(uid) : null, prof = a || {};
+    if (!a && !uid) { var en = e.byName || e.by || ''; var matches = (S.list || []).filter(function(x){ return en && (x.name === en || x.email === en); }); if (matches.length === 1) { a = matches[0]; uid = a.id; prof = a; } }
+    var nm = e.byName || e.by || prof.name || 'जानकारी उपलब्ध नहीं';
+    var email = e.byEmail || prof.email || '';
+    var rl = e.byRole || e.r || prof.role || 'जानकारी उपलब्ध नहीं';
+    // पुराने History records में byEmail खाली हो तो Firebase profile से UID द्वारा विवरण लें।
+    if (uid && (!email || !prof.name || !rl || rl === 'जानकारी उपलब्ध नहीं')) {
+      try {
+        var cached = S.actorCache && S.actorCache[uid];
+        if (!cached) {
+          var pd = await S.fb.getDoc(ref('users/' + uid));
+          cached = pd.exists() ? Object.assign({id:uid}, pd.data()) : {};
+          if (!cached.email || !cached.name) {
+            try { var md = await S.fb.getDoc(ref('userData/' + uid)); if (md.exists()) { var mm = md.data(); cached.email = cached.email || mm.email || ''; cached.name = cached.name || mm.name || ''; } } catch (_) {}
+          }
+          S.actorCache = S.actorCache || {}; S.actorCache[uid] = cached;
+        }
+        prof = Object.assign({}, prof, cached);
+        nm = e.byName || e.by || prof.name || nm;
+        email = e.byEmail || prof.email || email;
+        rl = e.byRole || e.r || prof.role || rl;
+      } catch (err) { console.warn('History actor profile fetch failed', err); }
+    }
+    email = email || 'सर्वर पर Email ID उपलब्ध नहीं';
     modalBox('ccActor', '<div style="display:flex;align-items:center;gap:8px"><b style="flex:1;font-size:15px">👤 अपडेट करने वाले की जानकारी</b><button style="border:0;background:#e2e8f0;border-radius:8px;padding:6px 10px;font-weight:800" onclick="document.getElementById(&quot;ccActor&quot;).remove()">✕</button></div>' +
-      '<div style="padding:10px 0;line-height:1.9"><div><b>नाम:</b> ' + esc(nm) + '</div><div><b>Role:</b> ' + esc(rl) + '</div><div><b>Firebase UID:</b> <span style="overflow-wrap:anywhere">' + esc(uid) + '</span></div><div><b>Email ID:</b> <span style="overflow-wrap:anywhere">' + esc(email) + '</span></div><div><b>Update Date & Time:</b> ' + esc(fdt(e.at) || 'जानकारी उपलब्ध नहीं') + '</div></div>');
+      '<div style="padding:10px 0;line-height:1.9"><div><b>नाम:</b> ' + esc(nm) + '</div><div><b>Role:</b> ' + esc(rl) + '</div><div><b>Firebase UID:</b> <span style="overflow-wrap:anywhere">' + esc(uid || 'जानकारी उपलब्ध नहीं') + '</span></div><div><b>Email ID:</b> <span style="overflow-wrap:anywhere">' + esc(email) + '</span></div><div><b>Update Date & Time:</b> ' + esc(fdt(e.at) || 'जानकारी उपलब्ध नहीं') + '</div></div>');
   }
   function histOpen(id) {
     var c = cases.filter(function (x) { return String(x.id) === String(id); })[0]; if (!c) return;
@@ -14405,9 +14424,9 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     try { saved = localStorage.getItem('advCloudFilter') || ''; } catch (e) { }
     function opt(x) { var n = OV.srcs[x.id] ? ' (' + OV.srcs[x.id].cases.length + ')' : ''; return '<option value="' + esc(x.id) + '">' + esc(x.name || x.email) + n + '</option>'; }
     var ad = L.filter(function (x) { return x.role === 'admin'; }), us = L.filter(function (x) { return x.role === 'user'; });
-    sel.innerHTML = '<option value="">☁ User/Admin</option>' + (S.prof && role() === 'master' ? '<option value="' + esc(S.prof.id) + '">👑 Master — ' + esc(S.prof.name || S.prof.email) + ' (' + (OV.own || []).length + ')</option>' : '') +
-      (ad.length ? '<optgroup label="🧑‍💼 Admin">' + ad.map(opt).join('') + '</optgroup>' : '') +
-      (us.length ? '<optgroup label="👤 User">' + us.map(opt).join('') + '</optgroup>' : '');
+    sel.innerHTML = '<option value="">☁ सभी खाते (बिना चयन)</option>' + (S.prof && role() === 'master' ? '<optgroup label="👑 MASTER"><option value="' + esc(S.prof.id) + '">Master — ' + esc(S.prof.name || S.prof.email) + ' (' + (OV.own || []).length + ')</option></optgroup>' : '') +
+      (ad.length ? '<optgroup label="🧑‍💼 ADMIN ('+ad.length+')">' + ad.map(opt).join('') + '</optgroup>' : '') +
+      (us.length ? '<optgroup label="👤 USER ('+us.length+')">' + us.map(opt).join('') + '</optgroup>' : '');
     sel.value = saved; if (sel.value !== saved) sel.value = '';
   }
   function acctById(id) { var a = (S.list || []).filter(function (x) { return x.id === id; })[0]; return a || (S.prof && S.prof.id === id ? S.prof : null); }
@@ -14657,22 +14676,49 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     }
     return h;
   }
+  async function teamExport(parentId, includeTeam, mode) {
+    var pop = mode === 'print' ? window.open('', '_blank') : null;
+    try {
+      var parent = acctById(parentId); if (!parent) throw new Error('टीम/यूजर नहीं मिला');
+      var accounts = [parent];
+      if (includeTeam && (parent.role === 'master' || parent.role === 'admin')) {
+        accounts = accounts.concat((S.list || []).filter(function(x){ return x.role === 'user' && x.parentId === parent.id; }).sort(function(a,b){ return (a.name||a.email||'').localeCompare(b.name||b.email||''); }));
+      }
+      var groups = [];
+      for (var i=0;i<accounts.length;i++) {
+        var a = accounts[i], list = [];
+        if (a.id === S.prof.id) list = (cases || []).filter(function(c){ return !c._ov; }).map(function(c){ return Object.assign({},c); });
+        else { try { list = await fetchCasesOf(a); } catch(err) { list = []; } }
+        groups.push({ ownerId:a.id, ownerName:a.name||a.email||a.id, email:a.email||'', role:a.role||'', caseCount:list.length, cases:list });
+      }
+      var payload = { app:'Advocate Diary', exportedAt:new Date().toISOString(), teamOwner:parent.id, teamName:parent.name||parent.email||parent.id, groups:groups };
+      var fname = ('AdvocateDiary_'+(parent.name||parent.role||'Team')+'_').replace(/[^a-z0-9_-]/gi,'_')+new Date().toISOString().slice(0,10);
+      if (mode === 'json') {
+        var blob = new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}), aTag=document.createElement('a'); aTag.href=URL.createObjectURL(blob); aTag.download=fname+'.json'; aTag.click(); setTimeout(function(){URL.revokeObjectURL(aTag.href)},3000); return;
+      }
+      if (!pop) throw new Error('Print window नहीं खुला। Browser में pop-up अनुमति दें।');
+      var html = '<!doctype html><html><head><meta charset="utf-8"><title>'+esc(fname)+'</title><style>body{font:13px Arial,sans-serif;color:#172033;padding:18px}h1{font-size:20px}h2{font-size:16px;background:#e9eef5;padding:8px}table{border-collapse:collapse;width:100%;margin:8px 0 20px}th,td{border:1px solid #aaa;padding:5px;text-align:left;vertical-align:top}th{background:#f0f3f8}.meta{color:#555;font-size:12px}@media print{button{display:none}}</style></head><body><h1>Advocate Diary — '+esc(payload.teamName)+'</h1><div class="meta">Export: '+esc(new Date().toLocaleString())+' · कुल खाते: '+groups.length+'</div>';
+      groups.forEach(function(g){ html += '<h2>'+esc(g.ownerName)+' ('+esc(g.role)+') — '+g.caseCount+' केस</h2><div class="meta">'+esc(g.email)+' · UID: '+esc(g.ownerId)+'</div>'; if(!g.cases.length){html+='<p>इस खाते का सर्वर डेटा उपलब्ध नहीं है या अभी Sync नहीं हुआ है।</p>';return;} var cols=['caseNo','type','court','vadiName','prativadiName','nextDate','time','notes']; html+='<table><tr>'+cols.map(function(k){return '<th>'+esc(k)+'</th>'}).join('')+'</tr>'+g.cases.map(function(c){return '<tr>'+cols.map(function(k){return '<td>'+esc(c[k] == null ? '' : c[k])+'</td>'}).join('')+'</tr>'}).join('')+'</table>'; });
+      pop.document.open(); pop.document.write(html+'</body></html>'); pop.document.close(); pop.focus(); setTimeout(function(){try{pop.print()}catch(e){}},500);
+    } catch(err) { if(pop) try{pop.close()}catch(_){} toast(err && err.message ? err.message : 'Print/Backup तैयार नहीं हुआ'); }
+  }
   function vData() {
     var isM = role() === 'master', isA = role() === 'admin';
     if (!S.listAt) { setTimeout(function () { fetchList().catch(function (e) { toast(errText(e)); }); }, 0); return '<div class="cc-box">Loading team data…</div>'; }
-    var countText = function (a) { return a.caseCount == null ? 'डेटा संख्या उपलब्ध नहीं' : 'कुल केस / डेटा: ' + a.caseCount; };
-    var row = function (a, roleText, indent, openBtn) { return '<div class="cc-box" style="margin:' + (indent ? '5px 0 5px 18px' : '7px 0') + ';padding:10px 12px"><div class="cc-row" style="align-items:center"><div style="flex:1;min-width:0"><b>' + esc(a.name || a.email || 'नाम उपलब्ध नहीं') + '</b> <span class="cc-muted">(' + roleText + ')</span><div class="cc-muted" style="overflow-wrap:anywhere">' + esc(a.email || '') + '</div><div style="font-size:12px;color:#137547;font-weight:800">' + countText(a) + '</div></div>' + (openBtn ? '<button class="cc-b sm" onclick="advCloud.data(\'' + String(a.id).replace(/'/g,'') + '\')">Open</button>' : '') + '</div></div>'; };
-    var userRows = function (parentId) { var us = S.list.filter(function (x) { return x.role === 'user' && x.parentId === parentId; }).sort(function (a,b) { return (a.name || a.email || '').localeCompare(b.name || b.email || ''); }); return us.length ? us.map(function (u) { return row(u, 'User', true, true); }).join('') : '<div class="cc-muted" style="padding:6px 18px">इस टीम में अभी कोई User नहीं है।</div>'; };
+    var countText = function (a) { return a.caseCount == null ? 'डेटा संख्या सर्वर से नहीं मिली' : 'कुल केस / डेटा: ' + a.caseCount; };
+    var actions = function(a, team){ return '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:7px"><button class="cc-b sm" onclick="advCloud.data(\''+String(a.id).replace(/'/g,'')+'\')">डेटा खोलें</button><button class="cc-b sm gray" onclick="advCloud.teamExport(\''+String(a.id).replace(/'/g,'')+'\','+(team?'true':'false')+',\'print\')">🖨 Print</button><button class="cc-b sm gray" onclick="advCloud.teamExport(\''+String(a.id).replace(/'/g,'')+'\','+(team?'true':'false')+',\'json\')">⬇ Backup</button></div>'; };
+    var row = function (a, roleText, indent, team) { return '<div class="cc-box" style="margin:' + (indent ? '5px 0 5px 18px' : '7px 0') + ';padding:10px 12px"><div style="display:flex;flex-direction:column;align-items:stretch"><div style="min-width:0"><b>' + esc(a.name || a.email || 'नाम उपलब्ध नहीं') + '</b> <span class="cc-muted">(' + roleText + ')</span><div class="cc-muted" style="overflow-wrap:anywhere">' + esc(a.email || '') + '</div><div style="font-size:12px;color:#137547;font-weight:800">' + countText(a) + '</div></div>' + actions(a,team) + '</div></div>'; };
+    var userRows = function (parentId) { var us = S.list.filter(function (x) { return x.role === 'user' && x.parentId === parentId; }).sort(function (a,b) { return (a.name || a.email || '').localeCompare(b.name || b.email || ''); }); return us.length ? us.map(function (u) { return row(u, 'User', true, false); }).join('') : '<div class="cc-muted" style="padding:6px 18px">इस टीम में अभी कोई User नहीं है।</div>'; };
     if (isM) {
       var admins = S.list.filter(function (x) { return x.role === 'admin'; }).sort(function (a,b) { return (a.name || a.email || '').localeCompare(b.name || b.email || ''); });
-      var own = S.prof; own.caseCount = S.ownCaseCount;
-      var h = '<div class="cc-box cc-muted">हर टीम का डेटा अलग दिखेगा। किसी Admin को खोलने पर केवल उसी Admin और उसके Users का डेटा चुना जाएगा; Master और Admin का डेटा आपस में मर्ज नहीं होगा।</div>';
-      h += '<div style="margin:8px 0 4px;font-weight:900;color:#0f2a4a">👑 Master की टीम</div>' + row(own, 'Master', false, true) + userRows(S.prof.id);
-      h += '<div style="margin:14px 0 6px;font-weight:900;color:#0f2a4a">🧑‍💼 Admin की टीमें (' + admins.length + ')</div>';
-      h += admins.map(function (a) { var children = S.list.filter(function (x) { return x.role === 'user' && x.parentId === a.id; }); var opened = !!(S._teamOpen && S._teamOpen[a.id]); return '<div class="cc-box" style="margin:7px 0;padding:10px 12px"><div class="cc-row"><button class="cc-b sm gray" style="min-width:38px" onclick="advCloud.teamTog(\'' + a.id + '\')">' + (opened ? '▼' : '▶') + '</button><div style="flex:1;min-width:0"><b>' + esc(a.name || a.email) + '</b> <span class="cc-muted">(Admin)</span><div class="cc-muted" style="overflow-wrap:anywhere">' + esc(a.email || '') + '</div><div style="font-size:12px;color:#137547;font-weight:800">' + countText(a) + ' · Users: ' + children.length + '</div></div><button class="cc-b sm" onclick="advCloud.data(\'' + a.id + '\')">Open Admin</button></div>' + (opened ? '<div style="margin-top:6px;border-left:3px solid #d9a441;padding-left:4px">' + userRows(a.id) + '</div>' : '') + '</div>'; }).join('') || '<div class="cc-box">अभी कोई Admin नहीं है।</div>';
+      var own = Object.assign({},S.prof,{caseCount:S.ownCaseCount});
+      var h = '<div class="cc-box cc-muted">भूमिका के अनुसार अलग-अलग समूह: Master की टीम अलग और हर Admin की टीम अलग। किसी टीम का Print/Backup केवल उसी टीम के खाते शामिल करेगा; समान केस नंबर होने पर भी डेटा आपस में नहीं जोड़ा जाएगा।</div>';
+      h += '<div style="margin:8px 0 4px;font-weight:900;color:#0f2a4a">👑 1. Master की टीम</div>' + row(own, 'Master', false, true) + userRows(S.prof.id);
+      h += '<div style="margin:14px 0 6px;font-weight:900;color:#0f2a4a">🧑‍💼 2. Admin की अलग-अलग टीमें (' + admins.length + ')</div>';
+      h += admins.map(function (a) { var children = S.list.filter(function (x) { return x.role === 'user' && x.parentId === a.id; }); var opened = !!(S._teamOpen && S._teamOpen[a.id]); return '<div class="cc-box" style="margin:7px 0;padding:10px 12px"><div style="display:flex;flex-direction:column;gap:5px"><div style="display:flex;align-items:center;gap:8px"><button class="cc-b sm gray" style="min-width:38px" onclick="advCloud.teamTog(\'' + a.id + '\')">' + (opened ? '▼' : '▶') + '</button><div style="flex:1;min-width:0"><b>' + esc(a.name || a.email) + '</b> <span class="cc-muted">(Admin)</span><div class="cc-muted" style="overflow-wrap:anywhere">' + esc(a.email || '') + '</div><div style="font-size:12px;color:#137547;font-weight:800">' + countText(a) + ' · Users: ' + children.length + '</div></div></div>' + actions(a,true) + '</div>' + (opened ? '<div style="margin-top:6px;border-left:3px solid #d9a441;padding-left:4px">' + userRows(a.id) + '</div>' : '') + '</div>'; }).join('') || '<div class="cc-box">अभी कोई Admin नहीं है।</div>';
       return h;
     }
-    if (isA) { var ownA = S.prof; ownA.caseCount = S.ownCaseCount; return '<div class="cc-box cc-muted">Admin और उसके Users का डेटा अलग-अलग दिखेगा।</div><div style="font-weight:900;margin:8px 0">🧑‍💼 Admin की टीम</div>' + row(ownA, 'Admin', false, true) + userRows(S.prof.id); }
+    if (isA) { var ownA = Object.assign({},S.prof,{caseCount:S.ownCaseCount}); return '<div class="cc-box cc-muted">Admin और उसके Users की टीम अलग है। Print/Backup में केवल इसी Admin और उसके Users का डेटा आएगा।</div><div style="font-weight:900;margin:8px 0">🧑‍💼 Admin की टीम</div>' + row(ownA, 'Admin', false, true) + userRows(S.prof.id); }
     return row(S.prof, 'User', false, false);
   }
   function vView() {
@@ -14682,7 +14728,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     if (!keys.length && v.cases[0]) keys = Object.keys(v.cases[0]).filter(function (k) { return typeof v.cases[0][k] !== 'object'; }).slice(0, 6);
     return '<div class="cc-row" style="margin-bottom:8px"><button class="cc-b gray sm" onclick="advCloud.tab(\'data\')">← Back</button><b style="flex:1">' + esc(v.acct.name || v.acct.email) + '</b></div>' +
       '<div class="cc-muted">Cases: <b>' + v.cases.length + '</b> · Last sync: ' + fmtT(v.meta.updatedAt) + ' · View only (read-only)</div>' +
-      '<div class="cc-row" style="margin:8px 0"><input class="cc-in" style="flex:1;margin:0" placeholder="🔍 Search" value="' + esc(v.q) + '" oninput="advCloud.vq(this.value)"><button class="cc-b sm" onclick="advCloud.dl()">⬇ JSON</button></div>' +
+      '<div class="cc-row" style="margin:8px 0"><input class="cc-in" style="flex:1;margin:0" placeholder="🔍 Search" value="' + esc(v.q) + '" oninput="advCloud.vq(this.value)"><button class="cc-b sm" onclick="advCloud.dl()">⬇ JSON</button><button class="cc-b sm gray" onclick="advCloud.printView()">🖨 Print</button></div>' +
       '<div style="overflow:auto"><table class="cc-tbl"><tr><th>#</th>' + keys.map(function (k) { return '<th>' + esc(k) + '</th>'; }).join('') + '</tr>' +
       cs.slice(0, 300).map(function (c, i) { return '<tr><td>' + (i + 1) + '</td>' + keys.map(function (k) { return '<td>' + esc(c[k]) + '</td>'; }).join('') + '</tr>'; }).join('') + '</table></div>' + (cs.length > 300 ? '<div class="cc-muted">Showing the first 300 — use search to narrow down.</div>' : '');
   }
@@ -14843,8 +14889,10 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     reset: function (id) { if (id === 'me') return resetMail(S.prof); var a = S.list.filter(function (x) { return x.id === id; })[0]; if (a) resetMail(a); },
     del: function (id) { var a = S.list.filter(function (x) { return x.id === id; })[0]; if (a) delAccount(a).catch(function (e) { toast(errText(e)); }); },
     data: function (id) { var a = acctById(id); if (!a) return; if (role() === 'master' || role() === 'admin') { var fs = $('ccFilterSel'); S.panelOpen = false; draw(); if (a.id === S.prof.id) { OV.sel = ''; try { localStorage.removeItem('advCloudFilter'); } catch (e) { } if (fs) fs.value = ''; ovApply(); return; } onFilter(a.id).then(function () { if (fs) fs.value = a.id; }); } else loadData(a).catch(function (e) { toast(errText(e)); }); },
+    teamExport: function (id, team, mode) { teamExport(id, !!team, mode); },
     vq: function (v) { S.view.q = v; draw(); var i = $('cc-root').querySelector('.cc-in'); if (i) { i.focus(); i.setSelectionRange(v.length, v.length); } },
     dl: function () { var b = new Blob([JSON.stringify(S.view.cases, null, 1)], { type: 'application/json' }), a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'cases-' + (S.view.acct.email || 'user') + '.json'; a.click(); },
+    printView: function () { var v=S.view; if(!v)return; var w=window.open('','_blank'); if(!w){toast('Print के लिए pop-up अनुमति दें');return;} var keys=['caseNo','type','court','vadiName','prativadiName','nextDate','time','notes']; var h='<html><head><meta charset=\"utf-8\"><title>Advocate Diary</title><style>body{font:13px Arial;padding:16px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #999;padding:5px}th{background:#eee}</style></head><body><h2>'+esc(v.acct.name||v.acct.email)+'</h2><p>कुल केस: '+v.cases.length+'</p><table><tr>'+keys.map(function(k){return '<th>'+esc(k)+'</th>'}).join('')+'</tr>'+v.cases.map(function(c){return '<tr>'+keys.map(function(k){return '<td>'+esc(c[k]||'')+'</td>'}).join('')+'</tr>'}).join('')+'</table></body></html>'; w.document.write(h);w.document.close();setTimeout(function(){w.print()},400); },
     sync: function () { syncNow(true).then(function () { toast('Sync complete'); }); },
     compose: function () {
       var o = []; if (role() === 'master') {
@@ -14969,3 +15017,22 @@ body.chat-sidebar-open{overflow:hidden}
 })();
 </script>
 <script id="adv-lazy-pdf">window.addEventListener('load',function(){setTimeout(function(){var m={hcCalPdfB64:'hc-calendar.txt',advUserGuidePdfB64:'user-guide.txt',advGuidePdfB64:'admin-guide.txt'};Object.keys(m).forEach(function(id){fetch(m[id]).then(function(r){return r.ok?r.text():''}).then(function(t){var e=document.getElementById(id);if(e&&t)e.textContent=t}).catch(function(){})})},4000)});</script>
+
+<script id="adv-dashboard-button-arrange">
+(function(){
+  var KEY='ADV_DASH_BUTTON_ORDER_V1_', bar=null, toggle=null, overlay=null, applying=false;
+  function roleKey(){return KEY+(window.ADV_BUILD||'app')+'_'+(window.ADV_ROLE||'user');}
+  function buttons(){return bar?Array.prototype.slice.call(bar.querySelectorAll(':scope > button')).filter(function(b){return b!==toggle&&b.id!=='advArrangeToggle'}):[];}
+  function keyOf(b){return b.getAttribute('data-adv-arrange-key')||b.id||b.getAttribute('onclick')||b.textContent.trim().replace(/\s+/g,' ').slice(0,90);}
+  function apply(){if(!bar||applying)return;applying=true;try{var list=buttons(),saved=[];try{saved=JSON.parse(localStorage.getItem(roleKey())||'[]')}catch(e){}if(saved.length){var map={};list.forEach(function(b){map[keyOf(b)]=b});saved.forEach(function(k){if(map[k]){bar.insertBefore(map[k],toggle||null);delete map[k]}});Object.keys(map).forEach(function(k){bar.insertBefore(map[k],toggle||null)})}if(toggle && (toggle.parentNode!==bar || bar.lastElementChild!==toggle))bar.appendChild(toggle)}catch(e){}finally{applying=false}}
+  function save(){try{localStorage.setItem(roleKey(),JSON.stringify(buttons().map(keyOf)))}catch(e){}}
+  function close(){if(overlay){overlay.remove();overlay=null}}
+  function render(){if(!bar)return;close();var arr=buttons();overlay=document.createElement('div');overlay.style.cssText='position:fixed;inset:0;z-index:2147483647;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;padding:12px;font:14px system-ui';var box=document.createElement('div');box.style.cssText='background:#fff;color:#142b4a;border-radius:14px;padding:14px;width:min(440px,100%);max-height:85vh;overflow:auto;box-shadow:0 12px 35px #0005';var title=document.createElement('b');title.textContent='↕ Dashboard बटन की जगह बदलें';title.style.cssText='display:block;font-size:16px;margin-bottom:6px';box.appendChild(title);var help=document.createElement('div');help.textContent='ऊपर/नीचे बटन दबाकर क्रम बदलें। यह क्रम इस Role के लिए इसी डिवाइस में सेव होगा।';help.style.cssText='color:#64748b;font-size:12px;margin-bottom:10px';box.appendChild(help);var list=document.createElement('div');
+    function drawRows(){list.innerHTML='';arr.forEach(function(b,i){var row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:8px;border:1px solid #e2e8f0;border-radius:9px;padding:7px;margin:5px 0';var name=document.createElement('div');name.textContent=(b.textContent||'Button').trim().replace(/\s+/g,' ').slice(0,70);name.style.cssText='flex:1;font-weight:700';row.appendChild(name);['↑','↓'].forEach(function(sym,j){var bt=document.createElement('button');bt.type='button';bt.textContent=sym;bt.disabled=j===0?i===0:i===arr.length-1;bt.style.cssText='border:0;border-radius:7px;padding:7px 12px;background:#e8edf4;font-weight:900';bt.onclick=function(){var to=j===0?i-1:i+1;var x=arr.splice(i,1)[0];arr.splice(to,0,x);drawRows()};row.appendChild(bt)});list.appendChild(row)})}
+    drawRows();box.appendChild(list);var foot=document.createElement('div');foot.style.cssText='display:flex;gap:7px;flex-wrap:wrap;margin-top:12px';function action(label,bg,fn){var b=document.createElement('button');b.type='button';b.textContent=label;b.style.cssText='border:0;border-radius:8px;padding:9px 12px;background:'+bg+';color:#fff;font-weight:800';b.onclick=fn;foot.appendChild(b)}action('💾 Save','#137547',function(){arr.forEach(function(b){bar.insertBefore(b,toggle||null)});save();close()});action('↩ Reset','#64748b',function(){try{localStorage.removeItem(roleKey())}catch(e){}arr.forEach(function(b){bar.insertBefore(b,toggle||null)});close()});action('बंद करें','#142b4a',close);box.appendChild(foot);overlay.appendChild(box);overlay.addEventListener('click',function(e){if(e.target===overlay)close()});document.body.appendChild(overlay);
+  }
+  function attach(){var root=document.getElementById('cc-root'),found=root&&root.querySelector('.cc-top');if(!found)return;if(bar!==found){bar=found;toggle=null}if(!toggle||!toggle.isConnected){toggle=document.createElement('button');toggle.id='advArrangeToggle';toggle.type='button';toggle.textContent='↕ बटन सेट करें';toggle.style.cssText='border:1px solid #d9a441;border-radius:8px;padding:7px 10px;background:#f8e7bf;color:#142b4a;font-weight:800';toggle.onclick=render;bar.appendChild(toggle)}apply()}
+  function start(){attach();var mo=new MutationObserver(function(){if(!applying)attach()});mo.observe(document.body,{childList:true,subtree:true});setInterval(attach,1800)}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
+})();
+</script>
