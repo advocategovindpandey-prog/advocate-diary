@@ -13994,7 +13994,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
         }
         return;
       }
-      if (x.del === true) { trash.push(x); return; }
+      if (x.del === true) { trash.push(Object.assign({}, x, { _teamId: TS.id, _docKey: k, _teamName: 'मेरी टीम' })); return; }
       (owners[x.owner] = owners[x.owner] || { name: x.ownerName || 'User', cases: [] }).cases.push(JSON.parse(x.c || '{}'));
       try { TS.prevC = TS.prevC || {}; var cur0 = JSON.parse(x.c || '{}'), pv0 = TS.prevC[k]; if (!TS.base) { var nm0 = (cur0.vadiName || '—') + ' vs ' + (cur0.prativadiName || '—'); if (pv0) { var ch0 = chgDiff(pv0, cur0); if (ch0.length && TS.seenH[k] !== x.h) chgPush({ by: x.by || x.ownerName, at: x.at, caseNo: cur0.caseNo, names: nm0, changes: ch0 }); } else if (TS.seenH[k] === undefined) chgPush({ kind: 'new', by: x.by || x.ownerName, at: x.at, caseNo: cur0.caseNo, names: nm0, changes: [] }); } TS.prevC[k] = cur0; } catch (e) { }
       if (TS.seenH[k] !== undefined && TS.seenH[k] !== x.h && !TS.base) notes.push(x); TS.seenH[k] = x.h;
@@ -14020,16 +14020,32 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     var F = S.fb;
     try { await F.setDoc(ref('teams/' + srcTid(c._srcUid) + '/cases/' + c._srcUid + '__' + c._rawId), { del: true, delBy: S.prof.name || S.prof.email, delByUid: S.prof.id, delAt: F.serverTimestamp(), rest: false }, { merge: true }); toast('🗑 हटा दिया — यूज़र को सूचना जाएगी'); } catch (e) { toast(errText(e)); }
   }
-  async function tsRestore(key) {
-    var x = TS.docs[key]; if (!x) return; var F = S.fb;
-    try { await F.setDoc(ref('teams/' + TS.id + '/cases/' + key), { del: false, delBy: '', delByUid: '', rest: true, restBy: S.prof.name || S.prof.email }, { merge: true }); toast('↩ केस वापस भेज दिया'); } catch (e) { toast(errText(e)); }
+  async function tsRestore(key, tid) {
+    tid = tid || TS.id; var docs = tid === TS.id ? TS.docs : (TX.docs[tid] || {}), x = docs[key]; if (!x || x.del !== true) { toast('यह केस अब Dustbin में नहीं है'); return; }
+    if (role() !== 'master' && tid !== TS.id) { toast('दूसरी टीम Restore करने की अनुमति नहीं'); return; }
+    var F = S.fb;
+    try { await F.setDoc(ref('teams/' + tid + '/cases/' + key), { del: false, delBy: '', delByUid: '', rest: true, restBy: S.prof.name || S.prof.email, restAt: F.serverTimestamp() }, { merge: true }); toast('↩ केस वापस भेज दिया'); } catch (e) { toast(errText(e)); }
   }
+  function tsTrashDateMs(x) { try { return x && x.delAt && x.delAt.toMillis ? x.delAt.toMillis() : (x && x.delAt && x.delAt.seconds ? x.delAt.seconds * 1000 : 0); } catch (e) { return 0; } }
+  function tsTrashFilter(v) { TS.trashFilter = v || 'all'; try { draw(); } catch (e) { } }
   function tsTrashHtml() {
-    var L = (TS.trash || []).filter(function (x) { return TS.id === (S.prof && S.prof.id); }); if (!L.length) return '';
-    return '<div class="cc-box"><details' + dOpen('trash') + ' ontoggle="advCloud.det(\'trash\',this.open)"><summary class="cc-b gray wide" style="list-style:none;cursor:pointer">🗑 Recently deleted (' + L.length + ') ▾</summary>' + L.map(function (x) {
+    if (!S.prof || role() !== 'master') return '';
+    var teams = [{ id: TS.id, name: 'मेरी टीम', docs: TS.docs || {} }];
+    (txChosen() || []).forEach(function (tid) {
+      var a = (S.list || []).filter(function (u) { return u.id === tid && u.role === 'admin'; })[0];
+      teams.push({ id: tid, name: (a && (a.name || a.email)) || 'Admin टीम', docs: TX.docs[tid] || {} });
+    });
+    var all = [];
+    teams.forEach(function (t) { Object.keys(t.docs).forEach(function (k) { var x = t.docs[k]; if (x && x.cid && x.del === true) all.push(Object.assign({}, x, { _teamId: t.id, _docKey: k, _teamName: t.name })); }); });
+    var filter = TS.trashFilter || 'all', now = Date.now(), cutoff = filter === 'today' ? new Date(new Date().setHours(0,0,0,0)).getTime() : filter === '7d' ? now - 7*86400000 : filter === '30d' ? now - 30*86400000 : 0;
+    var recent = all.filter(function (x) { var ms = tsTrashDateMs(x); return !cutoff || (ms && ms >= cutoff); }).sort(function (a,b) { return tsTrashDateMs(b) - tsTrashDateMs(a); });
+    function rows(L) { return L.map(function (x) {
       var c = {}; try { c = JSON.parse(x.c || '{}'); } catch (e) { }
-      return '<div class="cc-row" style="margin-top:6px"><div class="cc-muted" style="flex:1">' + esc(c.caseNo || x.cid) + ' · ' + esc(x.ownerName || '') + '<div style="font-size:12px">हटाया: ' + esc(x.delBy || '') + '</div></div><button class="cc-b sm gray" onclick="advCloud.tsRestore(\'' + esc(x.owner + '__' + x.cid).replace(/\'/g, '') + '\')">Restore</button></div>';
-    }).join('') + '</details></div>';
+      var ms = tsTrashDateMs(x), when = ms ? new Date(ms).toLocaleString('hi-IN') : 'समय उपलब्ध नहीं';
+      return '<div class="cc-row" style="margin-top:6px"><div class="cc-muted" style="flex:1"><b>' + esc(c.caseNo || x.cid) + '</b> · ' + esc(x.ownerName || '') + '<div style="font-size:12px">हटाया: ' + esc(x.delBy || '—') + ' · ' + esc(when) + '</div></div><button class="cc-b sm gray" onclick="advCloud.tsRestore(\'' + esc(x._docKey).replace(/\'/g, '') + '\',\'' + esc(x._teamId).replace(/\'/g, '') + '\')">↩ Restore</button></div>';
+    }).join('') || '<div class="cc-muted" style="padding:8px">इस फोल्डर में कोई डिलीट केस नहीं है।</div>'; }
+    var folders = teams.map(function (t) { var L = all.filter(function (x) { return x._teamId === t.id; }); return '<details style="margin-top:8px"' + dOpen('trashTeam_' + t.id) + '><summary class="cc-b gray wide" style="cursor:pointer">📁 ' + esc(t.name) + ' (' + L.length + ')</summary>' + rows(L) + '</details>'; }).join('');
+    return '<div class="cc-box"><details' + dOpen('trash') + ' ontoggle="advCloud.det(\'trash\',this.open)"><summary class="cc-b gray wide" style="list-style:none;cursor:pointer">🗑 Dustbin / Recently Deleted (' + all.length + ') ▾</summary><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:9px 0"><label style="font-size:12px;font-weight:700">Recently Deleted फ़िल्टर</label><select class="cc-in" style="flex:1;min-width:140px" onchange="advCloud.tsTrashFilter(this.value)"><option value="all" ' + (filter === 'all' ? 'selected' : '') + '>सभी डिलीट केस</option><option value="today" ' + (filter === 'today' ? 'selected' : '') + '>आज डिलीट किए</option><option value="7d" ' + (filter === '7d' ? 'selected' : '') + '>पिछले 7 दिन</option><option value="30d" ' + (filter === '30d' ? 'selected' : '') + '>पिछले 30 दिन</option></select><span class="cc-muted">दिख रहे: ' + recent.length + '</span></div><div style="font-weight:800;margin:8px 0">📂 टीम के अनुसार फोल्डर</div>' + folders + '<details style="margin-top:10px" open><summary class="cc-b gray wide" style="cursor:pointer">🕒 Recently Deleted सूची (' + recent.length + ')</summary>' + rows(recent) + '</details></details></div>';
   }
   function wrapCardDel() {
     try {
@@ -14728,7 +14744,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     fixAdv: function () { fixAdv(); },
     det: function (k, open) { S.dOpen = S.dOpen || {}; S.dOpen[k] = !!open; if (open && k === 'ed' && !S.edLog) { try { advCloud.edLog(); } catch (e) { } } },
     last: function (id) { lastOpen(id); },
-    tsDel: function (id) { tsDel(id); }, tsRestore: function (k) { tsRestore(k); },
+    tsDel: function (id) { tsDel(id); }, tsRestore: function (k, tid) { tsRestore(k, tid); }, tsTrashFilter: function (v) { tsTrashFilter(v); },
     txSave: function () { txSave(); }, tx: function () { txOpen(); },
     md: function () { S._md = null; mdOpen(); }, mdTog: function (id, on) { S._md.sel[id] = !!on; mdOpen(); }, mdQ: function (v) { S._md.q = v; mdOpen(); }, mdOwn: function (v) { S._md.own = v; mdOpen(); },
     mdBlank: function () { S._md.sel = {}; mdList().forEach(function (x) { if (!x.c.vadiName && !x.c.prativadiName) S._md.sel[x.id] = true; }); mdOpen(); },
