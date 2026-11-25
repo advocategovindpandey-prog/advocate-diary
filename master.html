@@ -13220,7 +13220,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     }
     if (BUILD === 'master' && role() === 'master') {
       var first = true;
-      S.unsub.push(F.onSnapshot(F.query(col('users'), F.where('requestStatus', '==', 'pending')), function (snap) {
+      S.unsub.push(F.onSnapshot(F.query(col('users'), F.where('requestStatus', '==', 'pending'), F.where('parentId', '==', S.prof.id)), function (snap) {
         var prevIds = (S.pending || []).map(function (x) { return x.id; });
         S.pending = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
         if (!first) S.pending.forEach(function (a) { if (prevIds.indexOf(a.id) < 0) { toast('📩 New Admin request: ' + (a.name || a.email)); try { if ('Notification' in window && Notification.permission === 'granted') new Notification('New Admin request', { body: (a.name || '') + ' · ' + a.email + ' · ' + (a.mobile || '') }); } catch (e) { } } });
@@ -13441,8 +13441,21 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   }
 
   async function fetchList() {
-    var F = S.fb, q = role() === 'master' ? col('users') : F.query(col('users'), F.where('parentId', '==', S.prof.id));
-    var s = await F.getDocs(q); S.list = s.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); }).filter(function (x) { return x.id !== S.prof.id; });
+    var F = S.fb, docs = [];
+    if (role() === 'master') {
+      // Master loads only direct reports and Users belonging to those direct Admins.
+      var direct = await F.getDocs(F.query(col('users'), F.where('parentId', '==', S.prof.id)));
+      docs = direct.docs.slice();
+      var adminDocs = direct.docs.filter(function (d) { return d.data().role === 'admin'; });
+      var nested = await Promise.all(adminDocs.map(function (d) {
+        return F.getDocs(F.query(col('users'), F.where('parentId', '==', d.id)));
+      }));
+      nested.forEach(function (snap) { docs = docs.concat(snap.docs); });
+    } else {
+      var s = await F.getDocs(F.query(col('users'), F.where('parentId', '==', S.prof.id)));
+      docs = s.docs;
+    }
+    S.list = docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); }).filter(function (x) { return x.id !== S.prof.id; });
     await Promise.all(S.list.map(async function (x) { try { var md = await F.getDoc(ref('userData/' + x.id)); x.caseCount = md.exists() ? (Number(md.data().caseCount) || 0) : 0; } catch (e) { x.caseCount = null; } }));
     if (role() === 'master' || role() === 'admin') { try { var om = await F.getDoc(ref('userData/' + S.prof.id)); S.ownCaseCount = om.exists() ? (Number(om.data().caseCount) || 0) : 0; } catch (e) { S.ownCaseCount = null; } }
     S.listAt = Date.now(); draw();
