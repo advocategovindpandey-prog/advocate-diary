@@ -14094,6 +14094,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   function nno(v) { return String(v || '').toLowerCase().replace(/\s+/g, ''); }
   function ckey(c) { return nno(c.type) + '|' + nno(c.caseNo) + '|' + nno(c.court); }
   function teq(a, b) { a = nno(a); b = nno(b); return !a || !b || a === b; }
+  function inGroup(u) { if (role() === 'master') return true; var sc = OV.srcs[u]; if (!sc) return false; if (srcTid(u) !== TS.id) return false; var a = (S.list || []).filter(function (x) { return x.id === u; })[0]; if (a && ((a.role !== 'user' && u !== TS.id) || (a.role === 'user' && a.parentId !== TS.id))) return false; return true; }
   function ovApply() {
     try { ovFixNames();
       if (!window.__advViewOnly) OV.own = cases.filter(function (c) { return !c._ov && String(c.id).indexOf('ov_') !== 0; });
@@ -14101,7 +14102,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       var ids = OV.notif ? [act || ((settings.advocates || [])[0] || {}).id] : ['__ov'], ov = [], hidden = [], seenK = {}, usedOwn = {}, ownByNo = {}; OV.shadow = {};
       OV.own.forEach(function (c) { if (c.caseNo) (ownByNo[nno(c.caseNo)] = ownByNo[nno(c.caseNo)] || []).push(c); });
       Object.keys(OV.srcs).forEach(function (uid) {
-        if ((role() === 'master' || role() === 'admin') && !(OV.sel === uid || (OV.selSet && OV.selSet[uid]) || (!OV.sel && !OV.selSet && OV.srcs[uid].team && srcTid(uid) === TS.id))) return;
+        if (role() !== 'master' && !inGroup(uid)) return; if ((role() === 'master' || role() === 'admin') && !(OV.sel === uid || (OV.selSet && OV.selSet[uid]) || (!OV.sel && !OV.selSet && OV.srcs[uid].team && srcTid(uid) === TS.id))) return;
         var sc = OV.srcs[uid];
         srcCases(uid).forEach(function (c) {
           var k = c.caseNo ? ckey(c) : '', x, ow = null;
@@ -14885,7 +14886,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       var box = document.createElement('div'); box.style.cssText = 'background:#fff;color:#142b4a;border-radius:14px;width:calc(100% - 20px);max-width:460px;max-height:80vh;overflow:auto;font:14px/1.4 system-ui,sans-serif';
       var hd = document.createElement('div'); hd.style.cssText = 'position:sticky;top:0;z-index:2;background:#0f2a4a;color:#fff;padding:10px 12px;display:flex;align-items:center;gap:8px'; hd.innerHTML = '<b style="flex:1">मेरी टीम का डेटा चुनें</b>'; hd.appendChild(mk('✕', '#e2e8f0', function () { o.remove(); })); box.appendChild(hd);
       var all = document.createElement('div'); all.style.cssText = 'padding:12px;border-bottom:1px solid #e2e8f0;font-weight:800;background:#f1f5f9;cursor:pointer'; all.innerHTML = '👥 पूरी टीम का डेटा एक साथ<div style="font-size:11px;font-weight:600;color:#64748b">दबाएँ = मेरा + टीम के सब का डेटा' + (OV.userSel ? ' (अभी चुनिंदा दिख रहा है)' : '') + '</div>'; all.onclick = function () { OV.userSel = null; o.remove(); ovApply(); toast('✔ पूरी टीम का डेटा खुल गया'); }; box.appendChild(all);
-      var rows = [{ id: '__me', n: '🙋 मैं (अपना डेटा)', c: (OV.own || []).length }].concat(Object.keys(OV.srcs).map(function (u) { return { id: u, n: '👤 ' + (OV.srcs[u].name || 'User'), c: fcnt(u) }; }));
+      var rows = [{ id: '__me', n: '🙋 मैं (अपना डेटा)', c: (OV.own || []).length }].concat(Object.keys(OV.srcs).filter(inGroup).map(function (u) { return { id: u, n: '👤 ' + (OV.srcs[u].name || 'User'), c: fcnt(u) }; }));
       rows.forEach(function (r) { var l = document.createElement('label'); l.style.cssText = 'display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid #eef2f7;font-weight:700'; l.innerHTML = '<input type="checkbox"' + (sel[r.id] ? ' checked' : '') + '><span style="flex:1">' + esc(r.n) + '</span><span style="background:#e2e8f0;border-radius:10px;padding:2px 9px;font-size:12px">' + (r.c == null ? '–' : r.c) + ' केस</span>'; l.firstChild.onchange = function () { if (l.firstChild.checked) sel[r.id] = 1; else delete sel[r.id]; fRender(); }; box.appendChild(l); });
       var n = Object.keys(sel).length, bar = document.createElement('div'); bar.style.cssText = 'padding:8px 12px'; bar.appendChild(mk('✔ चुने हुए एक साथ दिखाएँ (' + n + ')', n ? '#0f766e' : '#94a3b8', function () { if (!n) { toast('पहले चेकबॉक्स चुनें'); return; } OV.userSel = JSON.parse(JSON.stringify(sel)); o.remove(); ovApply(); toast('✔ चुने हुए ' + n + ' का डेटा दिख रहा है'); })); box.appendChild(bar);
       o.innerHTML = ''; o.appendChild(box);
@@ -14956,7 +14957,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       if (!S.fb || !S.prof || !TS.id || GN.w === TS.id) return; GN.w = TS.id;
       try {
         S.fb.onSnapshot(ref('teams/' + TS.id + '/cases/__ctl_notify'), function (d) {
-          if (!d.exists()) return; var x = d.data(), c = gnCtl(), ca = ms(x.clearAt), ra = ms(x.resetAt), ch = false;
+          if (!d.exists()) return; var x = d.data(); GN.mail = x.mailOn === true; var c = gnCtl(), ca = ms(x.clearAt), ra = ms(x.resetAt), ch = false;
           if (ca > c.clear) { c.clear = ca; ch = true; } if (ra > c.reset) { c.reset = ra; ch = true; }
           if (!ch) return; lsSet('advGrpCtl', JSON.stringify({ clear: c.clear, reset: c.reset })); gnSchedule();
           toast(c.clear > c.reset ? '🔔 Master ने ग्रुप के Notification हटा दिए' : '🔔 Master ने Notification रीसेट किए — दोबारा जुड़ गए');
@@ -14970,8 +14971,8 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
         sig = sig.sort().join('|'); (OV.own || []).forEach(function (c) { sig += '|' + c.id + ':' + (c.nextDate || ''); });
         if (GN.sig === null) { GN.sig = sig; GN.prev = map; gnSchedule(); return; }
         if (sig === GN.sig) return;
-        var ch = [], me = S.prof.id; Object.keys(map).forEach(function (k) { var x = map[k], o = GN.prev[k]; if (o && o.h === x.h && o.del === x.del) return; if (x.byUid === me && x.del !== true) return; var c = {}; try { c = JSON.parse(x.c || '{}'); } catch (e) { } ch.push({ k: k + (x.h || ''), t: x.del === true ? 'del' : (o ? 'upd' : 'new'), c: c, by: x.by || x.ownerName || '' }); });
-        GN.sig = sig; GN.prev = map; gnSchedule(); gnAnnounce(ch);
+        var ch = [], me = S.prof.id; Object.keys(map).forEach(function (k) { var x = map[k], o = GN.prev[k]; if (o && o.h === x.h && o.del === x.del) return; if (x.byUid === me && x.del !== true) return; var c = {}, oc = {}; try { c = JSON.parse(x.c || '{}'); } catch (e) { } try { if (o) oc = JSON.parse(o.c || '{}'); } catch (e) { } var lh = (c.hist || []).slice(-1)[0] || {}; ch.push({ k: k + (x.h || ''), t: x.del === true ? 'del' : (o ? 'upd' : 'new'), c: c, by: lh.by || x.by || x.ownerName || '', byEmail: lh.byEmail || x.byEmail || '', at: lh.at || Date.now(), changes: o ? diffC(oc, c) : [] }); });
+        GN.sig = sig; GN.prev = map; gnSchedule(); gnAnnounce(ch); if (GN.mail && (role() === 'master' || role() === 'admin')) ch.filter(function (n) { return n.t !== 'del'; }).slice(0, 1).forEach(mailAsk);
       } catch (e) { }
     }
     document.addEventListener('click', function f() { try { if (window.Notification && Notification.permission === 'default') Notification.requestPermission(); } catch (e) { } document.removeEventListener('click', f, true); }, true);
@@ -14988,6 +14989,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       }
       p.b.innerHTML = '<div style="display:flex;align-items:center"><b style="flex:1;font-size:15px">🔔 Notification नियंत्रण (ग्रुप-वार)</b></div><div style="font-size:12px;color:#64748b;margin:4px 0 8px">हर ग्रुप के सदस्य को सिर्फ़ अपने ग्रुप के केस के Notification (आज/कल की पेशी + नया/अपडेट केस) मिलते हैं। इस फ़ोन पर सेट: <b>' + gnIds().length + '</b></div>';
       p.b.querySelector('div').parentNode.querySelector('div').appendChild(mk('✕', '#e2e8f0', function () { p.o.remove(); }));
+      p.b.appendChild(mk('📧 Email का नमूना (JPG + Text) देखें', '#7c3aed', function () { p.o.remove(); mailSample(); }));
       rows.forEach(function (r) {
         var d = document.createElement('div'); d.style.cssText = 'border:1px solid #e2e8f0;border-radius:10px;padding:9px;margin-bottom:8px';
         d.innerHTML = '<b>' + (r.g.id === S.prof.id ? '👑 ' : '🧑‍💼 ') + esc(r.g.name || r.g.email) + '</b> <span style="font-size:12px;color:#64748b">· ग्रुप के ' + r.tot + ' केस · ' + r.n + ' केस के Notification बनेंगे · स्थिति: ' + esc(r.st) + '</span><div></div>';
@@ -15125,11 +15127,81 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     api.mergeList = mergeOpen;
     setInterval(function () {
       try {
-        wrapUpd();
         if ((role() === 'master' || role() === 'admin') && S.fb && TS.id && !TS.first && Date.now() - parseInt(lsGet('advMergeAt', '0'), 10) > 10 * 6e4) { lsSet('advMergeAt', String(Date.now())); mergeScan(TS.id).then(function (n) { if (n) toast('🔀 ' + n + ' डुप्लिकेट केस मर्ज हुए'); }).catch(function () { }); }
         var row = $('ccLoginOpts'); if (row && (role() === 'master' || role() === 'admin') && !$('ccMergeBtn')) { var b = document.createElement('button'); b.type = 'button'; b.id = 'ccMergeBtn'; b.textContent = '🔀 डेटा मर्ज'; b.style.cssText = btnStyle('#7c3aed', '#fff') + ';order:9'; b.onclick = mergeOpen; row.appendChild(b); }
       } catch (e) { }
     }, 4000);
+
+    /* 7. User restrictions + own email opt-out */
+    function myMail() {
+      var on = S.prof.mailOptOut !== true, p = pop('<b style="font-size:15px">📧 मेरा Email सूचना</b><div style="font-size:13px;margin:6px 0;color:#475569">' + esc(S.prof.email || '') + '</div>');
+      var l = document.createElement('label'); l.style.cssText = 'display:flex;gap:8px;align-items:center;font-weight:700;margin:8px 0'; l.innerHTML = '<input type="checkbox"' + (on ? ' checked' : '') + '> केस अपडेट होने पर मुझे Email आए';
+      l.firstChild.onchange = async function () {
+        var cb = l.firstChild;
+        if (!cb.checked && !confirm('⚠ अगर आप यह बंद करेंगे तो केस अपडेट होने पर आपको Email नहीं आएगा।\nबंद करें?')) { cb.checked = true; return; }
+        try { await S.fb.updateDoc(ref('users/' + S.prof.id), { mailOptOut: !cb.checked }); S.prof.mailOptOut = !cb.checked; toast(cb.checked ? '✔ Email सूचना चालू' : '✔ Email सूचना बंद'); } catch (e) { cb.checked = !cb.checked; toast(errText(e)); }
+      }; p.b.appendChild(l); p.b.appendChild(mk('✕ बंद करें', '#e2e8f0', function () { p.o.remove(); }));
+    }
+    setInterval(function () {
+      try {
+        if (!S.prof) return; if (role() !== 'master') S.prof.canViewMaster = false;
+        var row = $('ccLoginOpts');
+        if (role() === 'user') { var md = $('ccMultiDelBtn'); if (md) md.style.display = 'none'; if (window.__advPerms) window.__advPerms.del = false; ['ccDustBtn', 'ccMergeBtn', 'ccNtfBtn'].forEach(function (id) { var e = $(id); if (e) e.style.display = 'none'; }); }
+        if (role() !== 'master' && row && !$('ccMyMailBtn')) { var b = document.createElement('button'); b.type = 'button'; b.id = 'ccMyMailBtn'; b.textContent = '📧 मेरा Email'; b.style.cssText = btnStyle('#e2e8f0', '#0f2a4a') + ';order:10'; b.onclick = myMail; row.appendChild(b); }
+      } catch (e) { }
+    }, 2000);
+
+    /* 8. Update e-mail: JPG card + text */
+    var EDK = ['caseNo', 'type', 'court', 'vadiName', 'prativadiName', 'caseDate', 'nextDate', 'time', 'notes', 'vadiMobile'];
+    function diffC(a, b) { var out = []; EDK.forEach(function (k) { var o = String((a && a[k]) || ''), n = String((b && b[k]) || ''); if (o !== n && (o || n)) out.push({ f: k, o: o, n: n }); }); return out; }
+    function fd(v) { var m = /^(\d{4})-(\d\d)-(\d\d)$/.exec(String(v || '')); return m ? m[3] + '/' + m[2] + '/' + m[1] : (v || '—'); }
+    function mInfo(n) { var c = n.c || {}, ch = n.changes || [], nd = ch.filter(function (x) { return x.f === 'nextDate'; })[0], hs = c.history || []; return { caseNo: c.caseNo || '', vadi: c.vadiName || '', prati: c.prativadiName || '', court: c.court || '', type: c.type || '', prev: nd ? nd.o : ((hs[0] && hs[0].date) || ''), next: c.nextDate || '', changes: ch, by: n.by || '', email: n.byEmail || '', at: n.at || Date.now() }; }
+    function mSubj(i) { return '⚖️ केस अपडेट: ' + i.caseNo + ' — ' + i.vadi + ' बनाम ' + i.prati; }
+    function mText(i) {
+      var L = ['⚖️ केस अपडेट सूचना', '━━━━━━━━━━━━━━━━━━━━', '📁 केस नंबर : ' + i.caseNo + (i.type ? '  (' + i.type + ')' : ''), '👤 वादी : ' + i.vadi, '👤 प्रतिवादी : ' + i.prati];
+      if (i.court) L.push('🏛 न्यायालय : ' + i.court);
+      L.push('━━━━━━━━━━━━━━━━━━━━', '📅 पिछली तारीख : ' + fd(i.prev), '⭐ अगली तारीख : ' + fd(i.next) + '   ◀◀ नई', '━━━━━━━━━━━━━━━━━━━━', '✏ क्या अपडेट हुआ:');
+      if (i.changes.length) i.changes.forEach(function (x) { L.push('  • ' + (LABF[x.f] || x.f) + ' : ' + (x.f.indexOf('Date') > -1 ? fd(x.o) : (x.o || '—')) + '  →  ' + (x.f.indexOf('Date') > -1 ? fd(x.n) : (x.n || '—'))); }); else L.push('  • (विवरण उपलब्ध नहीं)');
+      L.push('━━━━━━━━━━━━━━━━━━━━', '🙋 अपडेट किसने किया : ' + (i.by || '—') + (i.email ? ' (' + i.email + ')' : ''), '🕒 समय : ' + new Date(i.at).toLocaleString(), '', '— Advocate Diary');
+      return L.join('\n');
+    }
+    function mCanvas(i) {
+      var W = 1080, pad = 48, rows = i.changes.slice(0, 6), H = 170 + 250 + 250 + (rows.length ? 80 + rows.length * 74 : 80) + 170, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+      var x = cv.getContext('2d'), F = '"Noto Sans Devanagari","Mukta",system-ui,sans-serif';
+      function rr(a, b, w, h, r, fill) { x.fillStyle = fill; x.beginPath(); if (x.roundRect) x.roundRect(a, b, w, h, r); else x.rect(a, b, w, h); x.fill(); }
+      function fit(t, mw, f) { x.font = f; t = String(t || ''); while (t.length > 3 && x.measureText(t).width > mw) t = t.slice(0, -2); return t; }
+      x.fillStyle = '#eef2f8'; x.fillRect(0, 0, W, H);
+      var g = x.createLinearGradient(0, 0, W, 0); g.addColorStop(0, '#0f2a4a'); g.addColorStop(1, '#1d4f8c'); x.fillStyle = g; x.fillRect(0, 0, W, 150);
+      x.fillStyle = '#fff'; x.font = '800 48px ' + F; x.fillText('⚖️ केस अपडेट सूचना', pad, 70); x.fillStyle = '#e8c06a'; x.font = '600 28px ' + F; x.fillText('Advocate Diary', pad, 116);
+      rr(pad, 180, W - 2 * pad, 230, 24, '#fff'); x.fillStyle = '#64748b'; x.font = '600 26px ' + F; x.fillText('केस नंबर' + (i.type ? ' · ' + i.type : ''), pad + 28, 226);
+      x.fillStyle = '#0f2a4a'; x.font = '800 58px ' + F; x.fillText(fit(i.caseNo, W - 2 * pad - 56, '800 58px ' + F), pad + 28, 292);
+      x.font = '700 36px ' + F; x.fillStyle = '#1e293b'; x.fillText(fit(i.vadi + '  बनाम  ' + i.prati, W - 2 * pad - 56, '700 36px ' + F), pad + 28, 348); x.fillStyle = '#64748b'; x.font = '500 28px ' + F; x.fillText(fit(i.court ? '🏛 ' + i.court : '', W - 2 * pad - 56, '500 28px ' + F), pad + 28, 392);
+      var bw = (W - 2 * pad - 24) / 2, by = 440;
+      rr(pad, by, bw, 210, 24, '#e2e8f0'); x.fillStyle = '#475569'; x.font = '600 28px ' + F; x.fillText('📅 पिछली तारीख', pad + 26, by + 54); x.fillStyle = '#334155'; x.font = '800 50px ' + F; x.fillText(fd(i.prev), pad + 26, by + 140);
+      rr(pad + bw + 24, by, bw, 210, 24, '#d9a441'); x.fillStyle = '#3b2a05'; x.font = '700 28px ' + F; x.fillText('⭐ अगली तारीख (नई)', pad + bw + 50, by + 54); x.fillStyle = '#1b1405'; x.font = '800 58px ' + F; x.fillText(fd(i.next), pad + bw + 50, by + 144);
+      var y = by + 210 + 50; x.fillStyle = '#0f2a4a'; x.font = '800 32px ' + F; x.fillText('✏ क्या अपडेट हुआ', pad, y + 24); y += 50;
+      if (!rows.length) { x.fillStyle = '#64748b'; x.font = '500 28px ' + F; x.fillText('विवरण उपलब्ध नहीं', pad, y + 30); y += 74; }
+      rows.forEach(function (c) { rr(pad, y, W - 2 * pad, 62, 14, '#fff'); var dt = c.f.indexOf('Date') > -1; x.fillStyle = '#0f2a4a'; x.font = '700 26px ' + F; x.fillText(LABF[c.f] || c.f, pad + 18, y + 41); x.fillStyle = '#b91c1c'; x.font = '500 26px ' + F; x.fillText(fit(dt ? fd(c.o) : (c.o || '—'), 250, '500 26px ' + F), pad + 250, y + 41); x.fillStyle = '#64748b'; x.fillText('→', pad + 520, y + 41); x.fillStyle = '#137547'; x.font = '800 26px ' + F; x.fillText(fit(dt ? fd(c.n) : (c.n || '—'), 380, '800 26px ' + F), pad + 570, y + 41); y += 74; });
+      y = H - 150; rr(pad, y, W - 2 * pad, 110, 20, '#0f2a4a'); x.fillStyle = '#fff'; x.font = '700 28px ' + F; x.fillText('🙋 अपडेट किसने किया: ' + fit(i.by || '—', 520, '700 28px ' + F), pad + 24, y + 44); x.fillStyle = '#cbd5e1'; x.font = '500 24px ' + F; x.fillText(fit((i.email ? i.email + ' · ' : '') + new Date(i.at).toLocaleString(), W - 2 * pad - 48, '500 24px ' + F), pad + 24, y + 84);
+      return cv;
+    }
+    function recips() { var out = {}; (S.list || []).forEach(function (a) { if (a.email && a.mailOptOut !== true && (a.id === TS.id || a.parentId === TS.id)) out[a.email] = 1; }); if (S.prof && S.prof.email && S.prof.mailOptOut !== true) out[S.prof.email] = 1; return Object.keys(out); }
+    function mailPreview(i) {
+      var cv = mCanvas(i), txt = mText(i), p = pop('<b style="font-size:15px">📧 Email का रूप (JPG + Text)</b><div style="font-size:12px;color:#64748b;margin:4px 0">विषय: ' + esc(mSubj(i)) + '</div>');
+      var im = document.createElement('img'); im.src = cv.toDataURL('image/jpeg', .92); im.style.cssText = 'width:100%;border-radius:10px;border:1px solid #e2e8f0'; p.b.appendChild(im);
+      var pre = document.createElement('pre'); pre.style.cssText = 'white-space:pre-wrap;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px;font:13px/1.5 system-ui,sans-serif;margin:8px 0'; pre.textContent = txt; p.b.appendChild(pre);
+      p.b.appendChild(mk('📤 JPG + Text भेजें', '#0f766e', function () { cv.toBlob(function (bl) { var f = new File([bl], 'case-update.jpg', { type: 'image/jpeg' }); try { if (navigator.canShare && navigator.canShare({ files: [f] })) { navigator.share({ files: [f], title: mSubj(i), text: txt }).catch(function () { }); return; } } catch (e) { } var a = document.createElement('a'); a.href = URL.createObjectURL(bl); a.download = 'case-update.jpg'; a.click(); toast('JPG डाउनलोड हुआ — Email में जोड़ें'); }, 'image/jpeg', .92); }));
+      p.b.appendChild(mk('✉ Email ऐप (सबको)', '#1d4ed8', function () { var r = recips(); location.href = 'mailto:?bcc=' + encodeURIComponent(r.join(',')) + '&subject=' + encodeURIComponent(mSubj(i)) + '&body=' + encodeURIComponent(txt); }));
+      p.b.appendChild(mk('✕', '#e2e8f0', function () { p.o.remove(); }));
+    }
+    function mailSample() {
+      var c = gnCases().filter(function (z) { return z && z.nextDate; })[0] || { caseNo: '123/2026', type: 'Civil Suit', court: 'Civil Judge', vadiName: 'राम प्रसाद', prativadiName: 'श्याम लाल', nextDate: ymd(new Date(Date.now() + 864e5 * 14)) };
+      mailPreview(mInfo({ c: c, by: (S.prof && S.prof.name) || 'Gopal', byEmail: (S.prof && S.prof.email) || '', at: Date.now(), changes: [{ f: 'nextDate', o: c.caseDate || ymd(new Date()), n: c.nextDate }, { f: 'notes', o: '', n: 'अगली पेशी पर गवाही' }] }));
+    }
+    function mailAsk(n) {
+      var o = document.getElementById('ccMailAsk'); if (o) o.remove(); o = document.createElement('div'); o.id = 'ccMailAsk'; o.style.cssText = 'position:fixed;left:8px;right:8px;bottom:12px;z-index:2147483645;background:#0f2a4a;color:#fff;border-radius:14px;padding:10px 12px;font:13px/1.4 system-ui,sans-serif;display:flex;gap:8px;align-items:center;box-shadow:0 8px 26px rgba(0,0,0,.4)';
+      o.innerHTML = '<span style="flex:1">📧 <b>' + esc((n.c && n.c.caseNo) || '') + '</b> ' + (n.t === 'new' ? 'नया केस जुड़ा' : 'अपडेट हुआ') + ' (' + esc(n.by || '') + ') — टीम को Email भेजें?</span>'; o.appendChild(mk('खोलें', '#d9a441', function () { o.remove(); mailPreview(mInfo(n)); })); o.appendChild(mk('✕', '#475569', function () { o.remove(); })); document.body.appendChild(o); setTimeout(function () { if (o.parentNode) o.remove(); }, 20000);
+    }
   })();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();
