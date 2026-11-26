@@ -14100,7 +14100,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       var ids = OV.notif ? [act || ((settings.advocates || [])[0] || {}).id] : ['__ov'], ov = [], hidden = [], seenK = {}, usedOwn = {}, ownByNo = {}; OV.shadow = {};
       OV.own.forEach(function (c) { if (c.caseNo) (ownByNo[nno(c.caseNo)] = ownByNo[nno(c.caseNo)] || []).push(c); });
       Object.keys(OV.srcs).forEach(function (uid) {
-        if ((role() === 'master' || role() === 'admin') && (!OV.sel || (uid !== OV.sel && !(OV.selSet && OV.selSet[uid])))) return;
+        if ((role() === 'master' || role() === 'admin') && !(OV.sel === uid || (OV.selSet && OV.selSet[uid]))) return;
         var sc = OV.srcs[uid];
         srcCases(uid).forEach(function (c) {
           var k = c.caseNo ? ckey(c) : '', x, ow = null;
@@ -14118,7 +14118,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
         });
       });
       OV.hidden = hidden; var hid = {}; hidden.forEach(function (h) { hid[h.id] = 1; });
-      if ((role() === 'master' || role() === 'admin') && OV.sel && OV.srcs[OV.sel]) { window.__advViewOnly = true; cases = ov.filter(function (c) { return c._srcUid === OV.sel || !!(OV.selSet && OV.selSet[c._srcUid]); }); }
+      if ((role() === 'master' || role() === 'admin') && ((OV.sel && OV.srcs[OV.sel]) || OV.selSet)) { window.__advViewOnly = true; cases = ((OV.selSet && S.prof && OV.selSet[S.prof.id]) ? OV.own.slice() : []).concat(ov.filter(function (c) { return c._srcUid === OV.sel || !!(OV.selSet && OV.selSet[c._srcUid]); })); }
       else if (role() === 'master' || role() === 'admin') { window.__advViewOnly = false; cases = OV.own.slice(); }
       else { window.__advViewOnly = false; cases = OV.own.filter(function (c) { return !hid[c.id]; }).concat(ov); }
       ovRefresh(); ovBanner(); try { fillNextSrc(); fillFilter(); } catch (e) { }
@@ -14857,23 +14857,51 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       catch (x) { ok('<b style="font-size:16px;color:#b91c1c">❌ लिंक नहीं भेजा जा सका</b><div style="margin-top:8px">' + esc(errText(x)) + '</div>'); }
     };
 
-    /* 2. Dropdown: tap = open that account / team data automatically */
-    async function openAcct(id, team) {
-      var me = S.prof, fs = $('ccFilterSel');
-      if (!id || id === '__rest' || (me && id === me.id)) { OV.sel = ''; OV.selSet = null; try { localStorage.removeItem('advCloudFilter'); } catch (e) { } if (fs) fs.value = ''; ovApply(); fillFilter(); return; }
-      var a = acctById(id); if (!a) return;
-      await onFilter(id); OV.selSet = null;
-      if (team) {
-        var kids = (S.list || []).filter(function (x) { return x.role === 'user' && x.parentId === id; }), set = {}; set[id] = 1;
-        for (var i = 0; i < kids.length; i++) { var k = kids[i]; try { if (!OV.srcs[k.id]) { var l = await fetchCasesOf(k); OV.srcs[k.id] = { name: k.name || k.email, cases: l }; try { ovLiveMulti({ id: k.id, name: k.name || k.email }); } catch (e) { } } set[k.id] = 1; } catch (e) { } }
-        OV.selSet = set; ovApply(); toast('✔ ' + (a.name || a.email) + ' की पूरी टीम का डेटा खुल गया');
+    /* 2. Dropdown: head tap = whole team; checkboxes = multi-select; one group open at a time */
+    async function openSet(ids, label) {
+      var me = S.prof, fs = $('ccFilterSel'), set = {}, first = '';
+      if (!ids.length || (ids.length === 1 && ids[0] === me.id)) { OV.sel = ''; OV.selSet = null; try { localStorage.removeItem('advCloudFilter'); } catch (e) { } if (fs) fs.value = ''; ovApply(); fillFilter(); return; }
+      toast('⏳ डेटा खुल रहा है…');
+      for (var i = 0; i < ids.length; i++) {
+        var id = ids[i]; set[id] = 1; if (id === me.id) continue; var a = acctById(id); if (!a) continue;
+        if (!first) first = id;
+        try { if (!OV.srcs[id]) { var l = await fetchCasesOf(a); OV.srcs[id] = { name: a.name || a.email, cases: l }; try { ovLiveMulti({ id: id, name: a.name || a.email }); } catch (e) { } } } catch (e) { }
       }
-      if (fs) fs.value = id; fillFilter();
+      OV.sel = first; OV.selSet = ids.length > 1 || set[me.id] ? set : null;
+      try { localStorage.setItem('advCloudFilter', first); } catch (e) { }
+      ovApply(); if (fs && first) fs.value = first; fillFilter(); toast('✔ ' + (label || (ids.length + ' खातों')) + ' का डेटा खुल गया');
     }
-    api.fPick = function (id) { var o = $('ccFPanel'); if (o) o.remove(); openAcct(id, false); };
-    api.fTog = function (id) {
-      if (id === '__rest') { S._fExp = S._fExp === id ? '' : id; fillFilter(); return; }
-      S._fExp = id; var o = $('ccFPanel'); if (o) o.remove(); openAcct(id, true);
+    function teamIds(hid) { return [hid].concat((S.list || []).filter(function (x) { return x.role === 'user' && x.parentId === hid; }).map(function (x) { return x.id; })); }
+    fOpen = function () {
+      var cur = OV.sel || (S.prof && S.prof.id) || ''; S._fSel = {};
+      S._fExp = ''; fgroups().forEach(function (g) { if ((g.h && g.h.id === cur) || g.kids.some(function (k) { return k.id === cur; })) S._fExp = g.h ? g.h.id : '__rest'; });
+      var o = $('ccFPanel'); if (o) o.remove();
+      o = document.createElement('div'); o.id = 'ccFPanel'; o.style.cssText = 'position:fixed;inset:0;z-index:2147483644;background:rgba(15,23,42,.55);display:flex;align-items:flex-start;justify-content:center;padding-top:8vh';
+      o.addEventListener('click', function (e) { if (e.target === o) o.remove(); }); document.body.appendChild(o); fRender();
+    };
+    fRender = function () {
+      var o = $('ccFPanel'); if (!o) return; var cur = OV.sel || '', G = fgroups(), sel = S._fSel = S._fSel || {};
+      var box = document.createElement('div'); box.style.cssText = 'background:#fff;color:#142b4a;border-radius:14px;width:calc(100% - 20px);max-width:460px;max-height:80vh;overflow:auto;font:14px/1.4 system-ui,sans-serif';
+      var hd = document.createElement('div'); hd.style.cssText = 'position:sticky;top:0;z-index:2;background:#0f2a4a;color:#fff;padding:10px 12px;display:flex;align-items:center;gap:8px'; hd.innerHTML = '<b style="flex:1">Master / Admin / User चुनें</b>'; hd.appendChild(mk('✕', '#e2e8f0', function () { o.remove(); })); box.appendChild(hd);
+      if (!G.length) box.insertAdjacentHTML('beforeend', '<div style="padding:14px;color:#64748b">कोई खाता नहीं मिला।</div>');
+      G.forEach(function (g) {
+        var hid = g.h ? g.h.id : '__rest', open = S._fExp === hid, own = g.own, n = own ? (OV.own || []).length : (g.h ? fcnt(g.h.id) : null);
+        var tot = 0; g.kids.forEach(function (k) { tot += fcnt(k.id) || 0; });
+        var nm = g.h ? (g.h.name || g.h.email) : 'अन्य यूज़र', icon = !g.h ? '👥' : (own && role() === 'master' ? '👑' : '🧑‍💼'), tag = own ? (role() === 'master' ? 'MASTER' : 'ADMIN') : (g.h ? 'ADMIN' : '');
+        var on = g.h && ((own && !cur) || (!own && cur === g.h.id));
+        var row = document.createElement('div'); row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:11px 12px;border-bottom:1px solid #e2e8f0;font-weight:800;background:' + (on ? '#fff3cf' : '#f1f5f9');
+        var ar = document.createElement('span'); ar.style.cssText = 'width:26px;text-align:center;font-size:16px;cursor:pointer'; ar.textContent = g.kids.length ? (open ? '▾' : '▸') : ''; ar.onclick = function (e) { e.stopPropagation(); S._fExp = open ? '' : hid; S._fSel = {}; fRender(); }; row.appendChild(ar);
+        var mid = document.createElement('span'); mid.style.cssText = 'flex:1;min-width:0;cursor:pointer'; mid.innerHTML = icon + ' ' + esc(nm) + '<div style="font-size:11px;font-weight:600;color:#64748b">' + tag + (tag ? ' · ' : '') + (g.kids.length ? g.kids.length + ' यूज़र · उनके ' + tot + ' केस' : 'कोई यूज़र नहीं') + ' · दबाएँ = पूरी टीम खोलें</div>';
+        mid.onclick = function () { o.remove(); S._fExp = hid; if (g.h) openSet(teamIds(g.h.id), nm + ' की पूरी टीम'); else openSet(g.kids.map(function (k) { return k.id; }), 'अन्य यूज़र'); }; row.appendChild(mid);
+        var bd = document.createElement('span'); bd.style.cssText = 'background:#0f2a4a;color:#fff;border-radius:10px;padding:2px 9px;font-size:12px'; bd.textContent = (n == null ? '–' : n) + ' केस'; row.appendChild(bd); box.appendChild(row);
+        if (open) {
+          var all = document.createElement('label'); all.style.cssText = 'display:flex;gap:8px;align-items:center;padding:8px 12px 8px 38px;background:#fff;border-bottom:1px solid #eef2f7;font-weight:700'; all.innerHTML = '<input type="checkbox"> सभी चुनें'; all.firstChild.onchange = function () { g.kids.forEach(function (k) { if (all.firstChild.checked) sel[k.id] = 1; else delete sel[k.id]; }); if (g.h) { if (all.firstChild.checked) sel[g.h.id] = 1; else delete sel[g.h.id]; } fRender(); };
+          if (g.h) { var hl = document.createElement('label'); hl.style.cssText = all.style.cssText; hl.innerHTML = '<input type="checkbox"' + (sel[g.h.id] ? ' checked' : '') + '> ' + icon + ' ' + esc(nm) + ' (खुद का डेटा)'; hl.firstChild.onchange = function () { if (hl.firstChild.checked) sel[g.h.id] = 1; else delete sel[g.h.id]; fRender(); }; box.appendChild(all); box.appendChild(hl); } else box.appendChild(all);
+          g.kids.forEach(function (k) { var c = fcnt(k.id), d = fdup(k.id), l = document.createElement('label'); l.style.cssText = 'display:flex;align-items:center;gap:8px;padding:10px 12px 10px 38px;border-bottom:1px solid #eef2f7;font-weight:700;background:' + (cur === k.id ? '#fff3cf' : '#fff'); l.innerHTML = '<input type="checkbox"' + (sel[k.id] ? ' checked' : '') + '><span style="flex:1;min-width:0">👤 ' + esc(k.name || k.email) + (d > 0 ? '<div style="font-size:11px;font-weight:600;color:#b45309">' + d + ' केस ऊपर वाले की कॉपी (छिपे)</div>' : '') + '</span><span style="background:#e2e8f0;border-radius:10px;padding:2px 9px;font-size:12px">' + (c == null ? '–' : c) + ' केस</span>'; l.firstChild.onchange = function () { if (l.firstChild.checked) sel[k.id] = 1; else delete sel[k.id]; fRender(); }; box.appendChild(l); });
+          var ids = Object.keys(sel), bar = document.createElement('div'); bar.style.cssText = 'padding:8px 12px;background:#fff'; bar.appendChild(mk('✔ चुने हुए एक साथ खोलें (' + ids.length + ')', ids.length ? '#0f766e' : '#94a3b8', function () { if (!ids.length) { toast('पहले चेकबॉक्स चुनें'); return; } o.remove(); openSet(ids, ids.length + ' चुने हुए खातों'); })); box.appendChild(bar);
+        }
+      });
+      o.innerHTML = ''; o.appendChild(box);
     };
 
     /* 3. Group notifications (own group only) */
@@ -14970,24 +14998,33 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     }
     async function restore(it) { await S.fb.setDoc(ref('teams/' + it.tid + '/cases/' + it.key), { del: false, delBy: '', delByUid: '', rest: true, restBy: S.prof.name || S.prof.email }, { merge: true }); }
     async function dustOpen() {
-      var p = pop('<b>⏳ Dustbin लोड हो रहा है…</b>'), items = await dLoad(true);
+      var p = pop('<b>⏳ Dustbin लोड हो रहा है…</b>'), items = await dLoad(true), openG = '', sel = {};
+      var kk = function (it) { return it.tid + '/' + it.key; };
       (function draw2() {
         var days = dDays(), now = Date.now(); p.b.innerHTML = '';
-        var h = document.createElement('div'); h.style.cssText = 'display:flex;align-items:center;gap:6px;flex-wrap:wrap'; h.innerHTML = '<b style="flex:1;font-size:15px">🗑 Dustbin (' + items.length + ')</b>'; h.appendChild(mk('✕', '#e2e8f0', function () { p.o.remove(); })); p.b.appendChild(h);
+        var h = document.createElement('div'); h.style.cssText = 'display:flex;align-items:center;gap:6px'; h.innerHTML = '<b style="flex:1;font-size:15px">🗑 Dustbin (' + items.length + ')</b>'; h.appendChild(mk('✕', '#e2e8f0', function () { p.o.remove(); })); p.b.appendChild(h);
         var s = document.createElement('div'); s.style.cssText = 'margin:8px 0;padding:8px;background:#f1f5f9;border-radius:10px;font-size:13px'; s.innerHTML = 'अपने-आप हमेशा के लिए हटे: <input type="number" min="1" id="ccDustDays" value="' + days + '" style="width:64px;padding:4px"> दिन बाद ';
         s.appendChild(mk('💾 सेव', '#0f2a4a', function () { var v = parseInt(document.getElementById('ccDustDays').value, 10); if (!(v > 0)) { toast('सही दिन डालें'); return; } lsSet('advDustDays', String(v)); toast('✔ ' + v + ' दिन सेव'); dLoad(true).then(function (n) { items = n; draw2(); }); })); p.b.appendChild(s);
-        if (items.length) { var ab = document.createElement('div'); ab.appendChild(mk('↩ सब Restore', '#0f766e', async function () { if (!confirm('सारे ' + items.length + ' केस Restore करें?')) return; for (var i = 0; i < items.length; i++) { try { await restore(items[i]); } catch (e) { } } items = []; toast('↩ सब Restore भेज दिए'); draw2(); })); ab.appendChild(mk('🗑 Dustbin खाली करें', '#991b1b', async function () { if (!confirm('सब हमेशा के लिए हटाएँ? यह वापस नहीं आएगा।')) return; for (var i = 0; i < items.length; i++) { try { await S.fb.deleteDoc(items[i].ref); } catch (e) { } } items = []; draw2(); })); p.b.appendChild(ab); }
-        else p.b.insertAdjacentHTML('beforeend', '<div style="padding:14px;color:#64748b">Dustbin खाली है।</div>');
-        var by = {}; items.forEach(function (it) { (by[it.g] = by[it.g] || []).push(it); });
-        Object.keys(by).forEach(function (gn) {
-          var gh = document.createElement('div'); gh.style.cssText = 'margin-top:10px;font-weight:800;background:#0f2a4a;color:#fff;border-radius:8px;padding:6px 10px'; gh.textContent = '👥 ' + gn + ' ग्रुप (' + by[gn].length + ')'; p.b.appendChild(gh);
-          by[gn].forEach(function (it) {
+        var chosen = items.filter(function (it) { return sel[kk(it)]; });
+        var ab = document.createElement('div'); ab.style.cssText = 'position:sticky;top:-14px;background:#fff;padding:4px 0;z-index:2';
+        ab.appendChild(mk('↩ चुने हुए Restore (' + chosen.length + ')', chosen.length ? '#0f766e' : '#94a3b8', async function () { if (!chosen.length) return toast('पहले केस चुनें'); for (var i = 0; i < chosen.length; i++) { try { await restore(chosen[i]); } catch (e) { } } items = items.filter(function (z) { return !sel[kk(z)]; }); sel = {}; toast('↩ Restore भेज दिए'); draw2(); }));
+        ab.appendChild(mk('🗑 चुने हुए हमेशा के लिए हटाएँ', chosen.length ? '#991b1b' : '#94a3b8', async function () { if (!chosen.length) return toast('पहले केस चुनें'); if (!confirm(chosen.length + ' केस हमेशा के लिए हटाएँ?')) return; for (var i = 0; i < chosen.length; i++) { try { await S.fb.deleteDoc(chosen[i].ref); } catch (e) { } } items = items.filter(function (z) { return !sel[kk(z)]; }); sel = {}; draw2(); }));
+        p.b.appendChild(ab);
+        heads().forEach(function (g) {
+          var gi = items.filter(function (it) { return it.tid === g.id; }), isOpen = openG === g.id;
+          var gh = document.createElement('div'); gh.style.cssText = 'margin-top:8px;font-weight:800;background:#0f2a4a;color:#fff;border-radius:8px;padding:9px 10px;cursor:pointer;display:flex;gap:8px'; gh.innerHTML = '<span>' + (isOpen ? '▾' : '▸') + '</span><span style="flex:1">👥 ' + esc(g.name || g.email) + ' ग्रुप</span><span>' + gi.length + ' केस</span>';
+          gh.onclick = function () { openG = isOpen ? '' : g.id; draw2(); }; p.b.appendChild(gh);
+          if (!isOpen) return;
+          if (!gi.length) { p.b.insertAdjacentHTML('beforeend', '<div style="padding:10px;color:#64748b">इस ग्रुप में कुछ नहीं है।</div>'); return; }
+          var al = document.createElement('label'); al.style.cssText = 'display:flex;gap:8px;align-items:center;padding:8px 2px;font-weight:700'; al.innerHTML = '<input type="checkbox"' + (gi.every(function (it) { return sel[kk(it)]; }) ? ' checked' : '') + '> इस ग्रुप के सभी चुनें'; al.firstChild.onchange = function () { gi.forEach(function (it) { if (al.firstChild.checked) sel[kk(it)] = 1; else delete sel[kk(it)]; }); draw2(); }; p.b.appendChild(al);
+          gi.forEach(function (it) {
             var c = {}; try { c = JSON.parse(it.x.c || '{}'); } catch (e) { } var left = it.t ? Math.max(0, days - Math.floor((now - it.t) / 864e5)) : days;
-            var r = document.createElement('div'); r.style.cssText = 'border-bottom:1px solid #e2e8f0;padding:8px 2px';
-            r.innerHTML = '<div style="font-weight:700">' + esc(c.caseNo || it.x.cid) + ' · ' + esc((c.vadiName || '—') + ' बनाम ' + (c.prativadiName || '—')) + '</div><div style="font-size:12px;color:#64748b">मालिक: ' + esc(it.x.ownerName || '') + ' · हटाया: ' + esc(it.x.delBy || '') + (it.t ? ' · ' + new Date(it.t).toLocaleDateString() : '') + ' · ' + left + ' दिन बचे</div>';
-            r.appendChild(mk('↩ Restore', '#0f766e', async function () { try { await restore(it); items = items.filter(function (z) { return z !== it; }); toast('↩ केस वापस भेज दिया'); draw2(); } catch (e) { toast(errText(e)); } }));
-            r.appendChild(mk('हमेशा के लिए हटाएँ', '#991b1b', async function () { if (!confirm('यह केस हमेशा के लिए हटाएँ?')) return; try { await S.fb.deleteDoc(it.ref); items = items.filter(function (z) { return z !== it; }); draw2(); } catch (e) { toast(errText(e)); } }));
-            p.b.appendChild(r);
+            var r = document.createElement('div'); r.style.cssText = 'border-bottom:1px solid #e2e8f0;padding:8px 2px;display:flex;gap:8px;align-items:flex-start';
+            var cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = !!sel[kk(it)]; cb.style.marginTop = '4px'; cb.onchange = function () { if (cb.checked) sel[kk(it)] = 1; else delete sel[kk(it)]; draw2(); }; r.appendChild(cb);
+            var d = document.createElement('div'); d.style.flex = '1'; d.innerHTML = '<div style="font-weight:700">' + esc(c.caseNo || it.x.cid) + ' · ' + esc((c.vadiName || '—') + ' बनाम ' + (c.prativadiName || '—')) + '</div><div style="font-size:12px;color:#64748b">मालिक: ' + esc(it.x.ownerName || '') + ' · हटाया: ' + esc(it.x.delBy || '') + (it.t ? ' · ' + new Date(it.t).toLocaleDateString() : '') + ' · ' + left + ' दिन बचे</div>';
+            d.appendChild(mk('↩ Restore', '#0f766e', async function () { try { await restore(it); items = items.filter(function (z) { return z !== it; }); toast('↩ केस वापस भेज दिया'); draw2(); } catch (e) { toast(errText(e)); } }));
+            d.appendChild(mk('हमेशा के लिए हटाएँ', '#991b1b', async function () { if (!confirm('यह केस हमेशा के लिए हटाएँ?')) return; try { await S.fb.deleteDoc(it.ref); items = items.filter(function (z) { return z !== it; }); draw2(); } catch (e) { toast(errText(e)); } }));
+            r.appendChild(d); p.b.appendChild(r);
           });
         });
       })();
