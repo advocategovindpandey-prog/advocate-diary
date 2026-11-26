@@ -13728,6 +13728,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
 
   function tsLastAt(c) { var h = (c && c.hist) || [], t = 0; for (var i = 0; i < h.length; i++) if (h[i].at > t) t = h[i].at; return t; }
   function tsAtMs(x) { try { return x && x.at && x.at.toMillis ? x.at.toMillis() : 0; } catch (e) { return 0; } }
+  function LH(c) { var h = (c && c.hist) || []; return h[h.length - 1] || {}; }
   async function teamPush() {
     if (!S.prof || !S.fb || !TS.id || TS.busy || TS.first || window.__advViewOnly) return; TS.busy = true;
     try {
@@ -13739,7 +13740,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
         if (isBlankCase(c)) return;
         var js = tsJs(c), h = fnv(js); if (TS.pushed[c.id] === h) return;
         var sx = TS.docs[me + '__' + c.id]; if (!TS.force && sx && sx.del === false && TS.pushed[c.id] === undefined && sx.h !== h && tsAtMs(sx) > tsLastAt(c)) return;
-        ops.push({ id: c.id, h: h, data: { owner: me, ownerName: nm, cid: String(c.id), c: js, h: h, by: nm, byUid: me, byEmail: S.prof.email || '', role: role(), at: F.serverTimestamp(), del: false, delBy: '', delByUid: '', rest: false } });
+        ops.push({ id: c.id, h: h, data: { owner: me, ownerName: nm, cid: String(c.id), c: js, h: h, by: LH(c).by || nm, byUid: LH(c).byUid || me, byEmail: LH(c).byEmail || S.prof.email || '', role: LH(c).byRole || role(), at: F.serverTimestamp(), del: false, delBy: '', delByUid: '', rest: false } });
       });
       var gone = Object.keys(TS.pushed).filter(function (id) { return !seen[id]; });
       if ((raw.length || TS.allowMass) && (gone.length <= 20 || TS.allowMass)) gone.forEach(function (id) { ops.push({ id: id, del: true, data: { owner: me, cid: String(id), del: true, delBy: nm, delByUid: me, delAt: F.serverTimestamp() } }); });
@@ -13764,7 +13765,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       rc[k] = chg[k];
     });
     rc.hist = hh.slice(-10); var js = JSON.stringify(rc), h = fnv(js);
-    await F.setDoc(ref('teams/' + tidx + '/cases/' + key), { c: js, h: h, by: nm, byUid: S.prof.id, byEmail: S.prof.email || '', role: role(), at: F.serverTimestamp(), del: false }, { merge: true });
+    await F.setDoc(ref('teams/' + tidx + '/cases/' + key), { c: js, h: h, by: nm, byUid: S.prof.id, byEmail: S.prof.email || '', role: role(), at: F.serverTimestamp(), del: false }, { merge: true }); try { x.c = js; x.h = h; x.by = nm; x.byUid = S.prof.id; } catch (e) { }
   }
   function sendChange(uid, rawId, ch) {
     var src = OV.srcs[uid];
@@ -14120,7 +14121,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       OV.hidden = hidden; var hid = {}; hidden.forEach(function (h) { hid[h.id] = 1; });
       if ((role() === 'master' || role() === 'admin') && ((OV.sel && OV.srcs[OV.sel]) || OV.selSet)) { window.__advViewOnly = true; cases = ((OV.selSet && S.prof && OV.selSet[S.prof.id]) ? OV.own.slice() : []).concat(ov.filter(function (c) { return c._srcUid === OV.sel || !!(OV.selSet && OV.selSet[c._srcUid]); })); }
       else if (role() === 'master' || role() === 'admin') { window.__advViewOnly = false; cases = OV.own.slice(); }
-      else { window.__advViewOnly = false; cases = OV.own.filter(function (c) { return !hid[c.id]; }).concat(ov); }
+      else { var us = OV.userSel; window.__advViewOnly = !!(us && !us.__me); cases = ((!us || us.__me) ? OV.own.filter(function (c) { return !hid[c.id]; }) : []).concat(us ? ov.filter(function (c) { return us[c._srcUid]; }) : ov); }
       ovRefresh(); ovBanner(); try { fillNextSrc(); fillFilter(); } catch (e) { }
     } catch (e) { try { console.error(e); } catch (x) { } }
   }
@@ -14879,8 +14880,18 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       o = document.createElement('div'); o.id = 'ccFPanel'; o.style.cssText = 'position:fixed;inset:0;z-index:2147483644;background:rgba(15,23,42,.55);display:flex;align-items:flex-start;justify-content:center;padding-top:8vh';
       o.addEventListener('click', function (e) { if (e.target === o) o.remove(); }); document.body.appendChild(o); fRender();
     };
+    function fRenderUser() {
+      var o = $('ccFPanel'); if (!o) return; var sel = S._fSel = S._fSel || {};
+      var box = document.createElement('div'); box.style.cssText = 'background:#fff;color:#142b4a;border-radius:14px;width:calc(100% - 20px);max-width:460px;max-height:80vh;overflow:auto;font:14px/1.4 system-ui,sans-serif';
+      var hd = document.createElement('div'); hd.style.cssText = 'position:sticky;top:0;z-index:2;background:#0f2a4a;color:#fff;padding:10px 12px;display:flex;align-items:center;gap:8px'; hd.innerHTML = '<b style="flex:1">मेरी टीम का डेटा चुनें</b>'; hd.appendChild(mk('✕', '#e2e8f0', function () { o.remove(); })); box.appendChild(hd);
+      var all = document.createElement('div'); all.style.cssText = 'padding:12px;border-bottom:1px solid #e2e8f0;font-weight:800;background:#f1f5f9;cursor:pointer'; all.innerHTML = '👥 पूरी टीम का डेटा एक साथ<div style="font-size:11px;font-weight:600;color:#64748b">दबाएँ = मेरा + टीम के सब का डेटा' + (OV.userSel ? ' (अभी चुनिंदा दिख रहा है)' : '') + '</div>'; all.onclick = function () { OV.userSel = null; o.remove(); ovApply(); toast('✔ पूरी टीम का डेटा खुल गया'); }; box.appendChild(all);
+      var rows = [{ id: '__me', n: '🙋 मैं (अपना डेटा)', c: (OV.own || []).length }].concat(Object.keys(OV.srcs).map(function (u) { return { id: u, n: '👤 ' + (OV.srcs[u].name || 'User'), c: fcnt(u) }; }));
+      rows.forEach(function (r) { var l = document.createElement('label'); l.style.cssText = 'display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid #eef2f7;font-weight:700'; l.innerHTML = '<input type="checkbox"' + (sel[r.id] ? ' checked' : '') + '><span style="flex:1">' + esc(r.n) + '</span><span style="background:#e2e8f0;border-radius:10px;padding:2px 9px;font-size:12px">' + (r.c == null ? '–' : r.c) + ' केस</span>'; l.firstChild.onchange = function () { if (l.firstChild.checked) sel[r.id] = 1; else delete sel[r.id]; fRender(); }; box.appendChild(l); });
+      var n = Object.keys(sel).length, bar = document.createElement('div'); bar.style.cssText = 'padding:8px 12px'; bar.appendChild(mk('✔ चुने हुए एक साथ दिखाएँ (' + n + ')', n ? '#0f766e' : '#94a3b8', function () { if (!n) { toast('पहले चेकबॉक्स चुनें'); return; } OV.userSel = JSON.parse(JSON.stringify(sel)); o.remove(); ovApply(); toast('✔ चुने हुए ' + n + ' का डेटा दिख रहा है'); })); box.appendChild(bar);
+      o.innerHTML = ''; o.appendChild(box);
+    }
     fRender = function () {
-      var o = $('ccFPanel'); if (!o) return; var cur = OV.sel || '', G = fgroups(), sel = S._fSel = S._fSel || {};
+      var o = $('ccFPanel'); if (!o) return; if (role() === 'user') return fRenderUser(); var cur = OV.sel || '', G = fgroups(), sel = S._fSel = S._fSel || {};
       var box = document.createElement('div'); box.style.cssText = 'background:#fff;color:#142b4a;border-radius:14px;width:calc(100% - 20px);max-width:460px;max-height:80vh;overflow:auto;font:14px/1.4 system-ui,sans-serif';
       var hd = document.createElement('div'); hd.style.cssText = 'position:sticky;top:0;z-index:2;background:#0f2a4a;color:#fff;padding:10px 12px;display:flex;align-items:center;gap:8px'; hd.innerHTML = '<b style="flex:1">Master / Admin / User चुनें</b>'; hd.appendChild(mk('✕', '#e2e8f0', function () { o.remove(); })); box.appendChild(hd);
       if (!G.length) box.insertAdjacentHTML('beforeend', '<div style="padding:14px;color:#64748b">कोई खाता नहीं मिला।</div>');
@@ -15032,8 +15043,8 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     api.dust = dustOpen; api.ntfCtl = ntfOpen;
     function btnStyle(bg, fg) { return 'flex:0 0 auto;border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:' + bg + ';color:' + fg; }
     function addBtns() {
+      var row = $('ccLoginOpts'); if (role() === 'user') { if (row && !$('ccTeamBtn')) { var t = document.createElement('button'); t.type = 'button'; t.id = 'ccTeamBtn'; t.textContent = '👥 टीम का डेटा'; t.style.cssText = btnStyle('#0f766e', '#fff') + ';order:6'; t.onclick = fOpen; row.appendChild(t); } return; }
       if (role() !== 'master') return;
-      var row = $('ccLoginOpts');
       if (row && !$('ccDustBtn')) { var d = document.createElement('button'); d.type = 'button'; d.id = 'ccDustBtn'; d.textContent = '🗑 Dustbin'; d.style.cssText = btnStyle('#475569', '#fff') + ';order:7'; d.onclick = dustOpen; row.appendChild(d); var n = document.createElement('button'); n.type = 'button'; n.id = 'ccNtfBtn'; n.textContent = '🔔 Notification नियंत्रण'; n.style.cssText = btnStyle('#e2e8f0', '#0f2a4a') + ';order:8'; n.onclick = ntfOpen; row.appendChild(n); }
       var top = document.querySelector('#cc-root .cc-top');
       if (top && !top.querySelector('.ccDustTop')) { var a = document.createElement('button'); a.className = 'cc-b sm ccDustTop'; a.textContent = '🗑 Dustbin'; a.onclick = dustOpen; top.appendChild(a); var b2 = document.createElement('button'); b2.className = 'cc-b sm gray ccDustTop'; b2.textContent = '🔔 Notification'; b2.onclick = ntfOpen; top.appendChild(b2); }
@@ -15051,7 +15062,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
 </script>
 <script>
 (function () {
-  var MASTER_ONLY = ['createMasters', 'devInfo'];
+  var MASTER_ONLY = ['devInfo'];
   function locked() { return !!window.ADV_ROLE && window.ADV_ROLE !== 'master'; }
   function hit(t) { return MASTER_ONLY.some(function (k) { return t.indexOf("'" + k + "'") > -1; }); }
   window.advUnauth = function () {
@@ -15111,13 +15122,14 @@ body.chat-sidebar-open{overflow:hidden}
 (function(){
   var st=document.createElement('style');
   st.textContent='#advArrangeToggle{display:none!important}'
-  +'#navUpBtn,#navDownBtn,.nav-ud-btn{display:none!important}'
+  +'#navUpBtn,#navDownBtn,.nav-ud-btn,#appBottomScrollBtn{display:none!important}'
   +'html:not(.adv-ai-on) #aivDock,html:not(.adv-ai-on) #aivMic,html:not(.adv-ai-on) #aivTog,html:not(.adv-ai-on) #aivP{display:none!important}'
   +'html:not(.adv-lite-on) #liteBtnV52{display:none!important}';
   document.head.appendChild(st);
   var ORD={ccNameBtn:1,ccUpdBtn:2,ccMultiDelBtn:3,ccOvNotif:4,ccColorOn:5,ccTxBtn:6};
   function tick(){try{
     var b=document.getElementById('advArrangeToggle');if(b)b.remove();
+    if(window.ADV_BUILD!=='master'){['pcMob','pcMail','pcMin'].forEach(function(id){var e=document.getElementById(id);if(!e)return;e.style.display='none';var l=e.previousElementSibling;if(l&&l.tagName==='LABEL')l.style.display='none'});['pcCs','pcCw','pcCm'].forEach(function(id){var e=document.getElementById(id);if(!e)return;var l=e.closest('label')||e.parentNode;l.style.display='none'});document.querySelectorAll('#pinCard *').forEach(function(n){if(n.children.length===0&&/^\s*Forgot PIN/.test(n.textContent))n.style.display='none'})}
     document.body.classList.remove('nav-movable-off');
     Object.keys(ORD).forEach(function(id){var e=document.getElementById(id);if(!e)return;if(e.tagName==='INPUT'&&e.parentNode)e=e.parentNode;e.style.order=ORD[id];});
     var d=document.getElementById('floatAiSec');
@@ -15131,4 +15143,22 @@ body.chat-sidebar-open{overflow:hidden}
   }catch(e){}}
   setInterval(tick,800);tick();
 })();
+(function(){
+  var K='advUdFabPos',b=document.createElement('button');b.id='advUdFab';b.type='button';
+  b.style.cssText='position:fixed;width:52px;height:52px;border-radius:50%;border:0;background:#142b4a;color:#fff;font:700 26px/1 system-ui;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,.35);z-index:2147482000;touch-action:none;opacity:.93;padding:0';
+  function sc(){return document.scrollingElement||document.documentElement}
+  function place(x,y){x=Math.min(Math.max(0,x),innerWidth-52);y=Math.min(Math.max(0,y),innerHeight-52);b.style.left=x+'px';b.style.top=y+'px';return[x,y]}
+  var p=null;try{p=JSON.parse(localStorage.getItem(K)||'null')}catch(e){}
+  place(p?p.x:innerWidth-66,p?p.y:innerHeight-180);
+  function icon(){b.textContent=sc().scrollTop>80?'\u2191':'\u2193'}
+  var d=null;
+  b.addEventListener('pointerdown',function(e){d={sx:e.clientX,sy:e.clientY,ox:parseFloat(b.style.left)||0,oy:parseFloat(b.style.top)||0,m:false};try{b.setPointerCapture(e.pointerId)}catch(x){}});
+  b.addEventListener('pointermove',function(e){if(!d)return;var dx=e.clientX-d.sx,dy=e.clientY-d.sy;if(!d.m&&Math.hypot(dx,dy)>6)d.m=true;if(d.m)place(d.ox+dx,d.oy+dy)});
+  function end(e){if(!d)return;var m=d.m;d=null;if(m){try{localStorage.setItem(K,JSON.stringify({x:parseFloat(b.style.left),y:parseFloat(b.style.top)}))}catch(x){}return}
+    var s=sc();if(s.scrollTop>80)window.scrollTo({top:0,behavior:'smooth'});else window.scrollTo({top:s.scrollHeight,behavior:'smooth'})}
+  b.addEventListener('pointerup',end);b.addEventListener('pointercancel',function(){d=null});
+  window.addEventListener('scroll',icon,{passive:true});window.addEventListener('resize',function(){place(parseFloat(b.style.left)||0,parseFloat(b.style.top)||0)});
+  setInterval(icon,500);icon();document.body.appendChild(b);
+})();
+
 </script>
