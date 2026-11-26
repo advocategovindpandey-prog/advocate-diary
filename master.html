@@ -13094,7 +13094,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   function errText(e) {
     var c = (e && e.code) || '';
     var map = {
-      'auth/invalid-credential': 'Incorrect email or password', 'auth/wrong-password': 'Incorrect password', 'auth/user-not-found': 'This email is not registered',
+      'auth/invalid-credential': 'Incorrect email or password. अगर आप पहली बार आए हैं तो नीचे "New Registration" से पहले रजिस्ट्रेशन करें।', 'auth/wrong-password': 'Incorrect password. पहली बार आए हैं तो नीचे "New Registration" से रजिस्ट्रेशन करें।', 'auth/user-not-found': 'This email is not registered — नीचे "New Registration" से रजिस्ट्रेशन करें।',
       'auth/invalid-email': 'Invalid email address', 'auth/too-many-requests': 'Too many attempts — please try again later', 'auth/network-request-failed': 'No internet connection',
       'auth/email-already-in-use': 'This email is already registered', 'auth/weak-password': 'Password must be at least 6 characters', 'auth/popup-closed-by-user': 'Google sign-in is disabled',
       'permission-denied': 'Not permitted (account paused or expired, or limit reached)', 'auth/api-key-not-valid.-please-pass-a-valid-api-key.': 'Invalid apiKey'
@@ -13530,11 +13530,10 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   function canEditSrc(uid) {
     if (!S.prof) return false; var r = role();
     if (r === 'master') return true;
-    if (r === 'admin') return (S.list || []).some(function (x) { return x.id === uid && x.parentId === S.prof.id; });
-    var pp = S.prof.perms || {}; return uid === (S.prof.parentId || (S.pub && S.pub.masterUid)) && (S.prof.canEditMaster === true || pp.edit === true || pp.date === true);
+    return inGroup(uid);
   }
 
-  function permFilter(ch) {
+  function permFilter(ch) { return ch;
     if (role() !== 'user' || !S.prof || !S.prof.perms) return ch; var pp = S.prof.perms; if (pp.edit) return ch;
     var ok = pp.date ? ['nextDate', 'time', 'notes'] : [], o = {}; Object.keys(ch).forEach(function (k) { if (k === 'caseNo' || ok.indexOf(k) > -1) o[k] = ch[k]; }); return o;
   }
@@ -14278,7 +14277,14 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   }
 
   /* ---------- Part 3 source filter ---------- */
-  function fillNextSrc() { var sel = document.getElementById('nextSrcSel'); if (sel) sel.remove(); window.__nextSrc = ''; try { localStorage.removeItem('advNextSrc'); } catch (e) {} }
+  function fillNextSrc() {
+    var box = document.getElementById('nextAdvBox'); if (!box) return;
+    var sel = document.getElementById('nextSrcSel');
+    if (!sel) { sel = document.createElement('select'); sel.id = 'nextSrcSel'; sel.style.cssText = 'margin:6px 0;padding:8px;border-radius:10px;border:1.5px solid #d9a441;font-weight:700;max-width:100%'; sel.onchange = function () { window.__nextSrc = this.value; try { localStorage.setItem('advNextSrc', this.value); } catch (e) { } try { renderNext(); } catch (e) { } }; box.parentNode.insertBefore(sel, box.nextSibling); try { window.__nextSrc = localStorage.getItem('advNextSrc') || ''; } catch (e) { } }
+    var cur = window.__nextSrc || '', h = '<option value="">📂 सारा डेटा (सब स्रोत)</option><option value="own">🧑 सिर्फ़ मेरा अपना (' + (OV.own || []).length + ')</option>';
+    Object.keys(OV.srcs).forEach(function (u) { h += '<option value="' + esc(u) + '">' + esc(OV.srcs[u].name) + ' का डेटा (' + srcCases(u).length + ')</option>'; });
+    sel.innerHTML = h; sel.value = cur; if (sel.value !== cur) { sel.value = ''; window.__nextSrc = ''; }
+  }
   function wrapAdvSwitch() {
     try {
       if (typeof window.setAdvocateView !== 'function' || window.setAdvocateView.__w) return; var o = window.setAdvocateView;
@@ -14615,7 +14621,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     var r = document.createElement('div'); r.id = 'cc-root'; document.body.appendChild(r);
     var f = document.createElement('button'); f.id = 'cc-fab'; f.type = 'button'; f.textContent = '☁'; f.title = 'Cloud Control'; f.onclick = function () { api.open(); }; document.body.appendChild(f);
     {
-      var hd = document.querySelector('header'); if (hd && !$('ccLoginLine')) { var ln = document.createElement('div'); ln.id = 'ccLoginLine'; ln.innerHTML = '<span id="ccLoginTxt"></span><span id="ccLoginOpts" style="display:none;gap:7px;flex-wrap:nowrap;align-items:center;margin-top:3px;max-width:100%;overflow-x:auto;white-space:nowrap;padding-bottom:2px"><label style="flex:0 0 auto"><input type="checkbox" id="ccOvMerge"> 🔀 मेरे साथ मिलाकर दिखाएँ</label><label style="flex:0 0 auto"><input type="checkbox" id="ccOvNotif"> 🔔 Notification में जोड़ें</label><label style="flex:0 0 auto"><input type="checkbox" id="ccColorOn"> 🎨 रंग</label><button type="button" id="ccUpdBtn" style="flex:0 0 auto;border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:#d9a441;color:#1b1405">📋 Updates</button><button type="button" id="ccTxBtn" style="flex:0 0 auto;border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:#e2e8f0;color:#0f2a4a">👥 टीमें</button><button type="button" id="ccNameBtn" style="flex:0 0 auto;border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:#e2e8f0;color:#0f2a4a">✏ नाम</button><button type="button" id="ccMultiDelBtn" style="flex:0 0 auto;border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:#7f1d1d;color:#fff">🗑 Multiple Delete</button></span>'; hd.parentNode.insertBefore(ln, hd.nextSibling); var sb = document.createElement('button'); sb.type = 'button'; sb.textContent = '🔍 सिंक जाँच'; sb.style.cssText = 'border:2px solid #f4d27a;border-radius:10px;padding:8px 14px;min-height:42px;line-height:1.25;font:900 13px system-ui;background:linear-gradient(135deg,#d9a441,#f2c45f);color:#102b4b;margin-left:8px;box-shadow:0 3px 9px rgba(15,42,74,.28);vertical-align:middle'; sb.onclick = function () { syncCheck(); }; var mb = $('ccMultiDelBtn'); if (mb) mb.onclick = function () { advCloud.md(); }; var tx0 = ln.firstChild; if (tx0 && tx0.nextSibling) ln.insertBefore(sb, tx0.nextSibling); else ln.appendChild(sb); var m1 = $('ccOvMerge'), m2 = $('ccOvNotif'), m3 = $('ccColorOn'), bU = $('ccUpdBtn'), bN = $('ccNameBtn'), bT = $('ccTxBtn'); if (bT) bT.onclick = function () { txOpen(); }; if (m3) { m3.checked = colorOn(); m3.onchange = function () { try { localStorage.setItem('advColorOn', this.checked ? '1' : '0'); } catch (e) { } ovRefresh(); }; } if (bU) bU.onclick = function () { updOpen(); }; if (bN) bN.onclick = function () { renameMe(); }; if (m1) { m1.checked = OV.mode !== 'only'; m1.onchange = function () { OV.mode = this.checked ? 'merge' : 'only'; ovSaveOpts(); ovApply(); }; } if (m2) { m2.checked = !!OV.notif; m2.onchange = function () { OV.notif = this.checked; ovSaveOpts(); ovApply(); }; } }
+      var hd = document.querySelector('header'); if (hd && !$('ccLoginLine')) { var ln = document.createElement('div'); ln.id = 'ccLoginLine'; ln.innerHTML = '<span id="ccLoginTxt"></span><span id="ccLoginOpts" style="display:none;gap:7px;flex-wrap:nowrap;align-items:center;margin-top:3px;max-width:100%;overflow-x:auto;white-space:nowrap;padding-bottom:2px"><label style="flex:0 0 auto"><input type="checkbox" id="ccOvMerge"> 🔀 मेरे साथ मिलाकर दिखाएँ</label><label style="flex:0 0 auto"><input type="checkbox" id="ccOvNotif"> 🔔 Notification में जोड़ें</label><label style="flex:0 0 auto"><input type="checkbox" id="ccColorOn"> 🎨 रंग</label><button type="button" id="ccUpdBtn" style="flex:0 0 auto;border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:#d9a441;color:#1b1405">📋 Updates</button><button type="button" id="ccTxBtn" style="flex:0 0 auto;border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:#e2e8f0;color:#0f2a4a">👥 टीमें</button><button type="button" id="ccNameBtn" style="flex:0 0 auto;border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:#e2e8f0;color:#0f2a4a">✏ नाम</button><button type="button" id="ccMultiDelBtn" style="flex:0 0 auto;border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:#7f1d1d;color:#fff">🗑 Multiple Delete</button></span>'; hd.parentNode.insertBefore(ln, hd.nextSibling); var sb = document.createElement('button'); sb.type = 'button'; sb.textContent = '🔍 सिंक जाँच'; sb.style.cssText = 'border:0;border-radius:8px;padding:2px 8px;font:800 11px system-ui;background:#334155;color:#fff;margin-left:6px'; sb.onclick = function () { syncCheck(); }; var mb = $('ccMultiDelBtn'); if (mb) mb.onclick = function () { advCloud.md(); }; var tx0 = ln.firstChild; if (tx0 && tx0.nextSibling) ln.insertBefore(sb, tx0.nextSibling); else ln.appendChild(sb); var m1 = $('ccOvMerge'), m2 = $('ccOvNotif'), m3 = $('ccColorOn'), bU = $('ccUpdBtn'), bN = $('ccNameBtn'), bT = $('ccTxBtn'); if (bT) bT.onclick = function () { txOpen(); }; if (m3) { m3.checked = colorOn(); m3.onchange = function () { try { localStorage.setItem('advColorOn', this.checked ? '1' : '0'); } catch (e) { } ovRefresh(); }; } if (bU) bU.onclick = function () { updOpen(); }; if (bN) bN.onclick = function () { renameMe(); }; if (m1) { m1.checked = OV.mode !== 'only'; m1.onchange = function () { OV.mode = this.checked ? 'merge' : 'only'; ovSaveOpts(); ovApply(); }; } if (m2) { m2.checked = !!OV.notif; m2.onchange = function () { OV.notif = this.checked; ovSaveOpts(); ovApply(); }; } }
       var as = $('activeAdvocateSelect'); if (as && !$('ccFilterSel')) { var fs = document.createElement('select'); fs.id = 'ccFilterSel'; fs.title = 'User / Admin / Master चुनें'; fs.innerHTML = '<option value="">☁ User/Admin</option>'; fs.onchange = function () { onFilter(this.value); }; as.parentNode.insertBefore(fs, as.nextSibling); }
     }
   }
@@ -14661,7 +14667,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       '<button class="gold" onclick="advCloud.login()">Sign in</button>' +
       '<div style="text-align:center;margin-top:12px"><a href="#" onclick="advCloud.forgot();return false" style="color:#1c4a82;font-size:14px">Forgot password?</a></div>' + (S.needVerify ? '<div style="text-align:center;margin-top:8px"><a href="#" onclick="advCloud.resend();return false" style="color:#b45309;font-size:14px">✉ Resend verification link</a></div>' : '') +
       '<div class="or">or</div><button class="ghost" onclick="advCloud.google()"><b style="display:inline-block;width:22px;height:22px;line-height:22px;border-radius:50%;background:#fff;border:1.5px solid #cbd5e1;color:#4285f4;margin-right:6px">G</b>Sign in with Google</button>' +
-      (BUILD === 'admin' ? '<div class="or">New here?</div><button class="ghost" onclick="advCloud.reg()">📝 New Registration</button>' : '') + (window._ip ? '<button class="ghost" style="margin-top:10px" onclick="advInstall()">⬇ Install app</button>' : '') + ((S.pub && S.pub.apkUrl) ? '<a class="ghost" style="display:block;text-align:center;text-decoration:none;margin-top:10px" href="' + esc(S.pub.apkUrl) + '">📱 Download Android app (APK)</a><div class="ft" style="margin-top:6px">If asked, allow installs from this source.</div>' : '') +
+      ('<div class="or">पहली बार आए हैं?</div><button class="ghost" onclick="advCloud.reg()">📝 New Registration (Admin / User के रूप में Apply करें)</button>') + (window._ip ? '<button class="ghost" style="margin-top:10px" onclick="advInstall()">⬇ Install app</button>' : '') + ((S.pub && S.pub.apkUrl) ? '<a class="ghost" style="display:block;text-align:center;text-decoration:none;margin-top:10px" href="' + esc(S.pub.apkUrl) + '">📱 Download Android app (APK)</a><div class="ft" style="margin-top:6px">If asked, allow installs from this source.</div>' : '') +
       lastLocal() + (BUILD === 'master' ? '<button class="ghost" style="margin-top:14px" onclick="advCloud.close()">Close</button>' : '') + '</div>' +
       (BUILD === 'master' && cfgGet() ? '<div class="ft"><a href="#" onclick="advCloud.resetCfg();return false" style="color:#64748b">Change Firebase config</a></div>' : '') +
       '<div class="ft">© Advocate Diary</div></div></div>';
@@ -15279,7 +15285,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     api.dust = dustOpen; api.ntfCtl = ntfOpen;
     function btnStyle(bg, fg) { return 'flex:0 0 auto;border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:' + bg + ';color:' + fg; }
     function addBtns() {
-      var row = $('ccLoginOpts'); if (role() === 'user') { if (row && !$('ccTeamBtn')) { var t = document.createElement('button'); t.type = 'button'; t.id = 'ccTeamBtn'; t.textContent = '👥 टीम का डेटा'; t.style.cssText = btnStyle('#0f766e', '#fff') + ';order:6'; t.onclick = fOpen; row.appendChild(t); } return; }
+      var row = $('ccLoginOpts'); if (role() === 'user' || role() === 'admin') { if (row && !$('ccTeamBtn')) { var t = document.createElement('button'); t.type = 'button'; t.id = 'ccTeamBtn'; t.textContent = '👥 टीम का डेटा'; t.style.cssText = btnStyle('#0f766e', '#fff') + ';order:6'; t.onclick = fOpen; row.appendChild(t); } return; }
       if (role() !== 'master') return;
       if (row && !$('ccDustBtn')) { var d = document.createElement('button'); d.type = 'button'; d.id = 'ccDustBtn'; d.textContent = '🗑 Dustbin'; d.style.cssText = btnStyle('#475569', '#fff') + ';order:7'; d.onclick = dustOpen; row.appendChild(d); var n = document.createElement('button'); n.type = 'button'; n.id = 'ccNtfBtn'; n.textContent = '🔔 Notification नियंत्रण'; n.style.cssText = btnStyle('#e2e8f0', '#0f2a4a') + ';order:8'; n.onclick = ntfOpen; row.appendChild(n); }
       var top = document.querySelector('#cc-root .cc-top');
@@ -15386,14 +15392,15 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     /* 8. Update e-mail: JPG card + text */
     var EDK = ['caseNo', 'type', 'court', 'vadiName', 'prativadiName', 'caseDate', 'nextDate', 'time', 'notes', 'vadiMobile'];
     function diffC(a, b) { var out = []; EDK.forEach(function (k) { var o = String((a && a[k]) || ''), n = String((b && b[k]) || ''); if (o !== n && (o || n)) out.push({ f: k, o: o, n: n }); }); return out; }
+    function st(t) { return String(t == null ? '' : t).split('').map(function (c) { return c + '\u0336'; }).join(''); }
     function fd(v) { var m = /^(\d{4})-(\d\d)-(\d\d)$/.exec(String(v || '')); return m ? m[3] + '/' + m[2] + '/' + m[1] : (v || '—'); }
     function mInfo(n) { var c = n.c || {}, ch = n.changes || [], nd = ch.filter(function (x) { return x.f === 'nextDate'; })[0], hs = c.history || []; return { caseNo: c.caseNo || '', vadi: c.vadiName || '', prati: c.prativadiName || '', court: c.court || '', type: c.type || '', prev: nd ? nd.o : ((hs[0] && hs[0].date) || ''), next: c.nextDate || '', changes: ch, by: n.by || '', email: n.byEmail || '', at: n.at || Date.now() }; }
     function mSubj(i) { return '⚖️ केस अपडेट: ' + i.caseNo + ' — ' + i.vadi + ' बनाम ' + i.prati; }
     function mText(i) {
       var L = ['⚖️ केस अपडेट सूचना', '━━━━━━━━━━━━━━━━━━━━', '📁 केस नंबर : ' + i.caseNo + (i.type ? '  (' + i.type + ')' : ''), '👤 वादी : ' + i.vadi, '👤 प्रतिवादी : ' + i.prati];
       if (i.court) L.push('🏛 न्यायालय : ' + i.court);
-      L.push('━━━━━━━━━━━━━━━━━━━━', '🔴 पिछली तारीख (पुरानी/कट चुकी) : ' + String(fd(i.prev)).split('').map(function(ch){return ch+'̶';}).join(''), '⭐ अगली तारीख : ' + fd(i.next) + '   ◀◀ नई', '━━━━━━━━━━━━━━━━━━━━', '✏ क्या अपडेट हुआ:');
-      if (i.changes.length) i.changes.forEach(function (x) { L.push('  • ' + (LABF[x.f] || x.f) + ' : ' + (x.f.indexOf('Date') > -1 ? fd(x.o) : (x.o || '—')) + '  →  ' + (x.f.indexOf('Date') > -1 ? fd(x.n) : (x.n || '—'))); }); else L.push('  • (विवरण उपलब्ध नहीं)');
+      L.push('━━━━━━━━━━━━━━━━━━━━', '📅 पिछली तारीख : 🔴 ' + st(fd(i.prev)) + '  (पुरानी)', '⭐ अगली तारीख : ' + fd(i.next) + '   ◀◀ नई', '━━━━━━━━━━━━━━━━━━━━', '✏ क्या अपडेट हुआ:');
+      if (i.changes.length) i.changes.forEach(function (x) { L.push('  • ' + (LABF[x.f] || x.f) + ' : 🔴 ' + st(x.f.indexOf('Date') > -1 ? fd(x.o) : (x.o || '—')) + '  →  ' + (x.f.indexOf('Date') > -1 ? fd(x.n) : (x.n || '—'))); }); else L.push('  • (विवरण उपलब्ध नहीं)');
       L.push('━━━━━━━━━━━━━━━━━━━━', '🙋 अपडेट किसने किया : ' + (i.by || '—') + (i.email ? ' (' + i.email + ')' : ''), '🕒 समय : ' + new Date(i.at).toLocaleString(), '', '— Advocate Diary');
       return L.join('\n');
     }
@@ -15402,6 +15409,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       var x = cv.getContext('2d'), F = '"Noto Sans Devanagari","Mukta",system-ui,sans-serif';
       function rr(a, b, w, h, r, fill) { x.fillStyle = fill; x.beginPath(); if (x.roundRect) x.roundRect(a, b, w, h, r); else x.rect(a, b, w, h); x.fill(); }
       function fit(t, mw, f) { x.font = f; t = String(t || ''); while (t.length > 3 && x.measureText(t).width > mw) t = t.slice(0, -2); return t; }
+      function sk(t, a, b, f, col) { x.font = f; x.fillStyle = col; x.fillText(t, a, b); var w = x.measureText(t).width, hh = parseInt(f.match(/(\d+)px/)[1], 10); x.strokeStyle = col; x.lineWidth = 3; x.beginPath(); x.moveTo(a - 3, b - hh * 0.32); x.lineTo(a + w + 3, b - hh * 0.32); x.stroke(); }
       x.fillStyle = '#eef2f8'; x.fillRect(0, 0, W, H);
       var g = x.createLinearGradient(0, 0, W, 0); g.addColorStop(0, '#0f2a4a'); g.addColorStop(1, '#1d4f8c'); x.fillStyle = g; x.fillRect(0, 0, W, 150);
       x.fillStyle = '#fff'; x.font = '800 48px ' + F; x.fillText('⚖️ केस अपडेट सूचना', pad, 70); x.fillStyle = '#e8c06a'; x.font = '600 28px ' + F; x.fillText('Advocate Diary', pad, 116);
@@ -15409,11 +15417,11 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       x.fillStyle = '#0f2a4a'; x.font = '800 58px ' + F; x.fillText(fit(i.caseNo, W - 2 * pad - 56, '800 58px ' + F), pad + 28, 292);
       x.font = '700 36px ' + F; x.fillStyle = '#1e293b'; x.fillText(fit(i.vadi + '  बनाम  ' + i.prati, W - 2 * pad - 56, '700 36px ' + F), pad + 28, 348); x.fillStyle = '#64748b'; x.font = '500 28px ' + F; x.fillText(fit(i.court ? '🏛 ' + i.court : '', W - 2 * pad - 56, '500 28px ' + F), pad + 28, 392);
       var bw = (W - 2 * pad - 24) / 2, by = 440;
-      rr(pad, by, bw, 210, 24, '#e2e8f0'); x.fillStyle = '#475569'; x.font = '600 28px ' + F; x.fillText('📅 पिछली तारीख', pad + 26, by + 54); x.fillStyle = '#b91c1c'; x.font = '700 39px ' + F; var prevLabel = fit(fd(i.prev), bw - 52, '700 39px ' + F); x.fillText(prevLabel, pad + 26, by + 140); var prevW = x.measureText(prevLabel).width; x.strokeStyle = '#b91c1c'; x.lineWidth = 4; x.beginPath(); x.moveTo(pad + 24, by + 126); x.lineTo(pad + 30 + prevW, by + 126); x.stroke();
+      rr(pad, by, bw, 210, 24, '#e2e8f0'); x.fillStyle = '#475569'; x.font = '600 28px ' + F; x.fillText('📅 पिछली तारीख', pad + 26, by + 54); sk(fd(i.prev), pad + 26, by + 130, '700 34px ' + F, '#b91c1c');
       rr(pad + bw + 24, by, bw, 210, 24, '#d9a441'); x.fillStyle = '#3b2a05'; x.font = '700 28px ' + F; x.fillText('⭐ अगली तारीख (नई)', pad + bw + 50, by + 54); x.fillStyle = '#1b1405'; x.font = '800 58px ' + F; x.fillText(fd(i.next), pad + bw + 50, by + 144);
       var y = by + 210 + 50; x.fillStyle = '#0f2a4a'; x.font = '800 32px ' + F; x.fillText('✏ क्या अपडेट हुआ', pad, y + 24); y += 50;
       if (!rows.length) { x.fillStyle = '#64748b'; x.font = '500 28px ' + F; x.fillText('विवरण उपलब्ध नहीं', pad, y + 30); y += 74; }
-      rows.forEach(function (c) { rr(pad, y, W - 2 * pad, 62, 14, '#fff'); var dt = c.f.indexOf('Date') > -1; x.fillStyle = '#0f2a4a'; x.font = '700 26px ' + F; x.fillText(LABF[c.f] || c.f, pad + 18, y + 41); x.fillStyle = '#b91c1c'; x.font = '500 26px ' + F; x.fillText(fit(dt ? fd(c.o) : (c.o || '—'), 250, '500 26px ' + F), pad + 250, y + 41); x.fillStyle = '#64748b'; x.fillText('→', pad + 520, y + 41); x.fillStyle = '#137547'; x.font = '800 26px ' + F; x.fillText(fit(dt ? fd(c.n) : (c.n || '—'), 380, '800 26px ' + F), pad + 570, y + 41); y += 74; });
+      rows.forEach(function (c) { rr(pad, y, W - 2 * pad, 62, 14, '#fff'); var dt = c.f.indexOf('Date') > -1; x.fillStyle = '#0f2a4a'; x.font = '700 26px ' + F; x.fillText(LABF[c.f] || c.f, pad + 18, y + 41); sk(fit(dt ? fd(c.o) : (c.o || '—'), 250, '500 24px ' + F), pad + 250, y + 41, '500 24px ' + F, '#b91c1c'); x.fillStyle = '#64748b'; x.fillText('→', pad + 520, y + 41); x.fillStyle = '#137547'; x.font = '800 26px ' + F; x.fillText(fit(dt ? fd(c.n) : (c.n || '—'), 380, '800 26px ' + F), pad + 570, y + 41); y += 74; });
       y = H - 150; rr(pad, y, W - 2 * pad, 110, 20, '#0f2a4a'); x.fillStyle = '#fff'; x.font = '700 28px ' + F; x.fillText('🙋 अपडेट किसने किया: ' + fit(i.by || '—', 520, '700 28px ' + F), pad + 24, y + 44); x.fillStyle = '#cbd5e1'; x.font = '500 24px ' + F; x.fillText(fit((i.email ? i.email + ' · ' : '') + new Date(i.at).toLocaleString(), W - 2 * pad - 48, '500 24px ' + F), pad + 24, y + 84);
       return cv;
     }
@@ -15441,7 +15449,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
 </script>
 <script>
 (function () {
-  var MASTER_ONLY = ['createMasters', 'devInfo'];
+  var MASTER_ONLY = ['devInfo'];
   function locked() { return !!window.ADV_ROLE && window.ADV_ROLE !== 'master'; }
   function hit(t) { return MASTER_ONLY.some(function (k) { return t.indexOf("'" + k + "'") > -1; }); }
   window.advUnauth = function () {
@@ -15499,10 +15507,14 @@ body.chat-sidebar-open{overflow:hidden}
   +'#navUpBtn,#navDownBtn,.nav-ud-btn,#appBottomScrollBtn{display:none!important}'
   +'html:not(.adv-ai-on) #aivDock,html:not(.adv-ai-on) #aivMic,html:not(.adv-ai-on) #aivTog,html:not(.adv-ai-on) #aivP{display:none!important}'
   +'html:not(.adv-lite-on) #liteBtnV52{display:none!important}';
+  if(window.ADV_BUILD!=='master')st.textContent+='#ccFilterSel,#ccFilterBtn{display:none!important}';
+  st.textContent+='#nextSrcSel{display:none!important}';
   document.head.appendChild(st);
   var ORD={ccNameBtn:1,ccUpdBtn:2,ccMultiDelBtn:3,ccOvNotif:4,ccColorOn:5,ccTxBtn:6};
   function tick(){try{
     var b=document.getElementById('advArrangeToggle');if(b)b.remove();
+    if(window.__nextSrc){window.__nextSrc='';try{localStorage.removeItem('advNextSrc')}catch(e){}}
+    document.querySelectorAll('button').forEach(function(bt){if(bt.dataset.sy||bt.textContent.trim()!=='\uD83D\uDD0D \u0938\u093F\u0902\u0915 \u091C\u093E\u0901\u091A')return;bt.dataset.sy='1';bt.style.cssText+=';padding:2px 24px!important;font:800 12px system-ui!important;background:linear-gradient(180deg,#fde68a,#f59e0b)!important;color:#1b1405!important;box-shadow:0 2px 8px rgba(245,158,11,.6)!important;border:1px solid #fff7!important;letter-spacing:.3px'})
     if(window.ADV_BUILD!=='master'){['pcMob','pcMail','pcMin'].forEach(function(id){var e=document.getElementById(id);if(!e)return;e.style.display='none';var l=e.previousElementSibling;if(l&&l.tagName==='LABEL')l.style.display='none'});['pcCs','pcCw','pcCm'].forEach(function(id){var e=document.getElementById(id);if(!e)return;var l=e.closest('label')||e.parentNode;l.style.display='none'});document.querySelectorAll('#pinCard *').forEach(function(n){if(n.children.length===0&&/^\s*Forgot PIN/.test(n.textContent))n.style.display='none'})}
     document.body.classList.remove('nav-movable-off');
     Object.keys(ORD).forEach(function(id){var e=document.getElementById(id);if(!e)return;if(e.tagName==='INPUT'&&e.parentNode)e=e.parentNode;e.style.order=ORD[id];});
