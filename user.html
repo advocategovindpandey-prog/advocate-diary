@@ -12970,7 +12970,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       S.locked = ''; S.screen = 'panel'; S.tab = (role() === 'user' ? ((BUILD === 'admin' && S.prof.canViewMaster) ? 'mym' : 'acct') : (BUILD === 'admin' ? 'mym' : 'dash'));
       var cu0 = S.auth.currentUser, curT = (cu0 && cu0.metadata && cu0.metadata.lastSignInTime) ? new Date(cu0.metadata.lastSignInTime) : new Date();
       var pl = S.prof.lastLogin, prevT = (pl && pl.toDate) ? pl.toDate() : null;
-      var fmt = function (d) { return d.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); };
+      var fmt = function (d) { var M = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC']; return String(d.getDate()).padStart(2, '0') + '-' + M[d.getMonth()] + '-' + d.getFullYear() + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
       if (!prevT || curT - prevT > 60000) {
         S.prevLogin = prevT ? fmt(prevT) : '';
         try { localStorage.setItem('advPrevLogin:' + S.prof.id, S.prevLogin); localStorage.setItem('advLastLoginLocal', JSON.stringify({ e: (S.prof.email || S.em || ''), t: fmt(new Date()), d: devLabel() })); } catch (e) { }
@@ -13543,7 +13543,8 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   function colorOn() { try { return localStorage.getItem('advColorOn') !== '0'; } catch (e) { return true; } }
   function userColors() { try { return JSON.parse(localStorage.getItem('advUserColors') || '{}'); } catch (e) { return {}; } }
   function ucolor(n) { if (!n) return '#7a5a00'; var m = userColors(); if (m[n]) return m[n]; var h = 0; for (var i = 0; i < n.length; i++) h = (h * 31 + n.charCodeAt(i)) >>> 0; return PAL[h % PAL.length]; }
-  function fdt(t) { try { var m = t && t.toMillis ? t.toMillis() : (t && t.seconds ? t.seconds * 1000 : +new Date(t)); if (!m || isNaN(m)) return ''; var d = new Date(m), M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; return String(d.getDate()).padStart(2,'0') + '-' + M[d.getMonth()] + '-' + d.getFullYear() + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'); } catch (e) { return ''; } }
+  function fdt(t) { try { var m = t && t.toMillis ? t.toMillis() : (t && t.seconds ? t.seconds * 1000 : +new Date(t)); if (!m || isNaN(m)) return ''; var d = new Date(m), M = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC']; return String(d.getDate()).padStart(2,'0') + '-' + M[d.getMonth()] + '-' + d.getFullYear() + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'); } catch (e) { return ''; } }
+  function dv(f, v) { try { if ((f === 'nextDate' || f === 'caseDate') && /^\d{4}-\d{2}-\d{2}/.test(String(v || ''))) { var d = new Date(String(v).slice(0, 10) + 'T00:00:00'); return String(d.getDate()).padStart(2, '0') + '-' + ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][d.getMonth()] + '-' + d.getFullYear(); } } catch (e) { } return v; }
   var HC = { v: -1, map: {} };
   var _hc = { raw: null, map: {} };
   function histOf(c) {
@@ -13591,7 +13592,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     var h = histOf(c); S._hist = { id: id, list: h }; S._actorEntries = [];
     var rows = h.slice().reverse().map(function (e, ri) {
       var idx = h.length - 1 - ri, col = ucolor(e.by), ai = S._actorEntries.push(e) - 1;
-      return '<div style="border-bottom:1px solid #e2e8f0;padding:8px 0"><div style="font-size:12px;color:#64748b">' + fdt(e.at) + ' · <button style="border:0;background:transparent;padding:0;color:' + col + ';font:inherit;font-weight:800;text-decoration:underline" onclick="advCloud.actor(' + ai + ')">' + esc(e.by || '—') + '</button>' + (e.byRole || e.r ? ' (' + esc(e.byRole || e.r) + ')' : '') + '</div><div><b>' + esc(HLAB[e.f] || e.f) + '</b>' + (e.f === 'new' ? ': ' + esc(e.n) : ': <span style="color:#b91c1c;text-decoration:line-through">' + esc(e.o || '—') + '</span> → <span style="color:#137547">' + esc(e.n || '—') + '</span>') + '</div>' +
+      return '<div style="border-bottom:1px solid #e2e8f0;padding:8px 0"><div style="font-size:12px;color:#64748b">' + fdt(e.at) + ' · <button style="border:0;background:transparent;padding:0;color:' + col + ';font:inherit;font-weight:800;text-decoration:underline" onclick="advCloud.actor(' + ai + ')">' + esc(e.by || '—') + '</button>' + (e.byRole || e.r ? ' (' + esc(e.byRole || e.r) + ')' : '') + '</div><div><b>' + esc(HLAB[e.f] || e.f) + '</b>' + (e.f === 'new' ? ': ' + esc(e.n) : ': <span style="color:#b91c1c;text-decoration:line-through">' + esc(dv(e.f, e.o) || '—') + '</span> → <span style="color:#137547">' + esc(dv(e.f, e.n) || '—') + '</span>') + '</div>' +
         (e.f !== 'new' ? '<button style="margin-top:4px;border:0;border-radius:8px;padding:5px 10px;font:700 12px system-ui;background:#fde68a;color:#5b4300" onclick="advCloud.histRevert(' + idx + ')">↩ इसे वापस करें</button>' : '') + '</div>';
     }).join('') || '<div style="color:#64748b;padding:8px 0">अभी कोई बदलाव दर्ज नहीं है।</div>';
     modalBox('ccHist', '<div style="display:flex;align-items:center;gap:8px"><b style="flex:1;font-size:15px">🕘 History — केस ' + esc(c.caseNo || '') + ' (आख़िरी 10)</b><button style="border:0;background:#e2e8f0;border-radius:8px;padding:6px 10px;font-weight:800" onclick="document.getElementById(\'ccHist\').remove()">✕</button></div>' + rows);
@@ -13599,7 +13600,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   function lastOpen(id) {
     var c = cases.filter(function (x) { return String(x.id) === String(id); })[0]; if (!c) return; var h = histOf(c), e = h[h.length - 1]; if (!e) return;
     S._actorEntries = [e];
-    modalBox('ccHist', '<div style="display:flex;align-items:center;gap:8px"><b style="flex:1;font-size:15px">🔄 आख़िरी अपडेट — केस ' + esc(c.caseNo || '') + '</b><button style="border:0;background:#e2e8f0;border-radius:8px;padding:6px 10px;font-weight:800" onclick="document.getElementById(\'ccHist\').remove()">✕</button></div><div style="padding:10px 0"><div style="font-size:16px"><button style="border:0;background:transparent;padding:0;color:' + ucolor(e.by) + ';font:inherit;font-weight:800;text-decoration:underline" onclick="advCloud.actor(0)">' + esc(e.by || '—') + '</button>' + (e.byRole || e.r ? ' (' + esc(e.byRole || e.r) + ')' : '') + '</div><div style="color:#64748b;margin:4px 0">' + fdt(e.at) + '</div><div><b>' + esc(HLAB[e.f] || e.f) + '</b>' + (e.f === 'new' ? ': ' + esc(e.n) : ': <span style="color:#b91c1c;text-decoration:line-through">' + esc(e.o || '—') + '</span> → <span style="color:#137547">' + esc(e.n || '—') + '</span>') + '</div></div>');
+    modalBox('ccHist', '<div style="display:flex;align-items:center;gap:8px"><b style="flex:1;font-size:15px">🔄 आख़िरी अपडेट — केस ' + esc(c.caseNo || '') + '</b><button style="border:0;background:#e2e8f0;border-radius:8px;padding:6px 10px;font-weight:800" onclick="document.getElementById(\'ccHist\').remove()">✕</button></div><div style="padding:10px 0"><div style="font-size:16px"><button style="border:0;background:transparent;padding:0;color:' + ucolor(e.by) + ';font:inherit;font-weight:800;text-decoration:underline" onclick="advCloud.actor(0)">' + esc(e.by || '—') + '</button>' + (e.byRole || e.r ? ' (' + esc(e.byRole || e.r) + ')' : '') + '</div><div style="color:#64748b;margin:4px 0">' + fdt(e.at) + '</div><div><b>' + esc(HLAB[e.f] || e.f) + '</b>' + (e.f === 'new' ? ': ' + esc(e.n) : ': <span style="color:#b91c1c;text-decoration:line-through">' + esc(dv(e.f, e.o) || '—') + '</span> → <span style="color:#137547">' + esc(dv(e.f, e.n) || '—') + '</span>') + '</div></div>');
   }
   function histRevert(idx) {
     var H = S._hist; if (!H) return; var e = H.list[idx]; if (!e) return;
@@ -13620,7 +13621,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     var dcnt = 0, t24 = Date.now() - 86400000; list.forEach(function (c) { histOf(c).forEach(function (e) { if (e.f === 'nextDate' && e.at > t24 && sel.indexOf(e.by) > -1) dcnt++; }); });
     var body = list.map(function (c, i) {
       var h = histOf(c).filter(function (e) { return sel.indexOf(e.by) > -1; }).slice(-3).reverse();
-      var lines = h.map(function (e) { var ai = S._actorEntries.push(e) - 1; return '<div style="font-size:12px;color:#475569"><button style="border:0;background:transparent;padding:0;color:' + ucolor(e.by) + ';font:inherit;font-weight:800;text-decoration:underline" onclick="advCloud.actor(' + ai + ')">' + esc(e.by || '') + '</button> · ' + fdt(e.at) + ' · ' + esc(HLAB[e.f] || e.f) + (e.f === 'new' ? '' : ': ' + esc(e.o || '—') + ' → ' + esc(e.n || '—')) + '</div>'; }).join('');
+      var lines = h.map(function (e) { var ai = S._actorEntries.push(e) - 1; return '<div style="font-size:12px;color:#475569"><button style="border:0;background:transparent;padding:0;color:' + ucolor(e.by) + ';font:inherit;font-weight:800;text-decoration:underline" onclick="advCloud.actor(' + ai + ')">' + esc(e.by || '') + '</button> · ' + fdt(e.at) + ' · ' + esc(HLAB[e.f] || e.f) + (e.f === 'new' ? '' : ': ' + esc(dv(e.f, e.o) || '—') + ' → ' + esc(dv(e.f, e.n) || '—')) + '</div>'; }).join('');
       var ch = ''; try { ch = (typeof window.card === 'function') ? window.card(c, i) : ''; } catch (e) { }
       return '<div style="margin:10px 0">' + ch + '<div style="padding:4px 8px">' + lines + '</div></div>';
     }).join('') || '<div style="color:#64748b;padding:14px">चुने हुए यूज़र का कोई अपडेट नहीं मिला।</div>';
@@ -13708,9 +13709,9 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     if (!L.length) { if (o) o.remove(); return; }
     if (!o) { o = document.createElement('div'); o.id = 'ccChg'; o.style.cssText = 'position:fixed;left:8px;right:8px;top:8px;z-index:2147483640;background:#fff;color:#142b4a;border-radius:14px;padding:10px 12px;box-shadow:0 10px 34px rgba(0,0,0,.45);border:2px solid #d9a441;font:13px/1.4 system-ui,sans-serif;max-height:60vh;overflow:auto'; document.body.appendChild(o); }
     var rows = L.map(function (it) {
-      var tm = ''; try { var d = it.at && it.at.toDate ? it.at.toDate() : new Date(it.ts || Date.now()); tm = d.toLocaleString('hi-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch (e) { }
+      var tm = ''; try { var d = it.at && it.at.toDate ? it.at.toDate() : new Date(it.ts || Date.now()); tm = fdt(d); } catch (e) { }
       var head = '<b style="color:' + ucolor(it.by) + '">' + esc(it.by || 'User') + '</b> · ' + tm + ' — ' + (it.kind === 'del' ? '🗑 केस हटाया' : it.kind === 'new' ? '＋ नया केस' : '✏ बदलाव') + ' <b>' + esc(it.caseNo || '') + '</b> <span style="color:#64748b">(' + esc(it.names || '') + ')</span>';
-      var ch = (it.changes || []).map(function (c) { return '<div style="margin-left:10px">' + esc(HLAB[c.f] || c.f) + ': <span style="color:#b91c1c;text-decoration:line-through">' + esc(c.o || '—') + '</span> → <span style="color:#137547;font-weight:700">' + esc(c.n || '—') + '</span></div>'; }).join('');
+      var ch = (it.changes || []).map(function (c) { return '<div style="margin-left:10px">' + esc(HLAB[c.f] || c.f) + ': <span style="color:#b91c1c;text-decoration:line-through">' + esc(dv(c.f, c.o) || '—') + '</span> → <span style="color:#137547;font-weight:700">' + esc(dv(c.f, c.n) || '—') + '</span></div>'; }).join('');
       return '<div style="padding:6px 0;border-bottom:1px solid #e2e8f0">' + head + ch + '</div>';
     }).join('');
     o.innerHTML = '<div style="display:flex;align-items:center;gap:8px"><b style="flex:1;font-size:14px">🔔 नए अपडेट (' + L.length + ')</b><button style="border:0;border-radius:8px;padding:6px 14px;font:800 13px system-ui;background:#142b4a;color:#fff" onclick="advCloud.chgOk()">ठीक है</button></div>' + rows;
@@ -13930,7 +13931,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     if (mine.length) { try { await F.setDoc(ref('teams/' + TS.id + '/cases/' + mine[0]), { ping: F.serverTimestamp() }, { merge: true }); wr = '✔ चल रहा है'; } catch (e) { wr = '❌ ' + (e.code || e.message) + (/permission/i.test(e.code || e.message || '') ? ' (Rules publish नहीं हुए)' : ''); } }
     var rd = S.tsErr ? '❌ ' + S.tsErr : (TS.okAt ? '✔ चल रहा है' : '⏳ अभी जुड़ा नहीं');
     var ex = S.prof.expiresAt, exMs = ex && ex.toMillis ? ex.toMillis() : (ex && ex.seconds ? ex.seconds * 1000 : (+ex || 0)), exOk = !exMs || exMs > Date.now(), stOk = (S.prof.status || 'active') === 'active';
-    var validRow = '<div style="border-bottom:1px solid #e2e8f0;padding:6px 0">' + (exOk && stOk ? '✔ खाता चालू' + (exMs ? ' · वैधता ' + new Date(exMs).toLocaleDateString() + ' तक' : '') : '<b style="color:#b91c1c">⚠ खाता बंद या वैधता ख़त्म (' + esc(String(S.prof.status || '')) + (exMs ? ' · ' + new Date(exMs).toLocaleDateString() : '') + ') — इस वजह से सर्वर पढ़ना-लिखना रुका रहता है। Master से वैधता बढ़वाइए।</b>') + '</div>';
+    var validRow = '<div style="border-bottom:1px solid #e2e8f0;padding:6px 0">' + (exOk && stOk ? '✔ खाता चालू' + (exMs ? ' · वैधता ' + fmt(exMs) + ' तक' : '') : '<b style="color:#b91c1c">⚠ खाता बंद या वैधता ख़त्म (' + esc(String(S.prof.status || '')) + (exMs ? ' · ' + fmt(exMs) : '') + ') — इस वजह से सर्वर पढ़ना-लिखना रुका रहता है। Master से वैधता बढ़वाइए।</b>') + '</div>';
     var line = function (a, b) { return '<div style="display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #e2e8f0;padding:6px 0"><span>' + a + '</span><b>' + b + '</b></div>'; };
     modalBox('ccSync', '<div style="display:flex;align-items:center;gap:8px"><b style="flex:1;font-size:15px">🔍 सिंक जाँच</b><button style="border:0;background:#e2e8f0;border-radius:8px;padding:6px 10px;font-weight:800" onclick="document.getElementById(\'ccSync\').remove()">✕</button></div>' +
       line('खाता', esc(role() + ' · ' + (S.prof.name || S.prof.email))) + validRow + line('टीम', esc(TS.id || '—')) + line('सर्वर से पढ़ना', rd) + line('सर्वर पर लिखना', wr) +
@@ -14042,7 +14043,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     var sel = document.getElementById('nextSrcSel');
     if (!sel) { sel = document.createElement('select'); sel.id = 'nextSrcSel'; sel.style.cssText = 'margin:6px 0;padding:8px;border-radius:10px;border:1.5px solid #d9a441;font-weight:700;max-width:100%'; sel.onchange = function () { window.__nextSrc = this.value; try { localStorage.setItem('advNextSrc', this.value); } catch (e) { } try { renderNext(); } catch (e) { } }; box.parentNode.insertBefore(sel, box.nextSibling); try { window.__nextSrc = localStorage.getItem('advNextSrc') || ''; } catch (e) { } }
     var cur = window.__nextSrc || '', h = '<option value="">📂 सारा डेटा (सब स्रोत)</option><option value="own">🧑 सिर्फ़ मेरा अपना (' + (OV.own || []).length + ')</option>';
-    Object.keys(OV.srcs).forEach(function (u) { h += '<option value="' + esc(u) + '">' + esc(OV.srcs[u].name) + ' का डेटा (' + OV.srcs[u].cases.length + ')</option>'; });
+    Object.keys(OV.srcs).forEach(function (u) { h += '<option value="' + esc(u) + '">' + esc(OV.srcs[u].name) + ' का डेटा (' + srcCases(u).length + ')</option>'; });
     sel.innerHTML = h; sel.value = cur; if (sel.value !== cur) { sel.value = ''; window.__nextSrc = ''; }
   }
   function wrapAdvSwitch() {
@@ -14093,7 +14094,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   function ckey(c) { return nno(c.type) + '|' + nno(c.caseNo) + '|' + nno(c.court); }
   function teq(a, b) { a = nno(a); b = nno(b); return !a || !b || a === b; }
   function ovApply() {
-    try {
+    try { ovFixNames();
       if (!window.__advViewOnly) OV.own = cases.filter(function (c) { return !c._ov && String(c.id).indexOf('ov_') !== 0; });
       var act = ''; try { act = activeAdvocate().id; } catch (e) { }
       var ids = OV.notif ? [act || ((settings.advocates || [])[0] || {}).id] : ['__ov'], ov = [], hidden = [], seenK = {}, usedOwn = {}, ownByNo = {}; OV.shadow = {};
@@ -14101,7 +14102,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       Object.keys(OV.srcs).forEach(function (uid) {
         if ((role() === 'master' || role() === 'admin') && (!OV.sel || uid !== OV.sel)) return;
         var sc = OV.srcs[uid];
-        (sc.cases || []).forEach(function (c) {
+        srcCases(uid).forEach(function (c) {
           var k = c.caseNo ? ckey(c) : '', x, ow = null;
           if (k && seenK[k]) return;
           if (k) seenK[k] = 1;
@@ -14174,7 +14175,102 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     var t = $('ccLoginTxt'); if (t) t.textContent = '☁ ' + titleRole() + ' · ' + (S.prof.email || '') + (S.prevLogin ? ' · Last login: ' + S.prevLogin : '') + (S.syncErr ? ' · ⚠ सिंक: ' + S.syncErr : (pub ? ' · ✓ सर्वर पर आख़िरी अपडेट: ' + pub : '')) + tsStatus();
     var op = $('ccLoginOpts'); if (op) op.style.display = 'flex'; var fs0 = $('ccFilterSel'); if (fs0) fs0.style.display = ''; var lm = $('ccOvMerge'); if (lm && lm.parentNode) lm.parentNode.style.display = 'none'; var tb = $('ccTxBtn'); if (tb) tb.style.display = role() === 'master' ? '' : 'none';
   }
+
+  /* ---------- names from the real account records (not stale ownerName) ---------- */
+  function acctName(u, fb) {
+    try {
+      if (role() !== 'master' && role() !== 'admin') return fb;
+      if (S.prof && S.prof.id === u) return S.prof.name || S.prof.email || fb;
+      var a = (S.list || []).filter(function (x) { return x.id === u; })[0]; if (a) return a.name || a.email || fb;
+    } catch (e) { } return fb;
+  }
+  function ovFixNames() { Object.keys(OV.srcs).forEach(function (u) { var sc = OV.srcs[u]; if (sc) sc.name = acctName(u, sc.name); }); }
+  /* cases of a source, without copies of the parent's own cases (same case no, created by someone else) */
+  function srcCases(uid) {
+    var sc = OV.srcs[uid]; if (!sc) return []; var all = sc.cases || [];
+    try {
+      if (role() !== 'master' && role() !== 'admin') return all;
+      var a = acctById(uid); if (!a || !a.parentId) return all;
+      var par = (S.prof && a.parentId === S.prof.id) ? (OV.own || []) : ((OV.srcs[a.parentId] || {}).cases || []);
+      if (!par.length) return all;
+      var keys = {}; par.forEach(function (c) { if (c && c.caseNo) keys[ckey(c)] = 1; });
+      var me = nno(sc.name);
+      return all.filter(function (c) { return !(c && c.caseNo && keys[ckey(c)] && c.createdByName && nno(c.createdByName) !== me); });
+    } catch (e) { return all; }
+  }
+  function fcnt(id) { return OV.srcs[id] ? srcCases(id).length : null; }
+  function fdup(id) { return OV.srcs[id] ? ((OV.srcs[id].cases || []).length - srcCases(id).length) : 0; }
+
+  /* ---------- Master / Admin dropdown: Master + his users, then each Admin + his users ---------- */
+  function fgroups() {
+    var L = S.list || [], me = S.prof; if (!me) return [];
+    var byName = function (a, b) { return String(a.name || a.email || '').localeCompare(String(b.name || b.email || '')); };
+    var us = L.filter(function (x) { return x.role === 'user'; }).sort(byName), ad = L.filter(function (x) { return x.role === 'admin'; }).sort(byName);
+    var heads = [me].concat(role() === 'master' ? ad : []), used = {}, G = [];
+    heads.forEach(function (h) { var kids = us.filter(function (u) { return u.parentId === h.id; }); kids.forEach(function (k) { used[k.id] = 1; }); G.push({ h: h, own: h.id === me.id, kids: kids }); });
+    var rest = us.filter(function (u) { return !used[u.id]; });
+    if (rest.length) G.push({ h: null, own: false, kids: rest });
+    return G;
+  }
+  function flabel() {
+    var me = S.prof; if (!me) return '☁ User/Admin';
+    var ic = role() === 'master' ? '👑 ' : '🧑‍💼 ';
+    if (!OV.sel) return ic + (me.name || me.email) + ' (' + (OV.own || []).length + ')';
+    var a = acctById(OV.sel); if (!a) return '☁ User/Admin';
+    var c = fcnt(a.id);
+    return (a.role === 'admin' ? '🧑‍💼 ' : '👤 ') + (a.name || a.email) + (c == null ? '' : ' (' + c + ')');
+  }
+  function fOpen() {
+    var cur = OV.sel || (S.prof && S.prof.id) || '';
+    fgroups().forEach(function (g) { if ((g.h && g.h.id === cur) || g.kids.some(function (k) { return k.id === cur; })) S._fExp = g.h ? g.h.id : '__rest'; });
+    var o = document.getElementById('ccFPanel'); if (o) o.remove();
+    o = document.createElement('div'); o.id = 'ccFPanel';
+    o.style.cssText = 'position:fixed;inset:0;z-index:2147483644;background:rgba(15,23,42,.55);display:flex;align-items:flex-start;justify-content:center;padding-top:8vh';
+    o.addEventListener('click', function (e) { if (e.target === o) o.remove(); });
+    document.body.appendChild(o); fRender();
+  }
+  function fRender() {
+    var o = document.getElementById('ccFPanel'); if (!o) return;
+    var cur = OV.sel || '', G = fgroups(), h = '';
+    G.forEach(function (g) {
+      var id = g.h ? g.h.id : '__rest', open = S._fExp === id, own = g.own;
+      var n = own ? (OV.own || []).length : (g.h ? fcnt(g.h.id) : null);
+      var tot = 0, kn = 0; g.kids.forEach(function (k) { var c = fcnt(k.id); if (c != null) { tot += c; kn++; } });
+      var nm = g.h ? (g.h.name || g.h.email) : 'अन्य यूज़र';
+      var icon = !g.h ? '👥' : '🧑‍💼'; if (own && role() === 'master') icon = '👑';
+      var tag = own ? (role() === 'master' ? 'MASTER' : 'ADMIN') : (g.h ? 'ADMIN' : '');
+      var sub = (g.kids.length ? g.kids.length + ' यूज़र' : 'कोई यूज़र नहीं') + (kn ? ' · उनके ' + tot + ' केस' : '');
+      var on = g.h && ((own && !cur) || (!own && cur === g.h.id));
+      h += '<div onclick="advCloud.fTog(\'' + esc(id) + '\')" style="display:flex;align-items:center;gap:8px;padding:11px 12px;border-bottom:1px solid #e2e8f0;background:' + (on ? '#fff3cf' : '#f1f5f9') + ';font-weight:800"><span style="width:14px">' + (g.kids.length ? (open ? '▾' : '▸') : '') + '</span><span>' + icon + '</span><span style="flex:1;min-width:0"><div style="overflow:hidden;text-overflow:ellipsis">' + esc(nm) + '</div><div style="font-size:11px;font-weight:600;color:#64748b">' + tag + (tag ? ' · ' : '') + sub + '</div></span><span style="background:#0f2a4a;color:#fff;border-radius:10px;padding:2px 9px;font-size:12px">' + (n == null ? '–' : n) + ' केस</span></div>';
+      if (open) g.kids.forEach(function (k) {
+        var c = fcnt(k.id), d = fdup(k.id);
+        h += '<div onclick="advCloud.fPick(\'' + esc(k.id) + '\')" style="display:flex;align-items:center;gap:8px;padding:10px 12px 10px 38px;border-bottom:1px solid #eef2f7;background:' + (cur === k.id ? '#fff3cf' : '#fff') + ';font-weight:700"><span>👤</span><span style="flex:1;min-width:0"><div style="overflow:hidden;text-overflow:ellipsis">' + esc(k.name || k.email) + '</div>' + (d > 0 ? '<div style="font-size:11px;font-weight:600;color:#b45309">' + d + ' केस ऊपर वाले की कॉपी (छिपे)</div>' : '') + '</span><span style="background:#e2e8f0;border-radius:10px;padding:2px 9px;font-size:12px">' + (c == null ? '–' : c) + ' केस</span></div>';
+      });
+    });
+    o.innerHTML = '<div style="background:#fff;color:#142b4a;border-radius:14px;width:calc(100% - 20px);max-width:460px;max-height:80vh;overflow:auto;font:14px/1.4 system-ui,sans-serif"><div style="position:sticky;top:0;background:#0f2a4a;color:#fff;padding:10px 12px;display:flex;align-items:center;gap:8px"><b style="flex:1">Master / Admin / User चुनें</b><button type="button" style="border:0;border-radius:8px;padding:6px 12px;font-weight:800" onclick="document.getElementById(\'ccFPanel\').remove()">✕</button></div>' + (h || '<div style="padding:14px;color:#64748b">कोई खाता नहीं मिला।</div>') + '</div>';
+  }
+  function fSelect(id) {
+    var me = S.prof, s = $('ccFilterSel');
+    if (!id || (me && id === me.id)) { OV.sel = ''; try { localStorage.removeItem('advCloudFilter'); } catch (e) { } if (s) s.value = ''; ovApply(); return Promise.resolve(); }
+    return Promise.resolve(onFilter(id)).then(function () { var s2 = $('ccFilterSel'); if (s2) s2.value = id; fillFilter(); });
+  }
+  function fTog(id) {
+    S._fExp = (S._fExp === id ? '' : id);
+    if (id !== '__rest') fSelect(id === (S.prof && S.prof.id) ? '' : id);
+    fRender();
+  }
+  function fPick(id) { var o = document.getElementById('ccFPanel'); if (o) o.remove(); fSelect(id); }
   function fillFilter() {
+    if (role() === 'user') { var b0 = $('ccFilterBtn'); if (b0) b0.remove(); var s0 = $('ccFilterSel'); if (s0) s0.removeAttribute('data-h'); return fillFilterOld(); }
+    var sel = $('ccFilterSel'); if (!sel) return;
+    fillFilterOld();
+    sel.setAttribute('data-h', '1');
+    var b = $('ccFilterBtn');
+    if (!b) { b = document.createElement('button'); b.id = 'ccFilterBtn'; b.type = 'button'; b.title = 'Master / Admin / User चुनें'; b.style.cssText = 'min-width:0;max-width:160px;padding:8px 8px;border-radius:8px;border:1px solid #d9a441;background:#fff;color:#142b4a;font:700 12px system-ui;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'; b.onclick = function () { fOpen(); }; sel.parentNode.insertBefore(b, sel.nextSibling); }
+    b.textContent = flabel() + ' ▾';
+    if ($('ccFPanel')) fRender();
+  }
+  function fillFilterOld() {
     var sel = $('ccFilterSel'); if (!sel) return;
     if (role() === 'user') {
       var cur = window.__nextSrc || '', h = '<option value="">👥 पूरी टीम</option><option value="own">👤 सिर्फ़ मेरा</option>';
@@ -14264,7 +14360,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   /* ---------- UI ---------- */
   var CSS = '#cc-root{position:fixed;inset:0;z-index:2147483000;background:#f1f5f9;color:#0f172a;font:15px/1.45 system-ui,"Noto Sans Devanagari",sans-serif;display:none;flex-direction:column;overflow:hidden}' +
     '#cc-root.on{display:flex}#cc-root *{box-sizing:border-box}' +
-    '.cc-top{background:#0f2a4a;color:#fff;padding:10px 12px;display:flex;flex-wrap:wrap;align-items:center;gap:8px}.cc-top b{min-width:150px}#ccLoginLine label{display:inline-flex;align-items:center;gap:4px;font-weight:700}#ccLoginLine{display:none;background:#0f2a4a;color:#dbe6f5;font:600 12px/1.3 system-ui,sans-serif;padding:4px 12px;border-top:1px solid #1c3a63}#ccFilterSel{min-width:0;max-width:118px;padding:8px 4px;border-radius:8px;border:1px solid #d9a441;background:#fff;color:#142b4a;font-size:12px;font-weight:700}.cc-top b{flex:1;font-size:16px}.cc-top small{opacity:.8;display:block;font-weight:400;font-size:12px}' +
+    '.cc-top{background:#0f2a4a;color:#fff;padding:10px 12px;display:flex;flex-wrap:wrap;align-items:center;gap:8px}.cc-top b{min-width:150px}#ccLoginLine label{display:inline-flex;align-items:center;gap:4px;font-weight:700}#ccLoginLine{display:none;background:#0f2a4a;color:#dbe6f5;font:600 12px/1.3 system-ui,sans-serif;padding:4px 12px;border-top:1px solid #1c3a63}#ccFilterSel[data-h]{display:none!important}#ccFilterSel{min-width:0;max-width:118px;padding:8px 4px;border-radius:8px;border:1px solid #d9a441;background:#fff;color:#142b4a;font-size:12px;font-weight:700}.cc-top b{flex:1;font-size:16px}.cc-top small{opacity:.8;display:block;font-weight:400;font-size:12px}' +
     '.cc-tabs{display:flex;gap:4px;overflow-x:auto;background:#fff;border-bottom:1px solid #cbd5e1;padding:6px}.cc-tabs button{border:0;background:#e2e8f0;border-radius:18px;padding:7px 13px;white-space:nowrap;font:inherit;font-size:14px}.cc-tabs button.on{background:#0f2a4a;color:#fff}' +
     '.cc-main{flex:1;overflow:auto;padding:12px;-webkit-overflow-scrolling:touch}.cc-box{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin-bottom:10px}' +
     '.cc-center{max-width:420px;margin:6vh auto 0}.cc-center h2{margin:0 0 4px;color:#0f2a4a}.cc-in{width:100%;padding:11px;margin:5px 0 10px;border:1px solid #94a3b8;border-radius:9px;font:inherit;background:#fff;color:#0f172a}textarea.cc-in{min-height:84px}' +
@@ -14615,6 +14711,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     syncCheck: function () { syncCheck(); }, syncPush: function () { syncPush(); }, syncPull: function () { syncPull(); },
     perms: function (id) { permsOpen(id); }, permsSave: function (id) { permsSave(id); },
     hist: function (id) { histOpen(id); }, histRevert: function (i) { histRevert(i); }, actor: function (i) { actorOpen(i); }, teamTog: function (id) { S._teamOpen = S._teamOpen || {}; S._teamOpen[id] = !S._teamOpen[id]; draw(); }, teamFilter: function (v) { S._teamFilter = v || 'all'; if (S._teamFilter !== 'all') { S._teamOpen = S._teamOpen || {}; if (S._teamFilter === 'master') S._teamOpen[S.prof.id] = true; else S._teamOpen[S._teamFilter] = true; } draw(); }, teamAll: function (on) { S._teamOpen = S._teamOpen || {}; if (role() === 'master') { S._teamOpen[S.prof.id] = !!on; (S.list || []).forEach(function(a){ if(a.role === 'admin') S._teamOpen[a.id] = !!on; }); } else if (role() === 'admin') S._teamOpen[S.prof.id] = !!on; draw(); },
+    fOpen: fOpen, fTog: fTog, fPick: fPick,
     updAll: function (on) { var names = {}; Object.keys(OV.srcs).forEach(function (u) { names[OV.srcs[u].name] = 1; }); if (S.prof) names[S.prof.name || S.prof.email] = 1; S._updSel = on ? Object.keys(names) : []; updOpen(); },
     updTog: function (n, on) { var a = (S._updSel || []).filter(function (x) { return x !== n; }); if (on) a.push(n); S._updSel = a; updOpen(); },
     updColor: function (n, c) { var m = userColors(); m[n] = c; try { localStorage.setItem('advUserColors', JSON.stringify(m)); } catch (e) { } ovRefresh(); updOpen(); },
