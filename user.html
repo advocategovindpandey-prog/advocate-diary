@@ -2530,7 +2530,7 @@ function importData(e){let inp=e.target,f=inp.files[0];if(!f)return;let r=new Fi
   let fs=d.settings||{},advs=(Array.isArray(fs.advocates)&&fs.advocates.length)?fs.advocates.map(a=>({...a})):null;
   if(!advs){let id='legacy-'+Date.now();advs=[{id,name:fs.name||'Advocate',title:fs.title||'Advocate',mobile:fs.mobile||'',chamberAddress:fs.chamberAddress||'',officeAddress:fs.officeAddress||'',email:fs.advEmail||'',photo:fs.advPhoto||''}];fs.activeAdvocateId=id}
   let def=advs.find(a=>a.id===fs.activeAdvocateId)?fs.activeAdvocateId:advs[0].id;
-  let cs=d.cases.map(c=>{let ids=caseAdvIds(c).filter(i=>advs.find(a=>a.id===i));if(!ids.length)ids=[def];return{...c,advocateId:ids[0],advocateIds:ids}});
+  let cs=d.cases.map(c=>{let ids=caseAdvIds(c).filter(i=>advs.find(a=>a.id===i));if(!ids.length&&Array.isArray(c.advNames)&&c.advNames.length){c.advNames.forEach(n=>{let a=advs.find(x=>(x.name||'').trim().toLowerCase()===String(n).trim().toLowerCase());if(!a){a={id:'imp-'+Date.now()+'-'+advs.length,name:String(n).trim(),title:'Advocate'};advs.push(a)}ids.push(a.id)})}if(!ids.length)ids=[def];return{...c,advocateId:ids[0],advocateIds:ids}});
   _imp={advs,cs,fs};
   $('importAdvList').innerHTML=advs.map(a=>`<label class="opt"><input type="checkbox" class="impChk" value="${a.id}" checked onchange="impSummary()"> <span><b>${esc(a.name)}</b> <span class="small">(${cs.filter(c=>c.advocateIds.includes(a.id)).length} केस)</span></span></label>`).join('');
   impSummary();$('importOverlay').classList.remove('hidden');document.body.style.overflow='hidden'
@@ -6595,7 +6595,7 @@ header .advViewSel option{color:#142b4a;background:#fff}
   if(Array.isArray(s.advocates)) s.advocates=s.advocates.map(function(x){ return {id:x.id,name:x.name,title:x.title||'Advocate'} });
   delete s.devInfo; delete s.developer; delete s.adminMobile; delete s.adminEmail;
   return s; }
-window._bkPayload=function(){return JSON.stringify({cases:bkCases(),settings:bkSafeSettings(),backupRange:{mode:R.bk.mode,from:R.bk.from,to:R.bk.to,savedAt:new Date().toISOString()}},null,2)};
+window._bkPayload=function(){return JSON.stringify({cases:bkCases().map(function(c){try{if(!(c.advNames&&c.advNames.length)){var nn=caseAdvNames(c);if(nn)c=Object.assign({},c,{advNames:nn.split(', ')})}}catch(e){}return c}),settings:bkSafeSettings(),backupRange:{mode:R.bk.mode,from:R.bk.from,to:R.bk.to,savedAt:new Date().toISOString()}},null,2)};
   function setMode(k,m){const r=R[k];r.mode=m;
     if(m==='all'){r.from='';r.to=''}else if(m==='this'){r.from=Y+'-01-01';r.to=Y+'-12-31'}else if(m==='last'){r.from=(Y-1)+'-01-01';r.to=(Y-1)+'-12-31'}
     draw(k)}
@@ -14101,13 +14101,13 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       var ids = OV.notif ? [act || ((settings.advocates || [])[0] || {}).id] : ['__ov'], ov = [], hidden = [], seenK = {}, usedOwn = {}, ownByNo = {}; OV.shadow = {};
       OV.own.forEach(function (c) { if (c.caseNo) (ownByNo[nno(c.caseNo)] = ownByNo[nno(c.caseNo)] || []).push(c); });
       Object.keys(OV.srcs).forEach(function (uid) {
-        if ((role() === 'master' || role() === 'admin') && !(OV.sel === uid || (OV.selSet && OV.selSet[uid]))) return;
+        if ((role() === 'master' || role() === 'admin') && !(OV.sel === uid || (OV.selSet && OV.selSet[uid]) || (!OV.sel && !OV.selSet && OV.srcs[uid].team && srcTid(uid) === TS.id))) return;
         var sc = OV.srcs[uid];
         srcCases(uid).forEach(function (c) {
           var k = c.caseNo ? ckey(c) : '', x, ow = null;
           if (k && seenK[k]) return;
           if (k) seenK[k] = 1;
-          if (c.caseNo && role() !== 'master' && role() !== 'admin') ow = (ownByNo[nno(c.caseNo)] || []).filter(function (o) { return !usedOwn[o.id] && teq(o.type, c.type) && teq(o.court, c.court); })[0] || null;
+          if (c.caseNo) ow = (ownByNo[nno(c.caseNo)] || []).filter(function (o) { return !usedOwn[o.id] && teq(o.type, c.type) && teq(o.court, c.court); })[0] || null;
           if (ow) {
             usedOwn[ow.id] = 1; var oh = histOf(ow); x = Object.assign({}, ow); Object.keys(c).forEach(function (k3) { var v3 = c[k3]; if (v3 === undefined || v3 === null || v3 === '' || (Array.isArray(v3) && !v3.length && Array.isArray(x[k3]) && x[k3].length)) return; x[k3] = v3; }); x._merged = 1; x._ownId = ow.id; hidden.push(ow);
             if (!sc.noLWW) ED_KEYS.forEach(function (f) { var ot = 0, pt = 0, i; for (i = 0; i < oh.length; i++) if (oh[i].f === f && oh[i].at > ot) ot = oh[i].at; var ph = c.hist || []; for (i = 0; i < ph.length; i++) if (ph[i].f === f && ph[i].at > pt) pt = ph[i].at; if (ot > pt && ow[f] !== undefined) x[f] = ow[f]; });
@@ -14120,7 +14120,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       });
       OV.hidden = hidden; var hid = {}; hidden.forEach(function (h) { hid[h.id] = 1; });
       if ((role() === 'master' || role() === 'admin') && ((OV.sel && OV.srcs[OV.sel]) || OV.selSet)) { window.__advViewOnly = true; cases = ((OV.selSet && S.prof && OV.selSet[S.prof.id]) ? OV.own.slice() : []).concat(ov.filter(function (c) { return c._srcUid === OV.sel || !!(OV.selSet && OV.selSet[c._srcUid]); })); }
-      else if (role() === 'master' || role() === 'admin') { window.__advViewOnly = false; cases = OV.own.slice(); }
+      else if (false) { window.__advViewOnly = false; cases = OV.own.slice(); }
       else { var us = OV.userSel; window.__advViewOnly = !!(us && !us.__me); cases = ((!us || us.__me) ? OV.own.filter(function (c) { return !hid[c.id]; }) : []).concat(us ? ov.filter(function (c) { return us[c._srcUid]; }) : ov); }
       ovRefresh(); ovBanner(); try { fillNextSrc(); fillFilter(); } catch (e) { }
     } catch (e) { try { console.error(e); } catch (x) { } }
@@ -14328,7 +14328,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       toast('🔔 ' + nm + ' के ' + arr.length + ' Reminder सेट हो गए');
     } catch (e) { toast('Notification set नहीं हुए'); }
   }
-  async function onFilter(v) { OV.selSet = null;
+  async function onFilter(v) { if (!(OV.selSet && v === OV.sel)) OV.selSet = null;
     if (role() === 'user') { window.__nextSrc = v || ''; try { localStorage.setItem('advNextSrc', v || ''); } catch (e) { } try { renderNext(); } catch (e) { } try { fillNextSrc(); } catch (e) { } toast(v ? '✔ फ़िल्टर लगा' : 'पूरी टीम दिख रही है'); return; }
     try { localStorage.setItem('advCloudFilter', v || ''); } catch (e) { }
     OV.sel = v || '';
@@ -14869,7 +14869,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
         try { if (!OV.srcs[id]) { var l = await fetchCasesOf(a); OV.srcs[id] = { name: a.name || a.email, cases: l }; try { ovLiveMulti({ id: id, name: a.name || a.email }); } catch (e) { } } } catch (e) { }
       }
       OV.sel = first; OV.selSet = ids.length > 1 || set[me.id] ? set : null;
-      try { localStorage.setItem('advCloudFilter', first); } catch (e) { }
+      try { if (ids.length === 1) localStorage.setItem('advCloudFilter', first); else localStorage.removeItem('advCloudFilter'); } catch (e) { }
       ovApply(); if (fs && first) fs.value = first; fillFilter(); toast('✔ ' + (label || (ids.length + ' खातों')) + ' का डेटा खुल गया');
     }
     function teamIds(hid) { return [hid].concat((S.list || []).filter(function (x) { return x.role === 'user' && x.parentId === hid; }).map(function (x) { return x.id; })); }
@@ -14894,6 +14894,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       var o = $('ccFPanel'); if (!o) return; if (role() === 'user') return fRenderUser(); var cur = OV.sel || '', G = fgroups(), sel = S._fSel = S._fSel || {};
       var box = document.createElement('div'); box.style.cssText = 'background:#fff;color:#142b4a;border-radius:14px;width:calc(100% - 20px);max-width:460px;max-height:80vh;overflow:auto;font:14px/1.4 system-ui,sans-serif';
       var hd = document.createElement('div'); hd.style.cssText = 'position:sticky;top:0;z-index:2;background:#0f2a4a;color:#fff;padding:10px 12px;display:flex;align-items:center;gap:8px'; hd.innerHTML = '<b style="flex:1">Master / Admin / User चुनें</b>'; hd.appendChild(mk('✕', '#e2e8f0', function () { o.remove(); })); box.appendChild(hd);
+      var dg = document.createElement('div'); dg.style.cssText = 'padding:12px;border-bottom:1px solid #e2e8f0;font-weight:800;background:' + (!cur && !OV.selSet ? '#fff3cf' : '#ecfdf5') + ';cursor:pointer'; dg.innerHTML = '👥 पूरे ग्रुप का एक साथ डेटा <span style="font-size:11px;background:#0f766e;color:#fff;border-radius:8px;padding:1px 7px">डिफ़ॉल्ट</span><div style="font-size:11px;font-weight:600;color:#64748b">आप + आपकी टीम का मर्ज किया हुआ एक ही डेटा · नीचे नाम के आगे = उसने कितने केस बनाए</div>'; dg.onclick = function () { o.remove(); openSet([]); toast('✔ पूरे ग्रुप का डेटा दिख रहा है'); }; box.appendChild(dg);
       if (!G.length) box.insertAdjacentHTML('beforeend', '<div style="padding:14px;color:#64748b">कोई खाता नहीं मिला।</div>');
       G.forEach(function (g) {
         var hid = g.h ? g.h.id : '__rest', open = S._fExp === hid, own = g.own, n = own ? (OV.own || []).length : (g.h ? fcnt(g.h.id) : null);
@@ -14908,7 +14909,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
         if (open) {
           var all = document.createElement('label'); all.style.cssText = 'display:flex;gap:8px;align-items:center;padding:8px 12px 8px 38px;background:#fff;border-bottom:1px solid #eef2f7;font-weight:700'; all.innerHTML = '<input type="checkbox"> सभी चुनें'; all.firstChild.onchange = function () { g.kids.forEach(function (k) { if (all.firstChild.checked) sel[k.id] = 1; else delete sel[k.id]; }); if (g.h) { if (all.firstChild.checked) sel[g.h.id] = 1; else delete sel[g.h.id]; } fRender(); };
           if (g.h) { var hl = document.createElement('label'); hl.style.cssText = all.style.cssText; hl.innerHTML = '<input type="checkbox"' + (sel[g.h.id] ? ' checked' : '') + '> ' + icon + ' ' + esc(nm) + ' (खुद का डेटा)'; hl.firstChild.onchange = function () { if (hl.firstChild.checked) sel[g.h.id] = 1; else delete sel[g.h.id]; fRender(); }; box.appendChild(all); box.appendChild(hl); } else box.appendChild(all);
-          g.kids.forEach(function (k) { var c = fcnt(k.id), d = fdup(k.id), l = document.createElement('label'); l.style.cssText = 'display:flex;align-items:center;gap:8px;padding:10px 12px 10px 38px;border-bottom:1px solid #eef2f7;font-weight:700;background:' + (cur === k.id ? '#fff3cf' : '#fff'); l.innerHTML = '<input type="checkbox"' + (sel[k.id] ? ' checked' : '') + '><span style="flex:1;min-width:0">👤 ' + esc(k.name || k.email) + (d > 0 ? '<div style="font-size:11px;font-weight:600;color:#b45309">' + d + ' केस ऊपर वाले की कॉपी (छिपे)</div>' : '') + '</span><span style="background:#e2e8f0;border-radius:10px;padding:2px 9px;font-size:12px">' + (c == null ? '–' : c) + ' केस</span>'; l.firstChild.onchange = function () { if (l.firstChild.checked) sel[k.id] = 1; else delete sel[k.id]; fRender(); }; box.appendChild(l); });
+          g.kids.forEach(function (k) { var c = fcnt(k.id), d = fdup(k.id), l = document.createElement('label'); l.style.cssText = 'display:flex;align-items:center;gap:8px;padding:10px 12px 10px 38px;border-bottom:1px solid #eef2f7;font-weight:700;background:' + (cur === k.id ? '#fff3cf' : '#fff'); l.innerHTML = '<input type="checkbox"' + (sel[k.id] ? ' checked' : '') + '><span style="flex:1;min-width:0">👤 ' + esc(k.name || k.email) + (d > 0 ? '<div style="font-size:11px;font-weight:600;color:#b45309">' + d + ' केस ऊपर वाले की कॉपी (छिपे)</div>' : '') + '</span><span style="background:#e2e8f0;border-radius:10px;padding:2px 9px;font-size:12px">' + (c == null ? '–' : 'बनाए: ' + c + ' केस') + '</span>'; l.firstChild.onchange = function () { if (l.firstChild.checked) sel[k.id] = 1; else delete sel[k.id]; fRender(); }; box.appendChild(l); });
           var ids = Object.keys(sel), bar = document.createElement('div'); bar.style.cssText = 'padding:8px 12px;background:#fff'; bar.appendChild(mk('✔ चुने हुए एक साथ खोलें (' + ids.length + ')', ids.length ? '#0f766e' : '#94a3b8', function () { if (!ids.length) { toast('पहले चेकबॉक्स चुनें'); return; } o.remove(); openSet(ids, ids.length + ' चुने हुए खातों'); })); box.appendChild(bar);
         }
       });
@@ -14921,7 +14922,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     function gnCtl() { try { var c = JSON.parse(lsGet('advGrpCtl', '{}')) || {}; c.clear = c.clear || 0; c.reset = c.reset || 0; c.off = c.clear > c.reset; return c; } catch (e) { return { clear: 0, reset: 0, off: false }; } }
     function gnCases() {
       var out = [], seen = {};
-      try { Object.keys(TS.docs || {}).forEach(function (k) { var x = TS.docs[k]; if (!x || !x.cid || x.del === true || !x.c) return; try { var c = JSON.parse(x.c); out.push(c); seen[ckey(c)] = 1; } catch (e) { } }); } catch (e) { }
+      try { Object.keys(TS.docs || {}).forEach(function (k) { var x = TS.docs[k]; if (!x || !x.cid || x.del === true || !x.c) return; try { var c = JSON.parse(x.c); var kk = c.caseNo ? ckey(c) : ''; if (kk && seen[kk]) return; out.push(c); if (kk) seen[kk] = 1; } catch (e) { } }); } catch (e) { }
       (OV.own || []).forEach(function (c) { if (c && c.caseNo && seen[ckey(c)]) return; out.push(c); });
       return out;
     }
@@ -14981,9 +14982,9 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     async function ntfOpen() {
       var p = pop('<b>⏳ लोड हो रहा है…</b>'), today = ymd(new Date()), rows = [];
       for (var i = 0; i < heads().length; i++) {
-        var g = heads()[i], n = 0, tot = 0, st = 'चालू';
-        try { var sn = await S.fb.getDocs(col('teams/' + g.id + '/cases')); sn.docs.forEach(function (d) { var x = d.data(); if (d.id === '__ctl_notify') { if (ms(x.clearAt) > ms(x.resetAt)) st = 'हटाए गए (बंद)'; return; } if (!x || !x.cid || x.del === true) return; tot++; try { var c = JSON.parse(x.c || '{}'); if (c.nextDate && c.nextDate >= today && !c.inactive && !c.disposed) n++; } catch (e) { } }); } catch (e) { st = 'पढ़ नहीं सका'; }
-        rows.push({ g: g, n: n, tot: tot, st: st });
+        var g = heads()[i], n = 0, tot = 0, st = 'चालू', mailOn = false;
+        try { var sn = await S.fb.getDocs(col('teams/' + g.id + '/cases')); sn.docs.forEach(function (d) { var x = d.data(); if (d.id === '__ctl_notify') { if (ms(x.clearAt) > ms(x.resetAt)) st = 'हटाए गए (बंद)'; mailOn = x.mailOn === true; return; } if (!x || !x.cid || x.del === true) return; tot++; try { var c = JSON.parse(x.c || '{}'); if (c.nextDate && c.nextDate >= today && !c.inactive && !c.disposed) n++; } catch (e) { } }); } catch (e) { st = 'पढ़ नहीं सका'; }
+        rows.push({ g: g, n: n, tot: tot, st: st, mail: mailOn });
       }
       p.b.innerHTML = '<div style="display:flex;align-items:center"><b style="flex:1;font-size:15px">🔔 Notification नियंत्रण (ग्रुप-वार)</b></div><div style="font-size:12px;color:#64748b;margin:4px 0 8px">हर ग्रुप के सदस्य को सिर्फ़ अपने ग्रुप के केस के Notification (आज/कल की पेशी + नया/अपडेट केस) मिलते हैं। इस फ़ोन पर सेट: <b>' + gnIds().length + '</b></div>';
       p.b.querySelector('div').parentNode.querySelector('div').appendChild(mk('✕', '#e2e8f0', function () { p.o.remove(); }));
@@ -14993,6 +14994,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
         var bx = d.lastChild;
         bx.appendChild(mk('🗑 सारे Notification हटाएँ', '#991b1b', async function () { if (!confirm('"' + (r.g.name || r.g.email) + '" ग्रुप के सारे Notification सबके फ़ोन से हटाएँ?')) return; try { await S.fb.setDoc(ctlRef(r.g.id), { clearAt: S.fb.serverTimestamp(), by: S.prof.name || S.prof.email }, { merge: true }); toast('✔ हटाने का आदेश सर्वर पर भेज दिया'); p.o.remove(); } catch (e) { toast(errText(e)); } }));
         bx.appendChild(mk('♻ रीसेट — दोबारा लाएँ', '#0f766e', async function () { try { await S.fb.setDoc(ctlRef(r.g.id), { resetAt: S.fb.serverTimestamp(), by: S.prof.name || S.prof.email }, { merge: true }); toast('✔ रीसेट आदेश भेज दिया — Notification दोबारा बनेंगे'); p.o.remove(); } catch (e) { toast(errText(e)); } }));
+        var ml = document.createElement('label'); ml.style.cssText = 'display:flex;gap:8px;align-items:center;margin-top:6px;font-weight:700;font-size:13px'; ml.innerHTML = '<input type="checkbox"' + (r.mail ? ' checked' : '') + '> ✉ टीम में डेटा अपडेट होने पर Email जाए'; ml.firstChild.onchange = async function () { try { await S.fb.setDoc(ctlRef(r.g.id), { mailOn: ml.firstChild.checked, by: S.prof.name || S.prof.email }, { merge: true }); toast(ml.firstChild.checked ? '✔ Email चालू' : '✔ Email बंद'); } catch (e) { toast(errText(e)); ml.firstChild.checked = !ml.firstChild.checked; } }; d.appendChild(ml);
         p.b.appendChild(d);
       });
     }
@@ -15002,7 +15004,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       for (var i = 0; i < hs.length; i++) {
         var g = hs[i]; try {
           var sn = await S.fb.getDocs(col('teams/' + g.id + '/cases'));
-          for (var j = 0; j < sn.docs.length; j++) { var d = sn.docs[j], x = d.data(); if (!x || !x.cid || x.del !== true) continue; var t = ms(x.delAt); if (purge && t && now - t > days * 864e5) { try { await S.fb.deleteDoc(d.ref); } catch (e) { } continue; } out.push({ tid: g.id, g: g.name || g.email, key: d.id, x: x, t: t, ref: d.ref }); }
+          for (var j = 0; j < sn.docs.length; j++) { var d = sn.docs[j], x = d.data(); if (!x || !x.cid || x.del !== true || x.merged === true) continue; var t = ms(x.delAt); if (purge && t && now - t > days * 864e5) { try { await S.fb.deleteDoc(d.ref); } catch (e) { } continue; } out.push({ tid: g.id, g: g.name || g.email, key: d.id, x: x, t: t, ref: d.ref }); }
         } catch (e) { }
       }
       return out;
@@ -15053,6 +15055,79 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       try {
         gnTick(); addBtns();
         if (role() === 'master' && S.fb && S.list && S.list.length && Date.now() - parseInt(lsGet('advDustPurgeAt', '0'), 10) > 6 * 36e5) { lsSet('advDustPurgeAt', String(Date.now())); dLoad(true); }
+      } catch (e) { }
+    }, 4000);
+
+    /* 5. Updated-by on every card (tap = full details) */
+    var LABF = { nextDate: 'अगली तारीख', caseDate: 'केस तारीख', time: 'समय', notes: 'Notes', caseNo: 'Case No', type: 'Type', court: 'Court', vadiName: 'वादी', prativadiName: 'प्रतिवादी', vadiMobile: 'Mobile', new: 'नया केस' };
+    function wrapUpd() {
+      try {
+        if (typeof window.card !== 'function' || window.card.__u) return; var o = window.card;
+        var w = function (c, i) {
+          var h = o(c, i);
+          try { if (c && h.indexOf('adv-upby') < 0) { var hs = (c.hist || []).filter(function (x) { return x && x.by; }), l = hs[hs.length - 1], by = l ? l.by : (c.createdByName || ''); if (by) { var pay = encodeURIComponent(JSON.stringify({ c: c.createdByName || '', h: hs.slice(-6) })), dt = l && l.at ? new Date(l.at).toLocaleString() : ''; h = h.replace('<div class="meta">', '<div class="meta"><div class="small adv-upby" data-p="' + pay + '" style="cursor:pointer;color:#0f4c81;font-weight:700">✏ Updated by: ' + esc(by) + (dt ? ' · ' + esc(dt) : '') + ' ›</div>'); } } } catch (e) { }
+          return h;
+        };
+        Object.keys(o).forEach(function (k) { w[k] = o[k]; }); w.__u = 1; window.card = w;
+      } catch (e) { }
+    }
+    document.addEventListener('click', function (e) {
+      var t = e.target.closest && e.target.closest('.adv-upby'); if (!t) return; e.preventDefault(); e.stopPropagation();
+      var d = {}; try { d = JSON.parse(decodeURIComponent(t.getAttribute('data-p'))); } catch (x) { }
+      var p = pop('<b style="font-size:15px">✏ अपडेट का पूरा विवरण</b>' + (d.c ? '<div style="margin:6px 0;font-size:13px">केस बनाने वाला: <b>' + esc(d.c) + '</b></div>' : '')); p.b.appendChild(mk('✕ बंद करें', '#e2e8f0', function () { p.o.remove(); }));
+      (d.h || []).slice().reverse().forEach(function (x) {
+        var r = document.createElement('div'); r.style.cssText = 'border-top:1px solid #e2e8f0;padding:8px 0;font-size:13px';
+        r.innerHTML = '<div><b>' + esc(x.by || '—') + '</b> <span style="color:#64748b">(' + esc(x.byRole || x.r || '') + ')</span></div>' + (x.byEmail ? '<div>📧 ' + esc(x.byEmail) + '</div>' : '') + (x.byUid ? '<div style="color:#64748b">🆔 ' + esc(x.byUid) + '</div>' : '') + '<div>🕒 ' + (x.at ? esc(new Date(x.at).toLocaleString()) : '—') + '</div><div>' + esc(LABF[x.f] || x.f || '') + ': <span style="color:#b91c1c;text-decoration:line-through">' + esc(x.o || '—') + '</span> → <span style="color:#137547;font-weight:700">' + esc(x.n || '—') + '</span></div>';
+        p.b.insertBefore(r, p.b.lastChild);
+      });
+    }, true);
+
+    /* 6. Duplicate merge (master + admin): one case per group on server */
+    function nz(v) { return String(v == null ? '' : v).trim().toLowerCase().replace(/\s+/g, ' '); }
+    function mkey(c) { return nz(c.caseNo) ? [nz(c.type), nz(c.caseNo), nz(c.court), nz(c.vadiName), nz(c.prativadiName)].join('|') : ''; }
+    function lastAtZ(z) { var m = 0; (z.c.hist || []).forEach(function (h) { if (h.at > m) m = h.at; }); return m || ms(z.x.at); }
+    function createdZ(z) { var m = 0; (z.c.hist || []).forEach(function (h) { if (h.f === 'new' && (!m || h.at < m)) m = h.at; }); if (!m) (z.c.hist || []).forEach(function (h) { if (h.at && (!m || h.at < m)) m = h.at; }); return m || ms(z.x.at) || Date.now(); }
+    async function mergeScan(tid) {
+      var sn = await S.fb.getDocs(col('teams/' + tid + '/cases')), G = {}, n = 0;
+      sn.docs.forEach(function (d) { var x = d.data(); if (!x || !x.cid || x.del === true || !x.c) return; var c; try { c = JSON.parse(x.c); } catch (e) { return; } var k = mkey(c); if (!k) return; (G[k] = G[k] || []).push({ id: d.id, x: x, c: c }); });
+      var ks = Object.keys(G);
+      for (var i = 0; i < ks.length; i++) {
+        var g = G[ks[i]]; if (g.length < 2 || g.some(function (z) { return z.x.noMerge === true; })) continue;
+        g.sort(function (a, b) { return createdZ(a) - createdZ(b); }); var base = g[0], nw = g.slice().sort(function (a, b) { return lastAtZ(b) - lastAtZ(a); })[0], hh = [];
+        g.forEach(function (z) { hh = hh.concat(z.c.hist || []); }); hh.sort(function (a, b) { return a.at - b.at; });
+        var m = Object.assign({}, nw.c, { id: base.c.id, advocateId: base.c.advocateId, advocateIds: base.c.advocateIds, advNames: base.c.advNames, createdByName: base.c.createdByName || base.x.ownerName || '' }); m.hist = hh.slice(-10);
+        var js = JSON.stringify(m), lh = m.hist[m.hist.length - 1] || {};
+        await S.fb.setDoc(ref('teams/' + tid + '/cases/' + base.id), { c: js, h: fnv(js), by: lh.by || base.x.ownerName || '', byUid: lh.byUid || base.x.byUid || '', byEmail: lh.byEmail || '', at: S.fb.serverTimestamp() }, { merge: true });
+        for (var j = 1; j < g.length; j++) await S.fb.setDoc(ref('teams/' + tid + '/cases/' + g[j].id), { del: true, merged: true, mergedInto: base.id, mergedIntoName: base.x.ownerName || '', mergedAt: S.fb.serverTimestamp(), delBy: 'Auto-merge', delByUid: '', delAt: S.fb.serverTimestamp() }, { merge: true });
+        n++;
+      }
+      return n;
+    }
+    async function mergeOpen() {
+      var p = pop('<b>⏳ लोड हो रहा है…</b>'), hs = role() === 'master' ? heads() : [S.prof], items = [];
+      async function load() { items = []; for (var i = 0; i < hs.length; i++) { try { var sn = await S.fb.getDocs(col('teams/' + hs[i].id + '/cases')); sn.docs.forEach(function (d) { var x = d.data(); if (x && x.cid && x.del === true && x.merged === true) items.push({ tid: hs[i].id, g: hs[i].name || hs[i].email, key: d.id, x: x, ref: d.ref }); }); } catch (e) { } } }
+      await load();
+      (function draw3() {
+        p.b.innerHTML = ''; var h = document.createElement('div'); h.style.cssText = 'display:flex;align-items:center;gap:6px'; h.innerHTML = '<b style="flex:1;font-size:15px">🔀 डेटा मर्ज (' + items.length + ')</b>'; h.appendChild(mk('✕', '#e2e8f0', function () { p.o.remove(); })); p.b.appendChild(h);
+        p.b.insertAdjacentHTML('beforeend', '<div style="font-size:12px;color:#64748b;margin:6px 0">एक ही ग्रुप में सेम केस (Case No + Type + Court + वादी + प्रतिवादी) अपने-आप एक हो जाता है। पहले बनाने वाले का नाम रहता है। यहाँ से मर्ज हुई कॉपी वापस (Undo) या हमेशा के लिए हटा सकते हैं।</div>');
+        var bar = document.createElement('div'); bar.appendChild(mk('🔍 अभी स्कैन करके मर्ज करें', '#0f2a4a', async function () { toast('⏳ स्कैन हो रहा है…'); var t = 0; for (var i = 0; i < hs.length; i++) { try { t += await mergeScan(hs[i].id); } catch (e) { toast(errText(e)); } } toast('🔀 ' + t + ' डुप्लिकेट मर्ज हुए'); await load(); draw3(); })); p.b.appendChild(bar);
+        if (!items.length) p.b.insertAdjacentHTML('beforeend', '<div style="padding:12px;color:#64748b">अभी कोई मर्ज किया हुआ डेटा नहीं है।</div>');
+        items.forEach(function (it) {
+          var c = {}; try { c = JSON.parse(it.x.c || '{}'); } catch (e) { }
+          var r = document.createElement('div'); r.style.cssText = 'border-bottom:1px solid #e2e8f0;padding:8px 2px';
+          r.innerHTML = '<div style="font-weight:700">' + esc(c.caseNo || it.x.cid) + ' · ' + esc((c.vadiName || '—') + ' बनाम ' + (c.prativadiName || '—')) + '</div><div style="font-size:12px;color:#64748b">👥 ' + esc(it.g) + ' ग्रुप · इसकी कॉपी का मालिक: ' + esc(it.x.ownerName || '') + ' → मर्ज हुई: ' + esc(it.x.mergedIntoName || 'पहले वाले') + ' के केस में</div>';
+          r.appendChild(mk('↩ Undo (अलग वापस)', '#0f766e', async function () { try { await S.fb.setDoc(it.ref, { del: false, merged: false, mergedInto: '', rest: true, noMerge: true, delBy: '', delByUid: '' }, { merge: true }); items = items.filter(function (z) { return z !== it; }); toast('↩ वापस आ गया'); draw3(); } catch (e) { toast(errText(e)); } }));
+          r.appendChild(mk('हमेशा के लिए हटाएँ', '#991b1b', async function () { if (!confirm('यह मर्ज हुई कॉपी हमेशा के लिए हटाएँ?')) return; try { await S.fb.deleteDoc(it.ref); items = items.filter(function (z) { return z !== it; }); draw3(); } catch (e) { toast(errText(e)); } }));
+          p.b.appendChild(r);
+        });
+      })();
+    }
+    api.mergeList = mergeOpen;
+    setInterval(function () {
+      try {
+        wrapUpd();
+        if ((role() === 'master' || role() === 'admin') && S.fb && TS.id && !TS.first && Date.now() - parseInt(lsGet('advMergeAt', '0'), 10) > 10 * 6e4) { lsSet('advMergeAt', String(Date.now())); mergeScan(TS.id).then(function (n) { if (n) toast('🔀 ' + n + ' डुप्लिकेट केस मर्ज हुए'); }).catch(function () { }); }
+        var row = $('ccLoginOpts'); if (row && (role() === 'master' || role() === 'admin') && !$('ccMergeBtn')) { var b = document.createElement('button'); b.type = 'button'; b.id = 'ccMergeBtn'; b.textContent = '🔀 डेटा मर्ज'; b.style.cssText = btnStyle('#7c3aed', '#fff') + ';order:9'; b.onclick = mergeOpen; row.appendChild(b); }
       } catch (e) { }
     }, 4000);
   })();
