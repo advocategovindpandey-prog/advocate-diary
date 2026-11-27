@@ -14424,6 +14424,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       '<label>Sign in as</label><select id="cc-as" class="cc-in" onchange="advCloud.setAs(this.value)">' + [['auto', 'Detect automatically'], ['master', 'Sign in as Master Admin'], ['admin', 'Sign in as Admin'], ['user', 'Sign in as User']].map(function (o) { return '<option value="' + o[0] + '"' + ((S.asRole || 'auto') === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>' +
       '<label>User ID / Email</label><input id="cc-em" class="cc-in" type="text" name="username" list="ccIds" autocomplete="username" autocapitalize="none" value="' + esc(S.em || lastEmail()) + '" placeholder="Your email">' + idList() +
       '<label>Password</label><input id="cc-pw" class="cc-in" type="password" autocomplete="current-password" placeholder="Password" onkeydown="if(event.key===\'Enter\')advCloud.login()">' +
+      '<label style="display:flex;gap:8px;align-items:center;margin:10px 0 2px;font-weight:700;cursor:pointer"><input type="checkbox" id="cc-keep" ' + (localStorage.getItem('advKeep') !== '0' ? 'checked' : '') + ' style="width:20px;height:20px"> Keep me logged in <span style="color:#16a34a;font-size:19px">✔</span></label>' +
       (S.msg ? '<div class="' + (/\bsent\b/i.test(S.msg) ? 'cc-info' : 'cc-err') + '">' + esc(S.msg) + '</div>' : '') +
       '<button class="gold" onclick="advCloud.login()">Sign in</button>' +
       '<div style="text-align:center;margin-top:12px"><a href="#" onclick="advCloud.forgot();return false" style="color:#1c4a82;font-size:14px">Forgot password?</a></div>' + (S.needVerify ? '<div style="text-align:center;margin-top:8px"><a href="#" onclick="advCloud.resend();return false" style="color:#b45309;font-size:14px">✉ Resend verification link</a></div>' : '') +
@@ -15046,7 +15047,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     api.dust = dustOpen; api.ntfCtl = ntfOpen;
     function btnStyle(bg, fg) { return 'flex:0 0 auto;border:0;border-radius:8px;padding:3px 9px;font:800 12px system-ui;background:' + bg + ';color:' + fg; }
     function addBtns() {
-      var row = $('ccLoginOpts'); if (role() === 'user' || role() === 'admin') { if (row && !$('ccTeamBtn')) { var t = document.createElement('button'); t.type = 'button'; t.id = 'ccTeamBtn'; t.textContent = '👥 टीम का डेटा'; t.style.cssText = btnStyle('#0f766e', '#fff') + ';order:6'; t.onclick = fOpen; row.appendChild(t); } return; }
+      var row = $('ccLoginOpts'); if (role() === 'user' || role() === 'admin') { var fs0 = $('ccFilterSel') || $('ccFilterBtn'); if (fs0 && fs0.parentNode && !$('ccTeamBtn')) { var t = document.createElement('button'); t.type = 'button'; t.id = 'ccTeamBtn'; t.textContent = '👥 टीम'; t.style.cssText = 'flex:0 0 auto;border:1px solid rgba(255,255,255,.4);border-radius:10px;padding:9px 16px;font:800 13px system-ui;background:#fff8ea;color:#142b4a;cursor:pointer'; t.onclick = fOpen; fs0.parentNode.insertBefore(t, fs0.nextSibling); } return; }
       if (role() !== 'master') return;
       if (row && !$('ccDustBtn')) { var d = document.createElement('button'); d.type = 'button'; d.id = 'ccDustBtn'; d.textContent = '🗑 Dustbin'; d.style.cssText = btnStyle('#475569', '#fff') + ';order:7'; d.onclick = dustOpen; row.appendChild(d); var n = document.createElement('button'); n.type = 'button'; n.id = 'ccNtfBtn'; n.textContent = '🔔 Notification नियंत्रण'; n.style.cssText = btnStyle('#e2e8f0', '#0f2a4a') + ';order:8'; n.onclick = ntfOpen; row.appendChild(n); }
       var top = document.querySelector('#cc-root .cc-top');
@@ -15105,21 +15106,30 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       return n;
     }
     async function mergeOpen() {
-      var p = pop('<b>⏳ लोड हो रहा है…</b>'), hs = role() === 'master' ? heads() : [S.prof], items = [];
+      var p = pop('<b>⏳ लोड हो रहा है…</b>'), hs = role() === 'master' ? heads() : [S.prof], items = [], sel = {};
+      var kk = function (z) { return z.tid + '/' + z.key; };
       async function load() { items = []; for (var i = 0; i < hs.length; i++) { try { var sn = await S.fb.getDocs(col('teams/' + hs[i].id + '/cases')); sn.docs.forEach(function (d) { var x = d.data(); if (x && x.cid && x.del === true && x.merged === true) items.push({ tid: hs[i].id, g: hs[i].name || hs[i].email, key: d.id, x: x, ref: d.ref }); }); } catch (e) { } } }
+      async function undo(it) { await S.fb.setDoc(it.ref, { del: false, merged: false, mergedInto: '', rest: true, noMerge: true, delBy: '', delByUid: '' }, { merge: true }); }
       await load();
       (function draw3() {
         p.b.innerHTML = ''; var h = document.createElement('div'); h.style.cssText = 'display:flex;align-items:center;gap:6px'; h.innerHTML = '<b style="flex:1;font-size:15px">🔀 डेटा मर्ज (' + items.length + ')</b>'; h.appendChild(mk('✕', '#e2e8f0', function () { p.o.remove(); })); p.b.appendChild(h);
-        p.b.insertAdjacentHTML('beforeend', '<div style="font-size:12px;color:#64748b;margin:6px 0">एक ही ग्रुप में सेम केस (Case No + Type + Court + वादी + प्रतिवादी) अपने-आप एक हो जाता है। पहले बनाने वाले का नाम रहता है। यहाँ से मर्ज हुई कॉपी वापस (Undo) या हमेशा के लिए हटा सकते हैं।</div>');
-        var bar = document.createElement('div'); bar.appendChild(mk('🔍 अभी स्कैन करके मर्ज करें', '#0f2a4a', async function () { toast('⏳ स्कैन हो रहा है…'); var t = 0; for (var i = 0; i < hs.length; i++) { try { t += await mergeScan(hs[i].id); } catch (e) { toast(errText(e)); } } toast('🔀 ' + t + ' डुप्लिकेट मर्ज हुए'); await load(); draw3(); })); p.b.appendChild(bar);
+        p.b.insertAdjacentHTML('beforeend', '<div style="font-size:12px;color:#64748b;margin:6px 0">एक ही ग्रुप में सेम केस (Case No + Type + Court + वादी + प्रतिवादी) अपने-आप एक हो जाता है। पहले बनाने वाले का नाम रहता है। मर्ज हुई कॉपी को Undo या हमेशा के लिए हटा सकते हैं।</div>');
+        var chosen = items.filter(function (z) { return sel[kk(z)]; });
+        var bar = document.createElement('div'); bar.style.cssText = 'position:sticky;top:-14px;background:#fff;padding:4px 0;z-index:2';
+        bar.appendChild(mk('🔍 अभी स्कैन करके मर्ज करें', '#0f2a4a', async function () { toast('⏳ स्कैन हो रहा है…'); var t = 0; for (var i = 0; i < hs.length; i++) { try { t += await mergeScan(hs[i].id); } catch (e) { toast(errText(e)); } } toast('🔀 ' + t + ' डुप्लिकेट मर्ज हुए'); await load(); sel = {}; draw3(); }));
+        bar.appendChild(mk('↩ चुने हुए Undo (' + chosen.length + ')', chosen.length ? '#0f766e' : '#94a3b8', async function () { if (!chosen.length) return toast('पहले केस चुनें'); for (var i = 0; i < chosen.length; i++) { try { await undo(chosen[i]); } catch (e) { } } items = items.filter(function (z) { return !sel[kk(z)]; }); sel = {}; toast('↩ वापस आ गए'); draw3(); }));
+        bar.appendChild(mk('🗑 चुने हुए हटाएँ', chosen.length ? '#991b1b' : '#94a3b8', async function () { if (!chosen.length) return toast('पहले केस चुनें'); if (!confirm(chosen.length + ' मर्ज कॉपी हमेशा के लिए हटाएँ?')) return; for (var i = 0; i < chosen.length; i++) { try { await S.fb.deleteDoc(chosen[i].ref); } catch (e) { } } items = items.filter(function (z) { return !sel[kk(z)]; }); sel = {}; draw3(); }));
+        p.b.appendChild(bar);
         if (!items.length) p.b.insertAdjacentHTML('beforeend', '<div style="padding:12px;color:#64748b">अभी कोई मर्ज किया हुआ डेटा नहीं है।</div>');
+        else { var al = document.createElement('label'); al.style.cssText = 'display:flex;gap:8px;align-items:center;padding:8px 2px;font-weight:700'; al.innerHTML = '<input type="checkbox"' + (items.every(function (z) { return sel[kk(z)]; }) ? ' checked' : '') + '> सभी चुनें'; al.firstChild.onchange = function () { items.forEach(function (z) { if (al.firstChild.checked) sel[kk(z)] = 1; else delete sel[kk(z)]; }); draw3(); }; p.b.appendChild(al); }
         items.forEach(function (it) {
           var c = {}; try { c = JSON.parse(it.x.c || '{}'); } catch (e) { }
-          var r = document.createElement('div'); r.style.cssText = 'border-bottom:1px solid #e2e8f0;padding:8px 2px';
-          r.innerHTML = '<div style="font-weight:700">' + esc(c.caseNo || it.x.cid) + ' · ' + esc((c.vadiName || '—') + ' बनाम ' + (c.prativadiName || '—')) + '</div><div style="font-size:12px;color:#64748b">👥 ' + esc(it.g) + ' ग्रुप · इसकी कॉपी का मालिक: ' + esc(it.x.ownerName || '') + ' → मर्ज हुई: ' + esc(it.x.mergedIntoName || 'पहले वाले') + ' के केस में</div>';
-          r.appendChild(mk('↩ Undo (अलग वापस)', '#0f766e', async function () { try { await S.fb.setDoc(it.ref, { del: false, merged: false, mergedInto: '', rest: true, noMerge: true, delBy: '', delByUid: '' }, { merge: true }); items = items.filter(function (z) { return z !== it; }); toast('↩ वापस आ गया'); draw3(); } catch (e) { toast(errText(e)); } }));
-          r.appendChild(mk('हमेशा के लिए हटाएँ', '#991b1b', async function () { if (!confirm('यह मर्ज हुई कॉपी हमेशा के लिए हटाएँ?')) return; try { await S.fb.deleteDoc(it.ref); items = items.filter(function (z) { return z !== it; }); draw3(); } catch (e) { toast(errText(e)); } }));
-          p.b.appendChild(r);
+          var r = document.createElement('div'); r.style.cssText = 'border-bottom:1px solid #e2e8f0;padding:8px 2px;display:flex;gap:8px;align-items:flex-start';
+          var cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = !!sel[kk(it)]; cb.style.marginTop = '4px'; cb.onchange = function () { if (cb.checked) sel[kk(it)] = 1; else delete sel[kk(it)]; draw3(); }; r.appendChild(cb);
+          var d = document.createElement('div'); d.style.flex = '1'; d.innerHTML = '<div style="font-weight:700">' + esc(c.caseNo || it.x.cid) + ' · ' + esc((c.vadiName || '—') + ' बनाम ' + (c.prativadiName || '—')) + '</div><div style="font-size:12px;color:#64748b">👥 ' + esc(it.g) + ' ग्रुप · इसकी कॉपी का मालिक: ' + esc(it.x.ownerName || '') + ' → मर्ज हुई: ' + esc(it.x.mergedIntoName || 'पहले वाले') + ' के केस में</div>';
+          d.appendChild(mk('↩ Undo', '#0f766e', async function () { try { await undo(it); items = items.filter(function (z) { return z !== it; }); toast('↩ वापस आ गया'); draw3(); } catch (e) { toast(errText(e)); } }));
+          d.appendChild(mk('हमेशा के लिए हटाएँ', '#991b1b', async function () { if (!confirm('यह मर्ज हुई कॉपी हमेशा के लिए हटाएँ?')) return; try { await S.fb.deleteDoc(it.ref); items = items.filter(function (z) { return z !== it; }); draw3(); } catch (e) { toast(errText(e)); } }));
+          r.appendChild(d); p.b.appendChild(r);
         });
       })();
     }
@@ -15203,6 +15213,48 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       var o = document.getElementById('ccMailAsk'); if (o) o.remove(); o = document.createElement('div'); o.id = 'ccMailAsk'; o.style.cssText = 'position:fixed;left:8px;right:8px;bottom:12px;z-index:2147483645;background:#0f2a4a;color:#fff;border-radius:14px;padding:10px 12px;font:13px/1.4 system-ui,sans-serif;display:flex;gap:8px;align-items:center;box-shadow:0 8px 26px rgba(0,0,0,.4)';
       o.innerHTML = '<span style="flex:1">📧 <b>' + esc((n.c && n.c.caseNo) || '') + '</b> ' + (n.t === 'new' ? 'नया केस जुड़ा' : 'अपडेट हुआ') + ' (' + esc(n.by || '') + ') — टीम को Email भेजें?</span>'; o.appendChild(mk('खोलें', '#d9a441', function () { o.remove(); mailPreview(mInfo(n)); })); o.appendChild(mk('✕', '#475569', function () { o.remove(); })); document.body.appendChild(o); setTimeout(function () { if (o.parentNode) o.remove(); }, 20000);
     }
+
+    /* 9. Event-driven auto sync (no per-second polling) */
+    var AS = { busy: false, blank: {}, did: '' };
+    function silentPull() {
+      var me = S.prof.id, n = 0; window.__advSys = 1;
+      try { edOwn(function () { Object.keys(TS.docs).forEach(function (k) { var x = TS.docs[k]; if (!x || x.owner !== me || x.del !== false || !x.c || TS.pushed[x.cid] === x.h) return; var rc; try { rc = JSON.parse(x.c); } catch (e) { return; } var i = cases.findIndex(function (c) { return !c._ov && String(c.id) === String(x.cid); }); if (i > -1) cases[i] = Object.assign({}, cases[i], rc); else cases.push(rc); TS.pushed[x.cid] = x.h; n++; }); }); } finally { window.__advSys = 0; }
+      if (n) tsSavePushed(); return n;
+    }
+    async function silentClean() {
+      var now = Date.now(), ids = blankOwnIds(), old = [];
+      Object.keys(AS.blank).forEach(function (k) { if (ids.indexOf(k) < 0) delete AS.blank[k]; });
+      ids.forEach(function (id) { if (!AS.blank[id]) AS.blank[id] = now; else if (now - AS.blank[id] > 5 * 6e4) old.push(id); });
+      if (!old.length) return;
+      cases = cases.filter(function (c) { return c._ov || old.indexOf(String(c.id)) < 0; }); OV.own = (OV.own || []).filter(function (c) { return old.indexOf(String(c.id)) < 0; }); OV.hidden = (OV.hidden || []).filter(function (c) { return old.indexOf(String(c.id)) < 0; });
+      try { persist(); } catch (e) { } TS.allowMass = 1; try { await teamPush(); } finally { TS.allowMass = 0; } try { ovApply(); } catch (e) { }
+    }
+    async function autoSync() {
+      if (AS.busy || !S.prof || !S.fb || !TS.id || TS.first || (navigator.onLine === false)) return; AS.busy = true;
+      try { await teamPush(); silentPull(); await silentClean(); } catch (e) { } finally { AS.busy = false; }
+    }
+    ['online', 'focus'].forEach(function (ev) { window.addEventListener(ev, function () { setTimeout(autoSync, 800); }); });
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) setTimeout(autoSync, 800); });
+    setInterval(function () { try { if (S.prof && TS.id && !TS.first && AS.did !== S.prof.id) { AS.did = S.prof.id; autoSync(); } } catch (e) { } }, 1500);
+    setInterval(autoSync, 60000);
+
+    /* 10. Logout buttons (red) */
+    function doOut() { if (confirm('लॉग आउट करें?')) api.logout(); }
+    setInterval(function () {
+      try {
+        if (!S.prof) return;
+        var row = $('ccLoginOpts'); if (row && !$('ccOutBtn')) { var b = document.createElement('button'); b.type = 'button'; b.id = 'ccOutBtn'; b.textContent = '🚪 Logout'; b.style.cssText = btnStyle('#dc2626', '#fff') + ';order:99'; b.onclick = doOut; row.appendChild(b); }
+        var top = document.querySelector('#cc-root .cc-top'); if (top) top.querySelectorAll('button').forEach(function (x) { if (/Logout/.test(x.textContent) && !x.dataset.red) { x.dataset.red = '1'; x.style.background = '#dc2626'; x.style.color = '#fff'; x.style.fontWeight = '800'; } });
+        var rt = $('cc-root'); if (rt && rt.children.length && !rt.querySelector('.ccOutBottom')) { var w = document.createElement('div'); w.className = 'ccOutBottom'; w.style.cssText = 'padding:12px'; var bb = document.createElement('button'); bb.type = 'button'; bb.textContent = '🚪 Logout'; bb.style.cssText = 'width:100%;border:0;border-radius:12px;padding:13px;background:#dc2626;color:#fff;font:800 15px system-ui'; bb.onclick = doOut; w.appendChild(bb); rt.appendChild(w); }
+      } catch (e) { }
+    }, 1500);
+
+    /* 11. Keep me logged in */
+    var forceOut = false; try { if (lsGet('advKeep', '1') === '0' && !sessionStorage.getItem('advSess')) forceOut = true; sessionStorage.setItem('advSess', '1'); } catch (e) { }
+    var oLogin = api.login, oGoogle = api.google;
+    api.login = function () { var cb = $('cc-keep'); lsSet('advKeep', cb && !cb.checked ? '0' : '1'); try { sessionStorage.setItem('advSess', '1'); } catch (e) { } return oLogin.apply(this, arguments); };
+    if (oGoogle) api.google = function () { try { sessionStorage.setItem('advSess', '1'); } catch (e) { } return oGoogle.apply(this, arguments); };
+    setInterval(function () { try { if (forceOut && S.fb && S.auth && S.user) { forceOut = false; S.fb.signOut(S.auth); } } catch (e) { } }, 700);
   })();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();
@@ -15280,7 +15332,7 @@ body.chat-sidebar-open{overflow:hidden}
   function tick(){try{
     var b=document.getElementById('advArrangeToggle');if(b)b.remove();
     if(window.__nextSrc){window.__nextSrc='';try{localStorage.removeItem('advNextSrc')}catch(e){}}
-    document.querySelectorAll('button').forEach(function(bt){if(bt.dataset.sy||bt.textContent.trim()!=='\uD83D\uDD0D \u0938\u093F\u0902\u0915 \u091C\u093E\u0901\u091A')return;bt.dataset.sy='1';bt.style.cssText+=';padding:2px 24px!important;font:800 12px system-ui!important;background:linear-gradient(180deg,#fde68a,#f59e0b)!important;color:#1b1405!important;box-shadow:0 2px 8px rgba(245,158,11,.6)!important;border:1px solid #fff7!important;letter-spacing:.3px'})
+    document.querySelectorAll('button').forEach(function(bt){if(bt.dataset.sy||bt.textContent.trim()!=='\uD83D\uDD0D \u0938\u093F\u0902\u0915 \u091C\u093E\u0901\u091A')return;bt.dataset.sy='1';bt.style.cssText+=';padding:3px 12px!important;font:800 12px system-ui!important;background:rgba(253,230,138,.16)!important;color:#fde68a!important;box-shadow:none!important;border:1px solid rgba(253,230,138,.45)!important'})
     if(window.ADV_BUILD!=='master'){['pcMob','pcMail','pcMin'].forEach(function(id){var e=document.getElementById(id);if(!e)return;e.style.display='none';var l=e.previousElementSibling;if(l&&l.tagName==='LABEL')l.style.display='none'});['pcCs','pcCw','pcCm'].forEach(function(id){var e=document.getElementById(id);if(!e)return;var l=e.closest('label')||e.parentNode;l.style.display='none'});document.querySelectorAll('#pinCard *').forEach(function(n){if(n.children.length===0&&/^\s*Forgot PIN/.test(n.textContent))n.style.display='none'})}
     document.body.classList.remove('nav-movable-off');
     Object.keys(ORD).forEach(function(id){var e=document.getElementById(id);if(!e)return;if(e.tagName==='INPUT'&&e.parentNode)e=e.parentNode;e.style.order=ORD[id];});
