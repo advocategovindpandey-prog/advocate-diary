@@ -14335,7 +14335,7 @@ async function initFb() {
   function ckey(c) { return nno(c.type) + '|' + nno(c.caseNo) + '|' + nno(c.court); }
   function teq(a, b) { a = nno(a); b = nno(b); return !a || !b || a === b; }
   function inGroup(u) { if (role() === 'master') return true; var sc = OV.srcs[u]; if (!sc) return false; if (srcTid(u) !== TS.id) return false; var a = (S.list || []).filter(function (x) { return x.id === u; })[0]; if (a && ((a.role !== 'user' && u !== TS.id) || (a.role === 'user' && a.parentId !== TS.id))) return false; return true; }
-  function grpSrc(u) { var sc = OV.srcs[u]; if (!sc) return false; if (sc.team && srcTid(u) === TS.id) return true; var ac = acctById(u); return !!(ac && S.prof && ac.parentId === S.prof.id); }
+  function grpSrc(u) { var sc = OV.srcs[u]; if (!sc) return false; if (sc.team && srcTid(u) === TS.id) return true; var ac = acctById(u); return !!(ac && S.prof && ac.role === 'user' && ac.parentId === S.prof.id); }
   function ovApply() {
     try { ovFixNames();
       if (!window.__advViewOnly) OV.own = cases.filter(function (c) { return !c._ov && String(c.id).indexOf('ov_') !== 0; });
@@ -15639,9 +15639,9 @@ async function initFb() {
       try {
         var em = $('cc-em'); if ((S.prof && em) || !em || $('ccEmBar')) return;
         var bar = document.createElement('div'); bar.id = 'ccEmBar'; bar.style.cssText = 'position:relative;display:flex;gap:8px;align-items:center;margin:6px 0';
-        var dd = document.createElement('div'); dd.style.cssText = 'display:none;position:absolute;left:0;top:42px;right:0;z-index:50;background:#fff;border:1px solid #cbd5e1;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.18);max-height:220px;overflow:auto';
-        function fill() {
-          dd.innerHTML = ''; var l = emList(); if (!l.length) { dd.innerHTML = '<div style="padding:10px;font-size:13px;color:#64748b">कोई सेव ईमेल नहीं</div>'; return; }
+        var dd = document.createElement('div'); dd.style.cssText = 'display:none;position:absolute;left:0;top:0;right:0;z-index:50;background:#fff;border:1px solid #cbd5e1;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.18);max-height:220px;overflow:auto';
+        function fill(q) {
+          dd.innerHTML = ''; var l = emList(); if (q) { q = q.toLowerCase(); l = l.filter(function (e) { return e.toLowerCase().indexOf(q) > -1; }).sort(function (a, b) { return (a.toLowerCase().indexOf(q) === 0 ? 0 : 1) - (b.toLowerCase().indexOf(q) === 0 ? 0 : 1) || a.localeCompare(b); }); if (!l.length) return false; } if (!l.length) { dd.innerHTML = '<div style="padding:10px;font-size:13px;color:#64748b">कोई सेव ईमेल नहीं</div>'; return true; }
           l.forEach(function (e) {
             var r = document.createElement('div'); r.style.cssText = 'display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:1px solid #eef2f7';
             var t = document.createElement('span'); t.textContent = e; t.style.cssText = 'flex:1;font-size:14px;cursor:pointer;word-break:break-all'; t.onclick = function () { em.value = e; em.dispatchEvent(new Event('input', { bubbles: true })); dd.style.display = 'none'; var pw = document.querySelector('#cc-root input[type=password],input[type=password]'); if (pw) pw.focus(); };
@@ -15649,10 +15649,12 @@ async function initFb() {
             var lp; r.addEventListener('touchstart', function () { lp = setTimeout(function () { if (confirm(e + ' को सेव सूची से हटाएँ?')) { emRemove(e); fill(); } }, 700); }, { passive: true }); r.addEventListener('touchend', function () { clearTimeout(lp); });
             r.appendChild(t); r.appendChild(x); dd.appendChild(r);
           });
+          return true;
         }
+        em.addEventListener('input', function () { var v = em.value.trim(); if (!v) { dd.style.display = 'none'; return; } dd.style.display = fill(v) === false ? 'none' : 'block'; });
         var tb = document.createElement('button'); tb.type = 'button'; tb.textContent = '📧 सेव ईमेल ▾'; tb.style.cssText = 'border:1px solid #cbd5e1;background:#f1f5f9;color:#0f2a4a;border-radius:20px;padding:6px 14px;font:700 13px system-ui'; tb.onclick = function () { fill(); dd.style.display = dd.style.display === 'none' ? 'block' : 'none'; }; bar.appendChild(tb);
         var standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || window.Capacitor || navigator.standalone;
-        if (!standalone) { var ib = document.createElement('button'); ib.type = 'button'; ib.textContent = '📲'; ib.title = 'Chrome में ऐप शॉर्टकट बनाएँ'; ib.style.cssText = 'width:36px;height:36px;border-radius:50%;border:1px solid #cbd5e1;background:#f1f5f9;font-size:17px;padding:0'; ib.onclick = installApp; bar.appendChild(ib); }
+        if (!standalone) { var ib = document.createElement('button'); ib.type = 'button'; ib.textContent = '📲'; ib.title = 'Chrome में ऐप शॉर्टकट बनाएँ'; ib.style.cssText = 'margin-left:auto;width:36px;height:36px;border-radius:50%;border:1px solid #cbd5e1;background:#f1f5f9;font-size:17px;padding:0'; ib.onclick = installApp; bar.appendChild(ib); }
         bar.appendChild(dd); em.parentNode.insertBefore(bar, em.nextSibling);
       } catch (e) { }
     }, 700);
@@ -15716,11 +15718,12 @@ async function initFb() {
     }
     function caseReport() {
       var me = S.prof.id, docs = TS.docs || {}, per = {}, hid = [], vis = {};
+      function nameOf(o, x) { if (o === me) return (S.prof.name || S.prof.email) + ' (मैं)'; var a = null; try { a = acctById(o); } catch (e) { } if (OV.srcs[o] && OV.srcs[o].name) return OV.srcs[o].name; if (a) return a.name || a.email; if (S.parent && S.parent.id === o) return S.parent.name || S.parent.email; return (x && x.ownerName) || 'ग्रुप का सदस्य'; }
       (typeof cases !== 'undefined' ? cases : []).forEach(function (c) { if (c._ov) { var sh = OV.shadow && OV.shadow[c.id]; if (sh) vis[sh.uid + '::' + sh.raw] = 1; } else vis[me + '::' + c.id] = 1; });
       Object.keys(docs).forEach(function (k) {
-        var x = docs[k]; if (!x || !x.cid) return; var o = x.owner || '?', r = per[o] = per[o] || { n: x.ownerName || o, act: 0, mer: 0, del: 0, vis: 0, hid: 0 };
+        var x = docs[k]; if (!x || !x.cid) return; var o = x.owner || '?', r = per[o] = per[o] || { n: nameOf(o, x), act: 0, mer: 0, del: 0, vis: 0, hid: 0 };
         if (x.merged === true) { r.mer++; return; } if (x.del === true) { r.del++; return; } r.act++;
-        if (vis[o + '::' + x.cid]) r.vis++; else { r.hid++; var c = {}; try { c = JSON.parse(x.c || '{}'); } catch (e) { } hid.push({ n: r.n, c: c, why: o === me ? 'आपकी कॉपी — यही केस ग्रुप में पहले से किसी और के नाम से है (डुप्लिकेट), इसलिए एक ही गिना' : 'डुप्लिकेट (एक ही केस दो जगह) या फ़िल्टर के कारण छिपा' }); }
+        if (vis[o + '::' + x.cid]) r.vis++; else { r.hid++; var c = {}; try { c = JSON.parse(x.c || '{}'); } catch (e) { } hid.push({ n: r.n, c: c, why: (!c.caseNo && !c.vadiName) ? 'खाली केस (न नंबर, न नाम) — दिखाया नहीं जाता' : (o === me ? 'आपकी कॉपी — यही केस ग्रुप में पहले से किसी और के नाम से है (डुप्लिकेट), इसलिए एक ही गिना' : 'डुप्लिकेट (एक ही केस दो जगह) या फ़िल्टर के कारण छिपा') }); }
       });
       var tot = { act: 0, mer: 0, del: 0, vis: 0, hid: 0 }, rows = Object.keys(per).map(function (o) { var r = per[o]; Object.keys(tot).forEach(function (k) { tot[k] += r[k]; }); return '<tr><td>' + esc(r.n) + '</td><td>' + r.act + '</td><td>' + r.mer + '</td><td>' + r.del + '</td><td><b>' + r.vis + '</b></td><td>' + r.hid + '</td></tr>'; }).join('');
       var html = '<h3>🔎 केस जाँच रिपोर्ट</h3><div style="font-size:12px">' + new Date().toLocaleString() + ' · खाता: ' + esc(S.prof.name || S.prof.email) + '</div>'
@@ -15728,7 +15731,25 @@ async function initFb() {
         + '<div style="font-size:12px;margin:6px 0">📌 "पूरा ग्रुप" चुनने पर सबके केस एक साथ गिने जाते हैं और एक ही केस जो दो लोगों के पास है वह <b>एक</b> गिना जाता है। किसी <b>एक खाते</b> (जैसे Govind) का डेटा चुनने पर सिर्फ़ उसी खाते के केस दिखते हैं और जो केस उसके अपने केसों जैसे ही हैं वे हटकर गिने जाते हैं, इसलिए संख्या कम दिखती है।</div>';
       if (hid.length) { html += '<h4>छिपे हुए केस (' + hid.length + ')</h4><table><tr><th>खाता</th><th>केस नंबर</th><th>वादी बनाम प्रतिवादी</th><th>कारण</th></tr>' + hid.map(function (h) { return '<tr><td>' + esc(h.n) + '</td><td>' + esc(h.c.caseNo || '') + '</td><td>' + esc((h.c.vadiName || '') + ' बनाम ' + (h.c.prativadiName || '')) + '</td><td>' + esc(h.why) + '</td></tr>'; }).join('') + '</table>'; }
       else html += '<div style="color:#137547;font-weight:700">✔ कोई केस छिपा नहीं है।</div>';
-      var p = pop(html); p.b.appendChild(mk('🖨 प्रिंट', '#0f766e', function () { printHtml(html); })); p.b.appendChild(mk('✕ बंद', '#e2e8f0', function () { p.o.remove(); }));
+      var p = pop(html); if (role() === 'master' || role() === 'admin') p.b.appendChild(mk('♻ ग्रुप का गायब डेटा सर्वर पर पूरा करो', '#7c3aed', function () { p.o.remove(); repairGroup(); })); p.b.appendChild(mk('🖨 प्रिंट', '#0f766e', function () { printHtml(html); })); p.b.appendChild(mk('✕ बंद', '#e2e8f0', function () { p.o.remove(); }));
+    }
+
+    async function repairGroup() {
+      var me = S.prof, p = pop('<b>⏳ ग्रुप का डेटा जाँच रहा हूँ…</b>');
+      try {
+        var kids = (S.list || []).filter(function (x) { return x.role === 'user' && x.parentId === me.id; }), active = {}, todo = [];
+        Object.keys(TS.docs || {}).forEach(function (k) { var x = TS.docs[k]; if (!x || !x.cid || x.del === true) return; try { var c = JSON.parse(x.c || '{}'); var m = mkey(c); if (m) active[m] = 1; } catch (e) { } });
+        (OV.own || []).forEach(function (c) { var m = mkey(c); if (m) active[m] = 1; });
+        for (var i = 0; i < kids.length; i++) { var k = kids[i], list = []; try { list = await fetchCasesOf(k); } catch (e) { continue; } (list || []).forEach(function (c) { if (!c || c.id == null) return; var m = mkey(c); if (!m || active[m]) return; active[m] = 1; todo.push({ k: k, c: c }); }); }
+        if (!todo.length) { p.b.innerHTML = '<b style="color:#137547">✔ ग्रुप का कोई केस गायब नहीं है</b>'; p.b.appendChild(mk('✕ बंद', '#e2e8f0', function () { p.o.remove(); })); return; }
+        var by = {}; todo.forEach(function (z) { var n = z.k.name || z.k.email; by[n] = (by[n] || 0) + 1; });
+        p.b.innerHTML = '<b style="font-size:15px">♻ सर्वर पर गायब केस मिले: ' + todo.length + '</b><div style="font-size:13px;margin:8px 0">' + Object.keys(by).map(function (n) { return esc(n) + ': <b>' + by[n] + '</b>'; }).join('<br>') + '</div><div style="font-size:12px;color:#64748b;margin-bottom:8px">ये केस सदस्यों के खाते में हैं पर ग्रुप के सर्वर पर चालू नहीं हैं (पहले डिलीट/न पहुँचे), इसलिए बाकी यूज़र को नहीं दिखते। सर्वर पर चालू करने के बाद सबको दिखेंगे।</div>';
+        p.b.appendChild(mk('✔ सर्वर पर चालू करो', '#0f766e', async function () {
+          var n = 0; toast('⏳ चढ़ा रहा हूँ…');
+          for (var j = 0; j < todo.length; j++) { var z = todo[j]; try { var js = tsJs(z.c); await S.fb.setDoc(ref('teams/' + TS.id + '/cases/' + z.k.id + '__' + z.c.id), { owner: z.k.id, ownerName: z.k.name || z.k.email || '', cid: z.c.id, c: js, h: fnv(js), by: me.name || me.email || '', byUid: me.id, byEmail: me.email || '', role: role(), at: S.fb.serverTimestamp(), del: false, delBy: '', delByUid: '', rest: true }, { merge: true }); n++; } catch (e) { toast(errText(e)); break; } }
+          toast('✔ ' + n + ' केस सर्वर पर चालू हुए'); p.o.remove();
+        })); p.b.appendChild(mk('✕ रहने दो', '#e2e8f0', function () { p.o.remove(); }));
+      } catch (e) { p.b.innerHTML = '<b>गड़बड़</b><div style="font-size:13px">' + esc(errText(e)) + '</div>'; p.b.appendChild(mk('✕ बंद', '#e2e8f0', function () { p.o.remove(); })); }
     }
     api.report = caseReport;
     setInterval(function () {
