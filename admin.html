@@ -13007,7 +13007,9 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     }
     if (BUILD !== 'master' && role() !== 'master') { listenNotes(); masterWatch(); }
     editsWatch();
-    S.syncTimer = setInterval(function () { syncNow('auto'); }, 2500); document.addEventListener('visibilitychange', function () { if (document.hidden) syncNow('fast'); });
+    S.syncTimer = setInterval(function () { syncNow('auto'); try { if (TS.id && !TS.first && !TS.busy) teamPush(); } catch (e) { } }, 1000);
+    if (!window.__advVisHook) { window.__advVisHook = 1; document.addEventListener('visibilitychange', function () { if (document.hidden) syncNow('fast'); else { try { api.refreshAll(); } catch (e) { } } }); window.addEventListener('online', function () { try { api.refreshAll(); } catch (e) { } }); }
+    setTimeout(function () { try { syncNow('fast'); if (TS.id && !TS.first) teamPush(); } catch (e) { } }, 600);
     S.chk = setInterval(function () { if (S.prof && S.screen === 'panel' && lockReason()) recheck(true); }, 30000);
   }
   function recheck(wasOk) {
@@ -13738,7 +13740,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
         if (!c || c._ov || String(c.id).indexOf('ov_') === 0) return; seen[c.id] = 1;
         if (isBlankCase(c)) return;
         var js = tsJs(c), h = fnv(js); if (TS.pushed[c.id] === h) return;
-        var sx = TS.docs[me + '__' + c.id]; if (!TS.force && sx && sx.del === false && TS.pushed[c.id] === undefined && sx.h !== h && tsAtMs(sx) > tsLastAt(c)) return;
+        var sx = TS.docs[me + '__' + c.id]; if (!TS.force && sx && sx.del === false && sx.h !== h && tsAtMs(sx) > tsLastAt(c) && (TS.pushed[c.id] === undefined || (sx.byUid && sx.byUid !== me && sx.h !== TS.pushed[c.id]))) return;
         ops.push({ id: c.id, h: h, data: { owner: me, ownerName: nm, cid: String(c.id), c: js, h: h, by: LH(c).by || nm, byUid: LH(c).byUid || me, byEmail: LH(c).byEmail || S.prof.email || '', role: LH(c).byRole || role(), at: F.serverTimestamp(), del: false, delBy: '', delByUid: '', rest: false } });
       });
       var gone = Object.keys(TS.pushed).filter(function (id) { return !seen[id]; });
@@ -13800,7 +13802,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
           toast(msg); try { if (window.Notification && Notification.permission === 'granted') new Notification('Advocate Diary', { body: msg }); } catch (e) { }
         } else if (x.del === false && x.byUid && x.byUid !== me && x.c && loc && !x.rest && x.h !== TS.pushed[x.cid]) {
           var st = tsStored(x.cid), lh = st ? fnv(tsJs(st)) : '';
-          if (lh === TS.pushed[x.cid]) {
+          if (lh === TS.pushed[x.cid] || (st && tsAtMs(x) > tsLastAt(st))) {
             try {
               var rc2 = JSON.parse(x.c); window.__advActor = { name: x.by || 'User', role: x.role || '', uid: x.byUid || '', email: x.byEmail || '' };
               try { var chR = chgDiff(loc, rc2); if (chR.length) chgPush({ by: x.by || 'User', at: x.at, caseNo: rc2.caseNo, names: (rc2.vadiName || '—') + ' vs ' + (rc2.prativadiName || '—'), changes: chR }); } catch (e) { }
@@ -13818,7 +13820,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       try { TS.prevC = TS.prevC || {}; var cur0 = JSON.parse(x.c || '{}'), pv0 = TS.prevC[k]; if (!TS.base) { var nm0 = (cur0.vadiName || '—') + ' vs ' + (cur0.prativadiName || '—'); if (pv0) { var ch0 = chgDiff(pv0, cur0); if (ch0.length && TS.seenH[k] !== x.h) chgPush({ by: x.by || x.ownerName, at: x.at, caseNo: cur0.caseNo, names: nm0, changes: ch0 }); } else if (TS.seenH[k] === undefined) chgPush({ kind: 'new', by: x.by || x.ownerName, at: x.at, caseNo: cur0.caseNo, names: nm0, changes: [] }); } TS.prevC[k] = cur0; } catch (e) { }
       if (TS.seenH[k] !== undefined && TS.seenH[k] !== x.h && !TS.base) notes.push(x); TS.seenH[k] = x.h;
     });
-    if (notes.length) { var n0 = notes[0], tm = ''; try { var dt = n0.at && n0.at.toDate ? n0.at.toDate() : new Date(); tm = dt.toLocaleTimeString(); } catch (e) { } var cn = ''; try { cn = JSON.parse(n0.c || '{}').caseNo || ''; } catch (e) { } var msg2 = '🔔 ' + (n0.by || n0.ownerName || 'User') + ' ने केस ' + cn + ' अपडेट किया' + (notes.length > 1 ? ' (+' + (notes.length - 1) + ' और)' : '') + ' · सर्वर पर पहुँचा ' + tm; try { if (window.Notification && Notification.permission === 'granted') new Notification('Advocate Diary', { body: msg2 }); } catch (e) { } }
+    if (notes.length) { var n0 = notes[0], tm = ''; try { var dt = n0.at && n0.at.toDate ? n0.at.toDate() : new Date(); tm = dt.toLocaleTimeString(); } catch (e) { } var cn = ''; try { cn = JSON.parse(n0.c || '{}').caseNo || ''; } catch (e) { } var msg2 = '🔔 ' + (n0.by || n0.ownerName || 'User') + ' ने केस ' + cn + ' अपडेट किया' + (notes.length > 1 ? ' (+' + (notes.length - 1) + ' और)' : '') + ' · सर्वर पर पहुँचा ' + tm; try { toast(msg2); } catch (e) { } try { if (window.Notification && Notification.permission === 'granted') new Notification('Advocate Diary', { body: msg2 }); } catch (e) { } }
     TS.base = false;
     if (TS.impN) { toast('⬇ सर्वर से ' + TS.impN + ' केस आपके फ़ोन में आए'); TS.impN = 0; }
     TS.trash = trash;
@@ -14061,7 +14063,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   }
   function ovLiveMulti(a) {
     S.ovW = S.ovW || {}; if (S.ovW[a.id]) return; var first = true, tm = null;
-    try { S.ovW[a.id] = S.fb.onSnapshot(ref('userData/' + a.id), function () { if (first) { first = false; return; } clearTimeout(tm); tm = setTimeout(function () { fetchCasesOf(a).then(function (l) { ovSet(a.id, a.name, l); }).catch(function () { }); }, 1500); }, function () { }); } catch (e) { }
+    try { S.ovW[a.id] = S.fb.onSnapshot(ref('userData/' + a.id), function () { if (first) { first = false; return; } clearTimeout(tm); tm = setTimeout(function () { fetchCasesOf(a).then(function (l) { ovSet(a.id, a.name, l); }).catch(function () { }); }, 300); }, function () { }); } catch (e) { }
   }
   async function autoSources() {
     if (!S.prof || !S.fb) return false; var want = [];
@@ -14093,6 +14095,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   function nno(v) { return String(v || '').toLowerCase().replace(/\s+/g, ''); }
   function ckey(c) { return nno(c.type) + '|' + nno(c.caseNo) + '|' + nno(c.court); }
   function teq(a, b) { a = nno(a); b = nno(b); return !a || !b || a === b; }
+  function isMyUser(u) { try { var a = acctById(u); return !!(a && S.prof && a.role === 'user' && a.parentId === S.prof.id); } catch (e) { return false; } }
   function inGroup(u) { if (role() === 'master') return true; var sc = OV.srcs[u]; if (!sc) return false; if (srcTid(u) !== TS.id) return false; var a = (S.list || []).filter(function (x) { return x.id === u; })[0]; if (a && ((a.role !== 'user' && u !== TS.id) || (a.role === 'user' && a.parentId !== TS.id))) return false; return true; }
   function ovApply() {
     try { ovFixNames();
@@ -14101,7 +14104,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       var ids = OV.notif ? [act || ((settings.advocates || [])[0] || {}).id] : ['__ov'], ov = [], hidden = [], seenK = {}, usedOwn = {}, ownByNo = {}; OV.shadow = {};
       OV.own.forEach(function (c) { if (c.caseNo) (ownByNo[nno(c.caseNo)] = ownByNo[nno(c.caseNo)] || []).push(c); });
       Object.keys(OV.srcs).forEach(function (uid) {
-        if (role() !== 'master' && !inGroup(uid)) return; if ((role() === 'master' || role() === 'admin') && !(OV.sel === uid || (OV.selSet && OV.selSet[uid]) || (!OV.sel && !OV.selSet && OV.srcs[uid].team && srcTid(uid) === TS.id))) return;
+        if (role() !== 'master' && !inGroup(uid)) return; if ((role() === 'master' || role() === 'admin') && !(OV.sel === uid || (OV.selSet && OV.selSet[uid]) || (!OV.sel && !OV.selSet && ((OV.srcs[uid].team && srcTid(uid) === TS.id) || isMyUser(uid))))) return;
         var sc = OV.srcs[uid];
         srcCases(uid).forEach(function (c) {
           var k = c.caseNo ? ckey(c) : '', x, ow = null;
@@ -14119,9 +14122,9 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
         });
       });
       OV.hidden = hidden; var hid = {}; hidden.forEach(function (h) { hid[h.id] = 1; });
-      if ((role() === 'master' || role() === 'admin') && ((OV.sel && OV.srcs[OV.sel]) || OV.selSet)) { window.__advViewOnly = true; cases = ((OV.selSet && S.prof && OV.selSet[S.prof.id]) ? OV.own.slice() : []).concat(ov.filter(function (c) { return c._srcUid === OV.sel || !!(OV.selSet && OV.selSet[c._srcUid]); })); }
+      if ((role() === 'master' || role() === 'admin') && ((OV.sel && OV.srcs[OV.sel]) || OV.selSet)) { window.__advViewOnly = true; cases = ((OV.selSet && S.prof && OV.selSet[S.prof.id]) ? OV.own.filter(function (c) { return !hid[c.id]; }) : []).concat(ov.filter(function (c) { return c._srcUid === OV.sel || !!(OV.selSet && OV.selSet[c._srcUid]); })); }
       else if (false) { window.__advViewOnly = false; cases = OV.own.slice(); }
-      else { var us = OV.userSel; window.__advViewOnly = !!(us && !us.__me); cases = ((!us || us.__me) ? OV.own.filter(function (c) { return !hid[c.id]; }) : []).concat(us ? ov.filter(function (c) { return us[c._srcUid]; }) : ov); }
+      else { var us = OV.userSel; window.__advViewOnly = !!(us && !us.__me); cases = ((!us || us.__me) ? OV.own.filter(function (c) { return !hid[c.id]; }) : []).concat(us ? ov.filter(function (c) { return us[c._srcUid]; }) : ov); if (!us) { OV.grpN = cases.length; OV.grpAt = Date.now(); } }
       ovRefresh(); ovBanner(); try { fillNextSrc(); fillFilter(); } catch (e) { }
     } catch (e) { try { console.error(e); } catch (x) { } }
   }
@@ -14330,7 +14333,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   }
   async function onFilter(v) { if (!(OV.selSet && v === OV.sel)) OV.selSet = null;
     if (role() === 'user') { window.__nextSrc = v || ''; try { localStorage.setItem('advNextSrc', v || ''); } catch (e) { } try { renderNext(); } catch (e) { } try { fillNextSrc(); } catch (e) { } toast(v ? '✔ फ़िल्टर लगा' : 'पूरी टीम दिख रही है'); return; }
-    try { localStorage.setItem('advCloudFilter', v || ''); } catch (e) { }
+    try { localStorage.removeItem('advCloudFilter'); } catch (e) { }
     OV.sel = v || '';
     if (!v) { ovApply(); toast('Filter हटा दिया — सारा मिला हुआ डेटा'); return; }
     var a = acctById(v); if (!a) return;
@@ -14338,9 +14341,10 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     catch (e) { toast(e && e.message ? e.message : 'Data load नहीं हुआ'); ovApply(); }
   }
   function restoreFilter() {
-    if (S._restored) return; var v = ''; try { v = localStorage.getItem('advCloudFilter') || ''; } catch (e) { } if (!v) { S._restored = true; return; }
-    var a = acctById(v); if (!a) return; S._restored = true; OV.sel = a.id;
-    fetchCasesOf(a).then(function (l) { ovSet(a.id, a.name || a.email, l); ovLive(a, a.name || a.email); }).catch(function () { });
+    /* हमेशा पूरा ग्रुप एक साथ खुले — पुराना single-user चयन कभी वापस नहीं लगता */
+    if (S._restored) return; S._restored = true;
+    try { localStorage.removeItem('advCloudFilter'); } catch (e) { }
+    OV.sel = ''; OV.selSet = null; OV.userSel = null; try { ovApply(); } catch (e) { }
   }
   window.advOv = { set: ovSet, drop: ovDrop, opts: OV };
   window.advTeam = { edit: tsEditDoc, TS: TS, apply: tsApply, push: teamPush, start: teamStart, del: tsDel, restore: tsRestore };
@@ -14488,8 +14492,9 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     var act = function (a) { return a.filter(function (x) { return stateOf(x) === 'ok'; }).length; };
     var h = (S.prof.trial ? '<div class="cc-box" style="background:#fef3c7">⏳ <b>Free Trial:</b> ' + Math.max(0, daysLeft(S.prof.expiresAt)) + ' days left — awaiting Master approval' + (S.pubC ? ' · Contact: <b>' + esc(S.pubC) + '</b>' : '') + '</div>' : '');
     if (!S.listAt) { h += '<div class="cc-box">Loading data…</div>'; setTimeout(function () { fetchList().catch(function (e) { toast(errText(e)); }); }, 0); return h; }
+    h += '<div class="cc-box"><button class="cc-b wide" style="background:#0f766e" onclick="advCloud.chart()">📊 डेटा देखें — चार्ट (यूज़र / केस / ग्रुप टोटल)</button><button class="cc-b gray wide" style="margin-top:6px" onclick="advCloud.refreshAll().then(function(){advCloud.redraw()})">🔄 डेटा रिफ्रेश</button></div>';
     if (role() === 'master') {
-      h += '<div class="cc-box"><button class="cc-b grn wide" onclick="advCloud.publish()">⬆ Update data for viewers</button><div class="cc-muted">Last update: ' + esc(localStorage.getItem('advCloudPubAt') || '-') + '</div><div class="cc-muted">🔄 Auto-sync चालू — बदलाव लगभग 5 सेकंड में सर्वर पर पहुँचते हैं<br><span id="ccChkTxt"></span></div></div>';
+      h += '<div class="cc-box"><button class="cc-b grn wide" onclick="advCloud.publish()">⬆ Update data for viewers</button><div class="cc-muted">Last update: ' + esc(localStorage.getItem('advCloudPubAt') || '-') + '</div><div class="cc-muted">🔄 Auto-sync चालू — बदलाव लगभग 1-2 सेकंड में सर्वर पर पहुँचते हैं<br><span id="ccChkTxt"></span></div></div>';
       h += '<div class="cc-grid"><div class="cc-stat" style="cursor:pointer" onclick="advCloud.flt(\'admin\',\'\')"><b>' + ad.length + '</b><span>Total Admins</span></div><div class="cc-stat" style="cursor:pointer" onclick="advCloud.flt(\'user\',\'\')"><b>' + us.length + '</b><span>Total Users</span></div><div class="cc-stat" style="cursor:pointer" onclick="advCloud.flt(\'admin\',\'ok\')"><b>' + (act(ad) + act(us)) + '</b><span>Active</span></div><div class="cc-stat" style="cursor:pointer" onclick="advCloud.flt(\'admin\',\'bad\')"><b>' + (L.length - act(ad) - act(us)) + '</b><span>Blocked / Expired</span></div></div>';
       var soon = L.filter(function (x) { var d = daysLeft(x.expiresAt); return stateOf(x) === 'ok' && d <= 7; });
       h += '<div class="cc-box"><b>⏰ Expiring within 7 days (' + soon.length + ')</b>' + soon.map(function (x) { return '<div class="cc-muted">' + esc(x.name || x.email) + ' (' + x.role + ') — ' + fmt(x.expiresAt) + '</div>'; }).join('') + '</div>';
@@ -14670,8 +14675,39 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     return f;
   }
 
+  /* ---------- सर्वर-ऐप तुरंत मिलान + डेटा चार्ट ---------- */
+  async function refreshAll() {
+    if (!S.prof || !S.fb || S.screen !== 'panel') return;
+    try { if (role() === 'master' || role() === 'admin') await fetchList(); } catch (e) { }
+    try { S._asOk = false; S._asAt = 0; await autoSources(); } catch (e) { }
+    try { await syncNow('fast'); if (TS.id && !TS.first) await teamPush(); } catch (e) { }
+    try { ovApply(); fillFilter(); } catch (e) { }
+    S.lastChk = Date.now(); S.lastRefresh = Date.now();
+  }
+  function chartOpen() {
+    var isM = role() === 'master', me = S.prof, L = (S.list || []), rows = [], tot = 0;
+    var ownN = (OV.own || []).filter(function (c) { return c && !isBlankCase(c); }).length; if (!ownN && S.ownCaseCount) ownN = S.ownCaseCount;
+    var users = L.filter(function (x) { return x.role === 'user' && x.parentId === me.id; });
+    var admins = isM ? L.filter(function (x) { return x.role === 'admin'; }) : [];
+    rows.push({ n: (isM ? '👑 ' : '🧑‍💼 ') + (me.name || me.email) + ' (खुद के)', c: ownN, col: '#0f2a4a' }); tot += ownN;
+    users.forEach(function (u) { var c = u.caseCount || 0; rows.push({ n: '👤 ' + (u.name || u.email), c: c, col: '#0f766e' }); tot += c; });
+    var mx = Math.max.apply(null, rows.map(function (r) { return r.c; }).concat([1]));
+    var bar = function (r) { return '<div style="margin:7px 0"><div style="display:flex;justify-content:space-between;font-weight:700"><span>' + esc(r.n) + '</span><b>' + r.c + ' केस</b></div><div style="background:#e2e8f0;border-radius:8px;height:14px;overflow:hidden"><div style="height:14px;width:' + Math.round(r.c * 100 / mx) + '%;background:' + r.col + '"></div></div></div>'; };
+    var h = '<div style="display:flex;align-items:center;gap:8px"><b style="flex:1;font-size:16px">📊 ' + (isM ? 'Master' : 'Admin') + ' डेटा चार्ट</b><button style="border:0;background:#e2e8f0;border-radius:8px;padding:6px 10px;font-weight:800" onclick="document.getElementById(\'ccChart\').remove()">✕</button></div>';
+    h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0"><div style="background:#eef6ff;border-radius:10px;padding:10px;text-align:center"><div style="font-size:24px;font-weight:800">' + users.length + '</div><div style="font-size:12px">मेरे ग्रुप के यूज़र</div></div><div style="background:#ecfdf5;border-radius:10px;padding:10px;text-align:center"><div style="font-size:24px;font-weight:800">' + tot + '</div><div style="font-size:12px">पूरे ग्रुप के कुल केस</div></div></div>';
+    h += '<b>' + (isM ? 'Master' : 'Admin') + ' + हर यूज़र के केस</b>' + rows.map(bar).join('');
+    if (isM && admins.length) {
+      h += '<div style="margin-top:12px;border-top:2px solid #eef1f6;padding-top:8px"><b>🧑‍💼 बाकी Admin ग्रुप</b>';
+      admins.forEach(function (a) { var ku = L.filter(function (x) { return x.role === 'user' && x.parentId === a.id; }), s = a.caseCount || 0; ku.forEach(function (u) { s += u.caseCount || 0; }); h += '<div style="margin:6px 0;display:flex;justify-content:space-between"><span>' + esc(a.name || a.email) + ' · ' + ku.length + ' यूज़र</span><b>' + s + ' केस</b></div>'; });
+      h += '</div>';
+    }
+    h += '<div style="font-size:11px;color:#64748b;margin-top:8px">सर्वर पर सेव हुई गिनती के अनुसार · ' + new Date().toLocaleTimeString() + '</div><button style="width:100%;margin-top:8px;border:0;border-radius:10px;padding:10px;font:800 14px system-ui;background:#142b4a;color:#fff" onclick="advCloud.refreshAll().then(function(){advCloud.chart()})">🔄 रिफ्रेश</button>';
+    modalBox('ccChart', h);
+  }
+
   /* ---------- public API ---------- */
   var api = window.advCloud = {
+    refreshAll: refreshAll, chart: chartOpen,
     build: BUILD,
     status: function () { var n = '', r = '', c = null; if (S.prof && S.screen !== 'login') { n = S.prof.name || S.prof.email || ''; r = S.prof.role; } else { try { c = JSON.parse(localStorage.getItem('advCloudCache') || 'null'); } catch (e) { } if (c && c.nm && ['login', 'cfg', 'signup'].indexOf(S.screen) < 0) { n = c.nm; r = c.role; } } if (!n) return null; var pend = false; try { pend = fnv(localStorage.getItem('advDiaryCases') || '[]') !== localStorage.getItem('advCloudLastHash'); } catch (e) { } return { name: n, role: r, online: navigator.onLine, last: S.lastSync || 0, syncing: !!S.syncing, pending: pend, err: S.syncErr || '' }; },
     open: function () { S.panelOpen = true; if (S.screen === 'loading' && !S.user) boot(); draw(); },
@@ -14869,7 +14905,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
         try { if (!OV.srcs[id]) { var l = await fetchCasesOf(a); OV.srcs[id] = { name: a.name || a.email, cases: l }; try { ovLiveMulti({ id: id, name: a.name || a.email }); } catch (e) { } } } catch (e) { }
       }
       OV.sel = first; OV.selSet = ids.length > 1 || set[me.id] ? set : null;
-      try { if (ids.length === 1) localStorage.setItem('advCloudFilter', first); else localStorage.removeItem('advCloudFilter'); } catch (e) { }
+      try { localStorage.removeItem('advCloudFilter'); } catch (e) { }
       ovApply(); if (fs && first) fs.value = first; fillFilter(); toast('✔ ' + (label || (ids.length + ' खातों')) + ' का डेटा खुल गया');
     }
     function teamIds(hid) { return [hid].concat((S.list || []).filter(function (x) { return x.role === 'user' && x.parentId === hid; }).map(function (x) { return x.id; })); }
@@ -14894,17 +14930,16 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       var o = $('ccFPanel'); if (!o) return; if (role() === 'user') return fRenderUser(); var cur = OV.sel || '', G = fgroups(), sel = S._fSel = S._fSel || {};
       var box = document.createElement('div'); box.style.cssText = 'background:#fff;color:#142b4a;border-radius:14px;width:calc(100% - 20px);max-width:460px;max-height:80vh;overflow:auto;font:14px/1.4 system-ui,sans-serif';
       var hd = document.createElement('div'); hd.style.cssText = 'position:sticky;top:0;z-index:2;background:#0f2a4a;color:#fff;padding:10px 12px;display:flex;align-items:center;gap:8px'; hd.innerHTML = '<b style="flex:1">Master / Admin / User चुनें</b>'; hd.appendChild(mk('✕', '#e2e8f0', function () { o.remove(); })); box.appendChild(hd);
-      var dg = document.createElement('div'); dg.style.cssText = 'padding:12px;border-bottom:1px solid #e2e8f0;font-weight:800;background:' + (!cur && !OV.selSet ? '#fff3cf' : '#ecfdf5') + ';cursor:pointer'; dg.innerHTML = '👥 पूरे ग्रुप का एक साथ डेटा <span style="font-size:11px;background:#0f766e;color:#fff;border-radius:8px;padding:1px 7px">डिफ़ॉल्ट</span><div style="font-size:11px;font-weight:600;color:#64748b">आप + आपकी टीम का मर्ज किया हुआ एक ही डेटा · नीचे नाम के आगे = उसने कितने केस बनाए</div>'; dg.onclick = function () { o.remove(); openSet([]); toast('✔ पूरे ग्रुप का डेटा दिख रहा है'); }; box.appendChild(dg);
       if (!G.length) box.insertAdjacentHTML('beforeend', '<div style="padding:14px;color:#64748b">कोई खाता नहीं मिला।</div>');
       G.forEach(function (g) {
-        var hid = g.h ? g.h.id : '__rest', open = S._fExp === hid, own = g.own, n = own ? (OV.own || []).length : (g.h ? fcnt(g.h.id) : null);
+        var hid = g.h ? g.h.id : '__rest', open = S._fExp === hid, own = g.own, n = own ? (OV.grpN != null ? OV.grpN : (OV.own || []).length) : (g.h ? fcnt(g.h.id) : null);
         var tot = 0; g.kids.forEach(function (k) { tot += fcnt(k.id) || 0; });
         var nm = g.h ? (g.h.name || g.h.email) : 'अन्य यूज़र', icon = !g.h ? '👥' : (own && role() === 'master' ? '👑' : '🧑‍💼'), tag = own ? (role() === 'master' ? 'MASTER' : 'ADMIN') : (g.h ? 'ADMIN' : '');
-        var on = g.h && ((own && !cur) || (!own && cur === g.h.id));
+        var on = g.h && ((own && !cur && !OV.selSet) || (!own && cur === g.h.id));
         var row = document.createElement('div'); row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:11px 12px;border-bottom:1px solid #e2e8f0;font-weight:800;background:' + (on ? '#fff3cf' : '#f1f5f9');
         var ar = document.createElement('span'); ar.style.cssText = 'width:26px;text-align:center;font-size:16px;cursor:pointer'; ar.textContent = g.kids.length ? (open ? '▾' : '▸') : ''; ar.onclick = function (e) { e.stopPropagation(); S._fExp = open ? '' : hid; S._fSel = {}; fRender(); }; row.appendChild(ar);
-        var mid = document.createElement('span'); mid.style.cssText = 'flex:1;min-width:0;cursor:pointer'; mid.innerHTML = icon + ' ' + esc(nm) + '<div style="font-size:11px;font-weight:600;color:#64748b">' + tag + (tag ? ' · ' : '') + (g.kids.length ? g.kids.length + ' यूज़र · उनके ' + tot + ' केस' : 'कोई यूज़र नहीं') + ' · दबाएँ = पूरी टीम खोलें</div>';
-        mid.onclick = function () { o.remove(); S._fExp = hid; if (g.h) openSet(teamIds(g.h.id), nm + ' की पूरी टीम'); else openSet(g.kids.map(function (k) { return k.id; }), 'अन्य यूज़र'); }; row.appendChild(mid);
+        var mid = document.createElement('span'); mid.style.cssText = 'flex:1;min-width:0;cursor:pointer'; mid.innerHTML = (own ? '👥 पूरे ग्रुप का एक साथ डेटा <span style="font-size:11px;background:#0f766e;color:#fff;border-radius:8px;padding:1px 7px">डिफ़ॉल्ट</span><div style="font-size:12px;font-weight:700">' + icon + ' ' + esc(nm) + '</div>' : icon + ' ' + esc(nm)) + '<div style="font-size:11px;font-weight:600;color:#64748b">' + tag + (tag ? ' · ' : '') + (g.kids.length ? g.kids.length + ' यूज़र · उनके ' + tot + ' केस' : 'कोई यूज़र नहीं') + ' · दबाएँ = पूरा ग्रुप एक साथ</div>';
+        mid.onclick = function () { o.remove(); S._fExp = hid; if (own) { openSet([]); toast('✔ पूरे ग्रुप का डेटा दिख रहा है'); } else if (g.h) openSet(teamIds(g.h.id), nm + ' की पूरी टीम'); else openSet(g.kids.map(function (k) { return k.id; }), 'अन्य यूज़र'); }; row.appendChild(mid);
         var bd = document.createElement('span'); bd.style.cssText = 'background:#0f2a4a;color:#fff;border-radius:10px;padding:2px 9px;font-size:12px'; bd.textContent = (n == null ? '–' : n) + ' केस'; row.appendChild(bd); box.appendChild(row);
         if (open) {
           var all = document.createElement('label'); all.style.cssText = 'display:flex;gap:8px;align-items:center;padding:8px 12px 8px 38px;background:#fff;border-bottom:1px solid #eef2f7;font-weight:700'; all.innerHTML = '<input type="checkbox"> सभी चुनें'; all.firstChild.onchange = function () { g.kids.forEach(function (k) { if (all.firstChild.checked) sel[k.id] = 1; else delete sel[k.id]; }); if (g.h) { if (all.firstChild.checked) sel[g.h.id] = 1; else delete sel[g.h.id]; } fRender(); };
@@ -15313,4 +15348,54 @@ body.chat-sidebar-open{overflow:hidden}
   setInterval(icon,500);icon();document.body.appendChild(b);
 })();
 
+</script>
+
+<style id="adv-group-live-css">
+/* PC mode (Chrome "Desktop site"): काली sidebar पट्टी हमेशा के लिए हटी — फ़ोन की तरह छुपा drawer */
+@media(min-width:761px){
+ html,body{overflow-x:hidden!important}
+ .app-body{display:block!important;grid-template-columns:none!important;width:100%!important;max-width:100%!important;min-width:0!important}
+ .app-sidebar,#appSidebar{position:fixed!important;left:0!important;top:0!important;width:278px!important;height:100vh!important;min-height:100vh!important;z-index:300!important;transform:translateX(-102%)!important;transition:transform .22s ease!important;overflow-y:auto!important;box-shadow:none!important}
+ body.chat-sidebar-open .app-sidebar,body.chat-sidebar-open #appSidebar{transform:translateX(0)!important;box-shadow:8px 0 28px rgba(0,0,0,.3)!important}
+ .app-body>main{width:100%!important;max-width:100%!important;min-width:0!important;padding:14px!important;box-sizing:border-box!important}
+ .chat-menu-btn{display:grid!important}
+}
+</style>
+<script id="adv-group-live-20261128">
+(function () {
+  var last = 0, busy = false;
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function clock(t) { var d = new Date(t); return pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()); }
+  async function doRefresh(manual) {
+    if (busy) return; busy = true;
+    var b = document.getElementById('advDashRefreshBtn'); if (b && manual) b.textContent = '⏳ रिफ्रेश हो रहा है…';
+    try { if (window.advCloud && advCloud.refreshAll) await advCloud.refreshAll(); } catch (e) { }
+    try { if (typeof window.renderAll === 'function') window.renderAll(); } catch (e) { }
+    last = Date.now(); busy = false;
+    if (b) b.textContent = '🔄 डेटा रिफ्रेश';
+  }
+  function ensureBar() {
+    var sh = document.querySelector('.dashboard-shell'); if (!sh) return;
+    var bar = document.getElementById('advDashRefresh');
+    if (!bar) {
+      bar = document.createElement('div'); bar.id = 'advDashRefresh';
+      bar.style.cssText = 'display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:8px 10px;border-radius:12px;background:#eef6ff;border:1px solid #c9dcf5;font:700 13px system-ui,sans-serif;color:#142b4a';
+      bar.innerHTML = '<button type="button" id="advDashRefreshBtn" style="border:0;border-radius:9px;padding:8px 14px;font:800 13px system-ui;background:#142b4a;color:#fff;cursor:pointer">🔄 डेटा रिफ्रेश</button><span id="advDashRefreshTxt" style="font-weight:600;color:#475569"></span>';
+      sh.insertBefore(bar, sh.firstChild);
+      document.getElementById('advDashRefreshBtn').onclick = function () { doRefresh(true); };
+    }
+    var t = document.getElementById('advDashRefreshTxt'); if (!t) return;
+    var st = null; try { st = window.advCloud && advCloud.status && advCloud.status(); } catch (e) { }
+    var at = Math.max(last, (st && st.last) || 0);
+    t.textContent = (st ? (st.online ? '🟢 लाइव' : '🔴 ऑफ़लाइन') + (st.pending ? ' · ⏫ सर्वर पर भेज रहा है' : ' · ✔ सर्वर से मिला हुआ') : '') + (at ? ' · अंतिम अपडेट ' + clock(at) : '');
+  }
+  var n = 0;
+  setInterval(function () {
+    try { ensureBar(); } catch (e) { }
+    n++;
+    /* हर सेकंड: स्क्रीन की स्थिति ताज़ा; हर 60 सेकंड: पूरा सर्वर-मिलान (बाकी बदलाव सर्वर से तुरंत स्नैपशॉट से आते हैं) */
+    if (n % 60 === 0 && !document.hidden && navigator.onLine) doRefresh(false);
+  }, 1000);
+  [3000, 9000].forEach(function (ms) { setTimeout(function () { doRefresh(false); }, ms); });
+})();
 </script>
