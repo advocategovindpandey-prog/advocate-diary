@@ -3529,7 +3529,7 @@ function checkReminders(){
    let key='advDiaryNotify:'+c.id+':'+(c.nextDate||'no-date')+':'+keys.sort().join(',');
    if(!localStorage.getItem(key)){
      let status=c.disposed?' · ✅ Disposed':(c.inactive?' · ⏸ Inactive':'');
-     new Notification('Advocate Diary Reminder',{body:`${c.party||c.vadiName||''} · Case No. ${c.caseNo||''} · ${c.nextDate?fmt(c.nextDate):'Date नहीं'} · ${c.court||''}${status}`});
+     (function(){})('Advocate Diary Reminder',{body:`${c.party||c.vadiName||''} · Case No. ${c.caseNo||''} · ${c.nextDate?fmt(c.nextDate):'Date नहीं'} · ${c.court||''}${status}`});
      localStorage.setItem(key,'1');
    }
  });
@@ -9198,11 +9198,12 @@ function bodyFor(c){
   var lines=[];
   var vs=(typeof partyText==='function'?partyText(c):'')||c.party||'';
   if(vs)lines.push(vs);
-  if(c.caseNo)lines.push('Case No. '+c.caseNo);
-  if(c.nextDate){var _dn=['रविवार','सोमवार','मंगलवार','बुधवार','गुरुवार','शुक्रवार','शनिवार'][new Date(c.nextDate+'T00:00:00').getDay()];lines.push('Next Date: '+dmy(c.nextDate)+' ('+_dn+')')}
-  if(c.court)lines.push('Court name: '+c.court);
+  if(c.caseNo)lines.push('केस नंबर: '+c.caseNo);
+  if(c.nextDate){var _dn=['रविवार','सोमवार','मंगलवार','बुधवार','गुरुवार','शुक्रवार','शनिवार'][new Date(c.nextDate+'T00:00:00').getDay()];lines.push('अगली तारीख: '+String(c.nextDate).split('-').reverse().join('/')+' ('+_dn+')')}
+  {var _an=(typeof caseAdvNames==='function')?caseAdvNames(c):'';if(_an)lines.push('वकील: '+_an)}if(c.court)lines.push('कोर्ट: '+c.court);
   return lines.join('\n')||('Next Date: '+dmy(c.nextDate));
 }
+function advTag(c){try{var n=(typeof caseAdvNames==='function'&&c)?caseAdvNames(c):'';return n?' — '+n:''}catch(e){return ''}}
 function titleFor(k){return k===0?'⚖️ आज पेशी है':k===1?'⚖️ कल पेशी है':'⚖️ '+k+' दिन बाद पेशी'}
 function getLN(){
   try{
@@ -9248,7 +9249,7 @@ async function schedule(opts){
     if(cfg.enabled===false){localStorage.setItem('advPushIds','[]');setStatus('⏸ Notification बंद हैं।');return true}
     var items=buildList(),ids=[],arr=items.map(function(x,i){
       var id=910000+i,b=bodyFor(x.c);ids.push(id);
-      return {id:id,title:titleFor(x.k),body:b,largeBody:b,summaryText:'Advocate Diary',channelId:'advdiary_cases',group:'advcase-'+id,schedule:{at:x.at,allowWhileIdle:true},extra:{caseId:x.c.id}};
+      return {id:id,title:titleFor(x.k)+advTag(x.c),body:b,largeBody:b,summaryText:'Advocate Diary',channelId:'advdiary_cases',group:'advcase-'+id,schedule:{at:x.at,allowWhileIdle:true},extra:{caseId:x.c.id}};
     });
     if(arr.length)await ln.schedule({notifications:arr});
     localStorage.setItem('advPushIds',JSON.stringify(ids));
@@ -9307,7 +9308,7 @@ window.checkReminders=function(){
     if(!due.length)return;
     /* har case ka alag notification (summary nahi) */
     due.forEach(function(x){
-      new Notification(titleFor(x.diff),{body:bodyFor(x.c),tag:'adv-'+x.c.id+'-'+x.c.nextDate,requireInteraction:true});
+      new Notification(titleFor(x.diff)+advTag(x.c),{body:bodyFor(x.c),tag:'adv-'+x.c.id+'-'+x.c.nextDate,requireInteraction:true});
     });
     due.forEach(function(x){slots.forEach(function(ts){localStorage.setItem(x.kb+ts,'1')})});
   }catch(e){}
@@ -12903,7 +12904,8 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   }
 
   /* ---------- firebase load ---------- */
-  async function initFb() {
+  function __advNoNotif() { }
+async function initFb() {
     if (S.db) return true;
     var cfg = cfgGet(); if (!cfg) return false;
     var base = 'https://www.gstatic.com/firebasejs/' + FB_VER + '/';
@@ -13001,7 +13003,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       S.unsub.push(F.onSnapshot(F.query(col('users'), F.where('requestStatus', '==', 'pending')), function (snap) {
         var prevIds = (S.pending || []).map(function (x) { return x.id; });
         S.pending = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
-        if (!first) S.pending.forEach(function (a) { if (prevIds.indexOf(a.id) < 0) { toast('📩 New Admin request: ' + (a.name || a.email)); try { if ('Notification' in window && Notification.permission === 'granted') new Notification('New Admin request', { body: (a.name || '') + ' · ' + a.email + ' · ' + (a.mobile || '') }); } catch (e) { } } });
+        if (!first) S.pending.forEach(function (a) { if (prevIds.indexOf(a.id) < 0) { toast('📩 New Admin request: ' + (a.name || a.email)); try { if ('Notification' in window && Notification.permission === 'granted') new __advNoNotif('New Admin request', { body: (a.name || '') + ' · ' + a.email + ' · ' + (a.mobile || '') }); } catch (e) { } } });
         first = false; badge(); if (S.panelOpen) draw();
       }, function () { }));
     }
@@ -13197,7 +13199,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   function pushLocal(n) {
     if (!((n.to === 'all') || (role() === 'admin' ? n.to === 'admins' : n.to === 'users'))) return;
     toast('🔔 ' + n.title);
-    try { if ('Notification' in window && Notification.permission === 'granted') new Notification(n.title, { body: n.body || '' }); } catch (e) { }
+    try { if ('Notification' in window && Notification.permission === 'granted') new __advNoNotif(n.title, { body: n.body || '' }); } catch (e) { }
   }
   function unread() { var s = localStorage.getItem('advCloudSeen') || ''; return S.notes.filter(function (n) { return n.id > s; }).length; }
   function markSeen() { if (S.notes[0]) { try { localStorage.setItem('advCloudSeen', S.notes[0].id); } catch (e) { } } badge(); }
@@ -13246,7 +13248,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     S.mwOff = S.fb.onSnapshot(ref('userData/' + S.pub.masterUid), function () { if (first) { first = false; return; } masterPopup(); }, function () { });
   }
   function masterPopup() {
-    try { if (window.Notification && Notification.permission === 'granted') new Notification('Advocate Diary', { body: 'Case data was updated by the Master.' }); } catch (e) { }
+    try { if (window.Notification && Notification.permission === 'granted') new __advNoNotif('Advocate Diary', { body: 'Case data was updated by the Master.' }); } catch (e) { }
     var o = document.getElementById('cc-mp'); if (o) o.remove();
     o = document.createElement('div'); o.id = 'cc-mp';
     o.style.cssText = 'position:fixed;left:10px;right:10px;top:10px;z-index:2147483640;background:#0f2a4a;color:#fff;border-radius:14px;padding:12px 14px;font:600 14px system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.35);display:flex;gap:10px;align-items:center';
@@ -13396,7 +13398,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
   }
   function edNotify(d, n) {
     var t = 'Advocate Diary', body = (d.byName || 'User') + ' ने केस में बदलाव भेजा है' + (n > 1 ? ' (+' + (n - 1) + ' और)' : '');
-    try { if (window.Notification && Notification.permission === 'granted') new Notification(t, { body: body }); } catch (e) { }
+    try { if (window.Notification && Notification.permission === 'granted') new __advNoNotif(t, { body: body }); } catch (e) { }
     try {
       var ln = getLNc(); if (!ln) return;
       ln.checkPermissions().then(function (p) { if (!p || p.display !== 'granted') return; try { ln.createChannel({ id: 'advdiary_cloud', name: 'Selected User Reminders', importance: 5, visibility: 1, vibration: true }); } catch (e) { } ln.schedule({ notifications: [{ id: 940000 + (Date.now() % 50000), title: t, body: body, channelId: 'advdiary_cloud', schedule: { at: new Date(Date.now() + 1500), allowWhileIdle: true } }] }); });
@@ -13797,7 +13799,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
           delete TS.pushed[x.cid]; tsSavePushed();
           try { chgPush({ kind: 'del', by: x.delBy || 'Master', at: x.delAt, caseNo: (loc && loc.caseNo) || '', names: ((loc && loc.vadiName) || '—') + ' vs ' + ((loc && loc.prativadiName) || '—'), changes: [] }); } catch (e) { }
           var msg = '🗑 आपका केस ' + ((loc && loc.caseNo) || '') + ' ' + (x.delBy || 'Master') + ' ने हटा दिया है';
-          toast(msg); try { if (window.Notification && Notification.permission === 'granted') new Notification('Advocate Diary', { body: msg }); } catch (e) { }
+          toast(msg); try { if (window.Notification && Notification.permission === 'granted') new __advNoNotif('Advocate Diary', { body: msg }); } catch (e) { }
         } else if (x.del === false && x.byUid && x.byUid !== me && x.c && loc && !x.rest && x.h !== TS.pushed[x.cid]) {
           var st = tsStored(x.cid), lh = st ? fnv(tsJs(st)) : '';
           if (lh === TS.pushed[x.cid]) {
@@ -13818,7 +13820,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       try { TS.prevC = TS.prevC || {}; var cur0 = JSON.parse(x.c || '{}'), pv0 = TS.prevC[k]; if (!TS.base) { var nm0 = (cur0.vadiName || '—') + ' vs ' + (cur0.prativadiName || '—'); if (pv0) { var ch0 = chgDiff(pv0, cur0); if (ch0.length && TS.seenH[k] !== x.h) chgPush({ by: x.by || x.ownerName, at: x.at, caseNo: cur0.caseNo, names: nm0, changes: ch0 }); } else if (TS.seenH[k] === undefined) chgPush({ kind: 'new', by: x.by || x.ownerName, at: x.at, caseNo: cur0.caseNo, names: nm0, changes: [] }); } TS.prevC[k] = cur0; } catch (e) { }
       if (TS.seenH[k] !== undefined && TS.seenH[k] !== x.h && !TS.base) notes.push(x); TS.seenH[k] = x.h;
     });
-    if (notes.length) { var n0 = notes[0], tm = ''; try { var dt = n0.at && n0.at.toDate ? n0.at.toDate() : new Date(); tm = dt.toLocaleTimeString(); } catch (e) { } var cn = ''; try { cn = JSON.parse(n0.c || '{}').caseNo || ''; } catch (e) { } var msg2 = '🔔 ' + (n0.by || n0.ownerName || 'User') + ' ने केस ' + cn + ' अपडेट किया' + (notes.length > 1 ? ' (+' + (notes.length - 1) + ' और)' : '') + ' · सर्वर पर पहुँचा ' + tm; try { if (window.Notification && Notification.permission === 'granted') new Notification('Advocate Diary', { body: msg2 }); } catch (e) { } }
+    if (notes.length) { var n0 = notes[0], tm = ''; try { var dt = n0.at && n0.at.toDate ? n0.at.toDate() : new Date(); tm = dt.toLocaleTimeString(); } catch (e) { } var cn = ''; try { cn = JSON.parse(n0.c || '{}').caseNo || ''; } catch (e) { } var msg2 = '🔔 ' + (n0.by || n0.ownerName || 'User') + ' ने केस ' + cn + ' अपडेट किया' + (notes.length > 1 ? ' (+' + (notes.length - 1) + ' और)' : '') + ' · सर्वर पर पहुँचा ' + tm; try { if (window.Notification && Notification.permission === 'granted') new __advNoNotif('Advocate Diary', { body: msg2 }); } catch (e) { } }
     TS.base = false;
     if (TS.impN) { toast('⬇ सर्वर से ' + TS.impN + ' केस आपके फ़ोन में आए'); TS.impN = 0; }
     TS.trash = trash;
@@ -14028,13 +14030,13 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     var a = (S.list || []).filter(function (x) { return x.id === id; })[0]; if (!a) return; var p = permsOf(a);
     var row = function (k, t, v) { return '<label style="display:flex;align-items:center;gap:8px;margin:9px 0;font-weight:700"><input type="checkbox" id="ccp_' + k + '" ' + (v ? 'checked' : '') + '> ' + t + '</label>'; };
     modalBox('ccPerms', '<div style="display:flex;align-items:center;gap:8px"><b style="flex:1;font-size:15px">🔑 अधिकार — ' + esc(a.name || a.email) + '</b><button style="border:0;background:#e2e8f0;border-radius:8px;padding:6px 10px;font-weight:800" onclick="document.getElementById(\'ccPerms\').remove()">✕</button></div>' +
-      '<div style="margin-top:8px">' + row('date', '📅 तारीख़, समय और नोट बदल सकता है', p.date) + row('edit', '✏ बाकी सारे फ़ील्ड बदल सकता है (नाम, कोर्ट, मोबाइल…)', p.edit) + row('create', '➕ नया केस बना सकता है', p.create) + row('del', '🗑 केस हटा सकता है', p.del) + row('appr', '🔐 हर बदलाव पर मेरी मंज़ूरी चाहिए', a.needsApproval === true) + '</div>' +
+      '<div style="margin-top:8px">' + row('date', '📅 तारीख़, समय और नोट बदल सकता है', p.date) + row('edit', '✏ बाकी सारे फ़ील्ड बदल सकता है (नाम, कोर्ट, मोबाइल…)', p.edit) + row('create', '➕ नया केस बना सकता है', p.create) + row('del', '🗑 केस हटा सकता है', p.del) + row('notif', '🔔 ग्रुप के अपडेट के नोटिफिकेशन मिलें', (a.perms && a.perms.notif) !== false) + row('appr', '🔐 हर बदलाव पर मेरी मंज़ूरी चाहिए', a.needsApproval === true) + '</div>' +
       '<div style="font-size:12px;color:#64748b;margin:6px 0">नया यूज़र डिफ़ॉल्ट में सिर्फ़ तारीख़/समय/नोट बदल सकता है। बदलाव यूज़र के अगले लॉगिन या रिफ़्रेश पर लागू होता है।</div>' +
       '<button style="width:100%;border:0;border-radius:10px;padding:12px;font:800 14px system-ui;background:#137547;color:#fff" onclick="advCloud.permsSave(\'' + esc(id).replace(/\'/g, '') + '\')">💾 सेव करें</button>');
   }
   async function permsSave(id) {
     var g = function (k) { var e = document.getElementById('ccp_' + k); return !!(e && e.checked); };
-    try { await S.fb.updateDoc(ref('users/' + id), { perms: { create: g('create'), date: g('date'), edit: g('edit'), del: g('del') }, needsApproval: g('appr'), updatedAt: S.fb.serverTimestamp() }); var m = document.getElementById('ccPerms'); if (m) m.remove(); toast('✔ अधिकार सेव हो गए'); S.listAt = 0; draw(); } catch (e) { toast(errText(e)); }
+    try { await S.fb.updateDoc(ref('users/' + id), { perms: { create: g('create'), date: g('date'), edit: g('edit'), del: g('del'), notif: g('notif') }, needsApproval: g('appr'), updatedAt: S.fb.serverTimestamp() }); var m = document.getElementById('ccPerms'); if (m) m.remove(); toast('✔ अधिकार सेव हो गए'); S.listAt = 0; draw(); } catch (e) { toast(errText(e)); }
   }
 
   /* ---------- Part 3 source filter ---------- */
@@ -14950,12 +14952,13 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
     function gnIds() { try { return JSON.parse(lsGet('advGrpNotifIds', '[]')) || []; } catch (e) { return []; } }
     async function gnClear() { var ln = getLNc(), old = gnIds(); if (ln && old.length) { try { await ln.cancel({ notifications: old.map(function (id) { return { id: id }; }) }); } catch (e) { } } lsSet('advGrpNotifIds', '[]'); }
     function gnOp(k, d) { var v = (GN.opts || {})[k]; return v === undefined ? d : v === true; }
-    function gnDays() { var a = []; if (gnOp('d0', true)) a.push(0); if (gnOp('d1', true)) a.push(1); if (gnOp('d3', true)) a.push(3); return a; }
-    function body(c) { var adv = ''; try { adv = typeof caseAdvNames === 'function' ? caseAdvNames(c) : ''; } catch (e) { } return [c.caseNo ? '📁 केस: ' + c.caseNo + (c.type ? ' (' + c.type + ')' : '') : '', (c.vadiName || c.prativadiName) ? '👤 ' + (c.vadiName || '') + ' बनाम ' + (c.prativadiName || '') : '', c.court ? '🏛 कोर्ट: ' + c.court + (c.time ? ' · कोर्ट रूम: ' + c.time : '') : '', adv ? '⚖️ वकील: ' + adv : '', c.nextDate ? '📅 अगली तारीख: ' + c.nextDate : '', c.notes ? '📝 नोट: ' + c.notes : ''].filter(Boolean).join('\n'); }
+    function gnDays() { var a = []; if (gnOp('d0', false)) a.push(0); if (gnOp('d1', false)) a.push(1); if (gnOp('d3', false)) a.push(3); return a; }
+    function fdw(v) { var m = /^(\d{4})-(\d\d)-(\d\d)$/.exec(String(v || '')); if (!m) return v || '—'; var d = new Date(v + 'T00:00:00'); return m[3] + '/' + m[2] + '/' + m[1] + ' (' + ['रविवार', 'सोमवार', 'मंगलवार', 'बुधवार', 'गुरुवार', 'शुक्रवार', 'शनिवार'][d.getDay()] + ')'; }
+    function body(c) { var adv = ''; try { adv = typeof caseAdvNames === 'function' ? caseAdvNames(c) : ''; } catch (e) { } return [c.caseNo ? '📁 केस: ' + c.caseNo + (c.type ? ' (' + c.type + ')' : '') : '', (c.vadiName || c.prativadiName) ? '👤 ' + (c.vadiName || '') + ' बनाम ' + (c.prativadiName || '') : '', c.court ? '🏛 कोर्ट: ' + c.court + (c.time ? ' · कोर्ट रूम: ' + c.time : '') : '', adv ? '⚖️ वकील: ' + adv : '', c.nextDate ? '📅 अगली तारीख: ' + fdw(c.nextDate) : '', c.notes ? '📝 नोट: ' + c.notes : ''].filter(Boolean).join('\n'); }
     async function gnSchedule() {
       if (GN.busy || !S.prof || !TS.id) return; GN.busy = true;
       try {
-        var ctl = gnCtl(); if (ctl.off) { await gnClear(); return; }
+        var ctl = gnCtl(); if (ctl.off || (S.prof.perms && S.prof.perms.notif === false)) { await gnClear(); return; }
         var cs = gnCases(), now = Date.now(), items = [], nm = gname();
         cs.forEach(function (c) { if (!c || !c.nextDate || c.inactive || c.disposed) return; var b = new Date(c.nextDate + 'T00:00:00'); if (isNaN(b)) return; gnDays().forEach(function (k) { var d = new Date(b.getFullYear(), b.getMonth(), b.getDate() - k, 8, 0, 0, 0); if (d.getTime() > now) items.push({ at: d, k: k, c: c }); }); });
         items.sort(function (x, y) { return x.at - y.at; }); items = items.slice(0, 300);
@@ -14968,11 +14971,11 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       } catch (e) { } finally { GN.busy = false; }
     }
     async function gnAnnounce(list) {
-      list = list.filter(function (n) { return gnOp(n.t === 'new' ? 'newc' : n.t === 'upd' ? 'upd' : 'del', n.t !== 'del'); }); if (gnCtl().off || !list.length) return; var ln = getLNc(), nm = gname();
+      list = list.filter(function (n) { return gnOp(n.t === 'new' ? 'newc' : n.t === 'upd' ? 'upd' : 'del', false); }); if (gnCtl().off || !list.length || (S.prof && S.prof.perms && S.prof.perms.notif === false)) return; var ln = getLNc(), nm = gname();
       list.slice(0, 5).forEach(function (n) {
         var t = (n.t === 'new' ? '🆕 नया केस जुड़ा' : n.t === 'del' ? '🗑 केस हटाया गया' : '✏ केस अपडेट हुआ') + ' — ' + nm, b = body(n.c) + (n.by ? '\nद्वारा: ' + n.by : '');
         if (ln) { ln.schedule({ notifications: [{ id: 960000 + Math.floor(Math.random() * 30000), title: t, body: b, largeBody: b, channelId: 'advdiary_group', schedule: { at: new Date(Date.now() + 1200), allowWhileIdle: true } }] }).catch(function () { }); }
-        else if (n.t !== 'upd') { try { if (window.Notification && Notification.permission === 'granted') { if (navigator.serviceWorker && navigator.serviceWorker.ready) navigator.serviceWorker.ready.then(function (r) { r.showNotification(t, { body: b, tag: 'adv-' + n.k }); }).catch(function () { new Notification(t, { body: b }); }); else new Notification(t, { body: b }); } } catch (e) { } }
+        else if (n.t !== 'upd') { try { if (window.Notification && Notification.permission === 'granted') { if (navigator.serviceWorker && navigator.serviceWorker.ready) navigator.serviceWorker.ready.then(function (r) { r.showNotification(t, { body: b, tag: 'adv-' + n.k }); }).catch(function () { }); } } catch (e) { } }
       });
     }
     function gnWatch() {
@@ -14994,7 +14997,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
         if (GN.sig === null) { GN.sig = sig; GN.prev = map; gnSchedule(); return; }
         if (sig === GN.sig) return;
         var ch = [], me = S.prof.id; Object.keys(map).forEach(function (k) { var x = map[k], o = GN.prev[k]; if (o && o.h === x.h && o.del === x.del) return; if (x.byUid === me && x.del !== true) return; var c = {}, oc = {}; try { c = JSON.parse(x.c || '{}'); } catch (e) { } try { if (o) oc = JSON.parse(o.c || '{}'); } catch (e) { } var lh = (c.hist || []).slice(-1)[0] || {}; ch.push({ k: k + (x.h || ''), t: x.del === true ? 'del' : (o ? 'upd' : 'new'), c: c, by: lh.by || x.by || x.ownerName || '', byEmail: lh.byEmail || x.byEmail || '', at: lh.at || Date.now(), changes: o ? diffC(oc, c) : [] }); });
-        GN.sig = sig; GN.prev = map; gnSchedule(); gnAnnounce(ch); if (GN.mail && (role() === 'master' || role() === 'admin')) ch.filter(function (n) { return n.t !== 'del' && ((GN.mailOpts || {})[n.t === 'new' ? 'newc' : 'upd'] !== false); }).slice(0, 1).forEach(mailAsk);
+        GN.sig = sig; GN.prev = map; gnSchedule(); gnAnnounce(ch); if (ch.length && !(S.prof.perms && S.prof.perms.notif === false)) { topBanner('🔄 ' + (ch[0].by || 'ग्रुप के सदस्य') + ' ने केस ' + ((ch[0].c && ch[0].c.caseNo) || '') + (ch[0].t === 'new' ? ' जोड़ा' : ' अपडेट किया') + (ch.length > 1 ? ' (+' + (ch.length - 1) + ' और)' : '') + ' — डेटा अपडेट हो गया'); try { ovApply(); } catch (e) { } } if (GN.mail && (role() === 'master' || role() === 'admin')) ch.filter(function (n) { return n.t !== 'del' && ((GN.mailOpts || {})[n.t === 'new' ? 'newc' : 'upd'] !== false); }).slice(0, 1).forEach(mailAsk);
       } catch (e) { }
     }
     document.addEventListener('click', function f() { try { if (window.Notification && Notification.permission === 'default') Notification.requestPermission(); } catch (e) { } document.removeEventListener('click', f, true); }, true);
@@ -15030,7 +15033,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
         list.forEach(function (it) { var cur = (r.ctl[field] || {})[it[0]], on = cur === undefined ? defOn : cur === true; var l = document.createElement('label'); l.style.cssText = 'display:flex;gap:8px;align-items:center;font-size:13px;padding:2px 0'; l.innerHTML = '<input type="checkbox"' + (on ? ' checked' : '') + '> ' + it[1]; l.firstChild.onchange = async function () { var o = {}, f = {}; o[it[0]] = l.firstChild.checked; f[field] = o; try { await S.fb.setDoc(ctlRef(r.g.id), f, { merge: true }); r.ctl[field] = Object.assign({}, r.ctl[field], o); toast('✔ सेव हुआ'); } catch (e) { l.firstChild.checked = !l.firstChild.checked; toast(errText(e)); } }; w.appendChild(l); });
         dt.appendChild(w);
       }
-      grp('🔔 Notification में जाएगा', 'opts', OPT_N, true); grp('✉ Email में भी भेजना (ऊपर Email चालू हो तभी)', 'mailOpts', OPT_N, true); grp('📧 Email / JPG में कौन सी जानकारी रहे', 'mailF', OPT_M, true);
+      grp('🔔 Notification में जाएगा (डिफ़ॉल्ट बंद)', 'opts', OPT_N, false); grp('✉ Email में भी भेजना (ऊपर Email चालू हो तभी)', 'mailOpts', OPT_N, true); grp('📧 Email / JPG में कौन सी जानकारी रहे', 'mailF', OPT_M, true);
       return dt;
     }
     function dDays() { var v = parseInt(lsGet('advDustDays', '30'), 10); return v > 0 ? v : 30; }
@@ -15083,8 +15086,7 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       var row = $('ccLoginOpts'); if (role() === 'user') { var tb0 = $('ccTeamBtn'); if (tb0) tb0.remove(); return; } if (role() === 'admin') { var fs0 = $('ccFilterSel') || $('ccFilterBtn'); if (fs0 && fs0.parentNode && !$('ccTeamBtn')) { var t = document.createElement('button'); t.type = 'button'; t.id = 'ccTeamBtn'; t.textContent = '👥 टीम'; t.style.cssText = 'flex:0 0 auto;border:1px solid rgba(255,255,255,.4);border-radius:10px;padding:9px 16px;font:800 13px system-ui;background:#fff8ea;color:#142b4a;cursor:pointer'; t.onclick = fOpen; fs0.parentNode.insertBefore(t, fs0.nextSibling); } return; }
       if (role() !== 'master') return;
       if (row && !$('ccDustBtn')) { var d = document.createElement('button'); d.type = 'button'; d.id = 'ccDustBtn'; d.textContent = '🗑 Dustbin'; d.style.cssText = btnStyle('#475569', '#fff') + ';order:7'; d.onclick = dustOpen; row.appendChild(d); var n = document.createElement('button'); n.type = 'button'; n.id = 'ccNtfBtn'; n.textContent = '🔔 Notification नियंत्रण'; n.style.cssText = btnStyle('#e2e8f0', '#0f2a4a') + ';order:8'; n.onclick = ntfOpen; row.appendChild(n); }
-      var top = document.querySelector('#cc-root .cc-top');
-      if (top && !top.querySelector('.ccDustTop')) { var a = document.createElement('button'); a.className = 'cc-b sm ccDustTop'; a.textContent = '🗑 Dustbin'; a.onclick = dustOpen; top.appendChild(a); var b2 = document.createElement('button'); b2.className = 'cc-b sm gray ccDustTop'; b2.textContent = '🔔 Notification'; b2.onclick = ntfOpen; top.appendChild(b2); }
+
     }
     setInterval(function () {
       try {
@@ -15404,6 +15406,57 @@ function slowInterval(fn,ms){ return setInterval(fn,Math.max(Number(ms)||0,3000)
       } catch (e) { }
     }, 700);
     setInterval(function () { try { var row = $('ccLoginOpts'); if (S.prof && row && !$('ccRefBtn')) { var b = document.createElement('button'); b.type = 'button'; b.id = 'ccRefBtn'; b.textContent = '🔄 Refresh'; b.style.cssText = btnStyle('#0ea5e9', '#fff') + ';order:98'; b.onclick = doRefresh; row.appendChild(b); } } catch (e) { } }, 1500);
+
+    /* 15. Live banner, 1-second local check, default group view, install button, single logout/back */
+    function topBanner(msg) {
+      var o = document.getElementById('ccTopBanner'); if (o) o.remove(); o = document.createElement('div'); o.id = 'ccTopBanner'; o.textContent = msg;
+      o.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:2147483641;background:#0f766e;color:#fff;padding:12px 14px;font:700 14px/1.4 system-ui,sans-serif;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.35)'; document.body.appendChild(o); setTimeout(function () { if (o.parentNode) o.remove(); }, 4500);
+    }
+    setInterval(gnTick, 1000);
+    var DF = { did: '' };
+    setInterval(function () {
+      try {
+        if (!S.prof || TS.first || DF.did === S.prof.id) return; DF.did = S.prof.id;
+        OV.sel = ''; OV.selSet = null; OV.userSel = null; window.__nextSrc = ''; try { localStorage.removeItem('advCloudFilter'); localStorage.removeItem('advNextSrc'); } catch (e) { }
+        ovApply();
+      } catch (e) { }
+    }, 1200);
+    function installApp() { var d = window.__advInstall; if (d && d.prompt) { try { d.prompt(); return; } catch (e) { } } toast('Chrome के मेन्यू ⋮ में "Add to Home screen" / "Install app" दबाइए'); }
+    setInterval(function () {
+      try {
+        var rt = $('cc-root'); if (!rt || !rt.children.length) return;
+        var standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || window.Capacitor || navigator.standalone;
+        if (!standalone && !rt.querySelector('.ccInstWrap')) { var w = document.createElement('div'); w.className = 'ccInstWrap'; w.style.cssText = 'padding:4px 12px 14px'; w.appendChild(mk('📲 Chrome में ऐप शॉर्टकट बनाएँ', '#334155', installApp)); w.firstChild.style.cssText += ';width:100%;padding:12px;font-size:14px'; rt.appendChild(w); }
+        rt.querySelectorAll('button').forEach(function (b) {
+          if (b.closest('.ccOutBottom') || b.closest('.ccInstWrap')) return;
+          var t = b.textContent || '';
+          if (/Logout/.test(t) || (b.closest('.cc-top') && /ऐप पर वापस/.test(t))) b.style.display = 'none';
+        });
+      } catch (e) { }
+    }, 800);
+
+    /* 16. Clean panel header + match-with-server button */
+    async function matchServer() {
+      var p = pop('<b>⏳ सर्वर से मिलान हो रहा है…</b>');
+      try {
+        AS.busy = false; await doRefresh();
+        var me = S.prof.id, mine = 0, grp = 0, keys = {};
+        Object.keys(TS.docs || {}).forEach(function (k) { var x = TS.docs[k]; if (!x || !x.cid || x.del === true) return; grp++; if (x.owner === me) mine++; else { try { var c = JSON.parse(x.c || '{}'); if (c.caseNo) keys[ckey(c)] = 1; } catch (e) { } } });
+        var own = OV.own || [], stuck = own.filter(function (c) { return TS.pushed[c.id] === undefined && c.caseNo && keys[ckey(c)]; });
+        p.b.innerHTML = '<b style="font-size:15px">🎯 सर्वर से मिलान</b><div style="margin:8px 0;font-size:14px;line-height:1.7">सर्वर पर आपके केस: <b>' + mine + '</b><br>सर्वर पर पूरे ग्रुप के केस: <b>' + grp + '</b><br>आपके फ़ोन में अपने केस: <b>' + own.length + '</b><br>सर्वर पर जाना बाकी: <b>' + own.filter(function (c) { return TS.pushed[c.id] === undefined; }).length + '</b></div>'
+          + '<div style="font-size:12px;color:#64748b;margin-bottom:8px">केस कम-ज़्यादा दिखने का कारण: एक ही केस दो लोगों के पास हो तो वह एक ही गिना जाता है, और जो बदलाव अभी सर्वर पर नहीं पहुँचे वे फ़ोन में अलग दिखते हैं।</div>';
+        if (stuck.length) { p.b.insertAdjacentHTML('beforeend', '<div style="padding:8px;background:#fff7e0;border-radius:10px;font-size:13px;margin-bottom:8px">⚠ ' + stuck.length + ' केस ऐसे हैं जो ग्रुप में किसी और के नाम से पहले से हैं (डुप्लिकेट कॉपी) — ये सर्वर पर कभी नहीं जाएँगे।</div>'); p.b.appendChild(mk('🧹 डुप्लिकेट कॉपी फ़ोन से हटाओ (सर्वर वाली रहेगी)', '#991b1b', function () { if (!confirm(stuck.length + ' डुप्लिकेट कॉपी फ़ोन से हटाएँ? सर्वर वाला केस नहीं हटेगा।')) return; var ids = stuck.map(function (c) { return String(c.id); }); cases = cases.filter(function (c) { return c._ov || ids.indexOf(String(c.id)) < 0; }); OV.own = (OV.own || []).filter(function (c) { return ids.indexOf(String(c.id)) < 0; }); try { persist(); } catch (e) { } try { ovApply(); } catch (e) { } toast('✔ फ़ोन सर्वर से मिला दिया गया'); p.o.remove(); })); }
+        else p.b.insertAdjacentHTML('beforeend', '<div style="padding:8px;background:#e8f7ee;border-radius:10px;font-size:13px;margin-bottom:8px;color:#137547;font-weight:700">✔ फ़ोन और सर्वर मेल खा रहे हैं</div>');
+        p.b.appendChild(mk('🔄 फिर से रिफ्रेश', '#0ea5e9', function () { p.o.remove(); matchServer(); })); p.b.appendChild(mk('✕ बंद', '#e2e8f0', function () { p.o.remove(); }));
+      } catch (e) { p.b.innerHTML = '<b>मिलान में दिक्कत</b><div style="font-size:13px;margin:6px 0">' + esc(errText(e)) + '</div>'; p.b.appendChild(mk('✕ बंद', '#e2e8f0', function () { p.o.remove(); })); }
+    }
+    api.match = matchServer;
+    setInterval(function () {
+      try {
+        var row = $('ccLoginOpts'); if (S.prof && row && !$('ccMatchBtn')) { var b = document.createElement('button'); b.type = 'button'; b.id = 'ccMatchBtn'; b.textContent = '🎯 सर्वर से मिलान'; b.style.cssText = btnStyle('#7c3aed', '#fff') + ';order:97'; b.onclick = matchServer; row.appendChild(b); }
+        var top = document.querySelector('#cc-root .cc-top'); if (top) top.querySelectorAll('button').forEach(function (x) { if (!x.dataset.rl && /^\s*🔄\s*$/.test(x.textContent)) { x.dataset.rl = '1'; x.textContent = '🔄 Refresh'; x.style.cssText += ';padding:8px 14px;font-weight:800'; } });
+      } catch (e) { }
+    }, 1200);
   })();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();
@@ -15475,7 +15528,7 @@ body.chat-sidebar-open{overflow:hidden}
   +'html:not(.adv-ai-on) #aivDock,html:not(.adv-ai-on) #aivMic,html:not(.adv-ai-on) #aivTog,html:not(.adv-ai-on) #aivP{display:none!important}'
   +'html:not(.adv-lite-on) #liteBtnV52{display:none!important}';
   if(window.ADV_BUILD!=='master')st.textContent+='#ccFilterSel,#ccFilterBtn{display:none!important}';
-  st.textContent+='#nextSrcSel{display:none!important}';
+  st.textContent+='#nextSrcSel{display:none!important}#ccInstall{display:none!important}';
   st.textContent+='#cc-root .cc-top b{flex:1 1 100%!important;min-width:0!important;order:1;word-break:break-all}#cc-root .cc-top small{display:block;white-space:normal;word-break:break-all;font-weight:500;opacity:.85}#cc-root .cc-top>button{order:2}#cc-root .cc-top>button:first-child{order:0}';
   document.head.appendChild(st);
   var ORD={ccNameBtn:1,ccUpdBtn:2,ccMultiDelBtn:3,ccOvNotif:4,ccColorOn:5,ccTxBtn:6};
@@ -15516,9 +15569,10 @@ body.chat-sidebar-open{overflow:hidden}
   setInterval(icon,500);icon();document.body.appendChild(b);
 })();
 
-</script>
+
 window.dashScrollToCases=function(){var tries=0;(function go(){var box=document.getElementById('nextList'),first=box&&(box.querySelector('.case-card')||box);if(!first){if(tries++<12)setTimeout(go,120);return}
 var off=8;try{off+=(typeof stickyOff==='function'?stickyOff('next'):0)}catch(e){}
 var top=Math.max(0,first.getBoundingClientRect().top+(window.pageYOffset||document.documentElement.scrollTop||0)-off);
 try{window.scrollTo({top:top,behavior:'smooth'})}catch(e){window.scrollTo(0,top)}
 setTimeout(function(){var d=Math.abs(first.getBoundingClientRect().top-off);if(d>80&&tries++<4){window.scrollTo(0,top);setTimeout(go,150)}},750)})()};
+</script>
