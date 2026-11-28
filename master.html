@@ -15626,7 +15626,7 @@ async function initFb() {
       await S.fb.updateDoc(ref('teams/' + tid + '/cases/' + key), u);
     }
     async function verOpen() {
-      var p = pop('<b>⏳ वर्ज़न जाँच रहा है…</b>'), hs = role() === 'master' ? heads() : [S.prof], all = [];
+      var p = pop('<b>⏳ वर्ज़न जाँच रहा है…</b>'), hs = [S.prof], all = [];
       for (var i = 0; i < hs.length; i++) { try { var sn = await S.fb.getDocs(col('teams/' + hs[i].id + '/cases')), dd = {}; sn.docs.forEach(function (d) { dd[d.id] = d.data(); }); vList(dd).forEach(function (z) { z.tid = hs[i].id; z.g = hs[i].name || hs[i].email; all.push(z); }); } catch (e) { } }
       (function draw4() {
         p.b.innerHTML = ''; var h = document.createElement('div'); h.style.cssText = 'display:flex;align-items:center;gap:6px'; h.innerHTML = '<b style="flex:1;font-size:15px">🆚 वर्ज़न — एक ही वर्ज़न पर दो अपडेट (' + all.length + ')</b>'; h.appendChild(mk('✕', '#e2e8f0', function () { p.o.remove(); })); p.b.appendChild(h);
@@ -16027,6 +16027,93 @@ async function initFb() {
       dt.appendChild(w);
     }
     function dupUpdNote() { }
+
+    /* ===== final-20261128b: duplicate chooser (permanent delete), blank-case purge on server, same-version auto popup ===== */
+    var DUP = { sig: '', busy: false }, VC = { sig: '' };
+    function dkey(c) { return nz(c.caseNo) ? [nz(c.caseNo), nz(c.vadiName), nz(c.prativadiName)].join('|') : ''; }
+    function dupFind(docs) {
+      var G = {}, out = [];
+      Object.keys(docs || {}).forEach(function (k) {
+        var x = docs[k]; if (!x || !x.cid || x.del === true || x.noMerge === true || !x.c) return;
+        var c; try { c = JSON.parse(x.c); } catch (e) { return; }
+        var kk = dkey(c); if (!kk) return; (G[kk] = G[kk] || []).push({ key: k, x: x, c: c });
+      });
+      Object.keys(G).forEach(function (kk) { if (G[kk].length > 1) { G[kk].sort(function (a, b) { return createdZ(a) - createdZ(b); }); out.push({ k: kk, z: G[kk] }); } });
+      return out;
+    }
+    function isBlankDoc(x) { if (!x || !x.cid || !x.c) return false; var c; try { c = JSON.parse(x.c); } catch (e) { return false; } return !c.caseNo && !c.vadiName && !c.prativadiName && !c.party; }
+    function dFmt(t) { return t ? new Date(t).toLocaleString('hi-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'; }
+    function dupLocalDrop(cid) {
+      try { window.__advSys = 1; edOwn(function () { cases = cases.filter(function (c) { return c._ov || String(c.id) !== String(cid); }); }); } catch (e) { }
+      window.__advSys = 0; try { delete TS.pushed[cid]; tsSavePushed(); } catch (e) { } try { ovApply(); } catch (e) { }
+    }
+    async function dupKeep(g, idx) {
+      var me = S.prof, nm = me.name || me.email || '';
+      for (var i = 0; i < g.z.length; i++) {
+        if (i === idx) continue; var z = g.z[i];
+        await S.fb.setDoc(ref('teams/' + TS.id + '/cases/' + z.key), { del: true, merged: true, dupDel: true, mergedInto: g.z[idx].key, mergedIntoName: g.z[idx].x.ownerName || '', delBy: 'डुप्लिकेट हटाया (' + nm + ')', delByUid: me.id, delAt: S.fb.serverTimestamp(), mergedAt: S.fb.serverTimestamp() }, { merge: true });
+        if (TS.docs[z.key]) TS.docs[z.key].del = true;
+        if (z.x.owner === me.id) dupLocalDrop(z.x.cid);
+      }
+    }
+    async function dupBoth(g) { for (var i = 0; i < g.z.length; i++) { await S.fb.setDoc(ref('teams/' + TS.id + '/cases/' + g.z[i].key), { noMerge: true }, { merge: true }); if (TS.docs[g.z[i].key]) TS.docs[g.z[i].key].noMerge = true; } }
+    function dupOpen() {
+      if (role() !== 'master' && role() !== 'admin') return;
+      var p = pop('<b>⏳ डुप्लिकेट जाँच रहा है…</b>'); p.o.id = 'ccDupPop';
+      (function draw() {
+        var gs = dupFind(TS.docs); p.b.innerHTML = '';
+        var h = document.createElement('div'); h.style.cssText = 'display:flex;align-items:center;gap:6px'; h.innerHTML = '<b style="flex:1;font-size:15px">🔀 डुप्लिकेट केस (' + gs.length + ')</b>'; h.appendChild(mk('✕', '#e2e8f0', function () { p.o.remove(); })); p.b.appendChild(h);
+        p.b.insertAdjacentHTML('beforeend', '<div style="font-size:12px;color:#64748b;margin:6px 0">एक ही ग्रुप में सेम केस नंबर + सेम वादी बनाम प्रतिवादी। जिसे रखना है उसे चुनें — बाकी कॉपी सर्वर से हट जाएगी और उस यूज़र के फ़ोन से भी हट जाएगी (7 दिन बाद हटाने का रिकॉर्ड भी सर्वर से मिट जाता है)। पीले खाने = जहाँ अंतर है।</div>');
+        if (!gs.length) { p.b.insertAdjacentHTML('beforeend', '<div style="padding:14px;color:#137547;font-weight:700">✔ कोई डुप्लिकेट नहीं है।</div>'); return; }
+        var bar = document.createElement('div'); bar.style.cssText = 'position:sticky;top:-14px;background:#fff;padding:4px 0;z-index:2';
+        function bulk(newest) { return async function () { if (!confirm('सभी ' + gs.length + ' डुप्लिकेट में ' + (newest ? 'सबसे नया' : 'सबसे पुराना') + ' रखें और बाकी हमेशा के लिए हटाएँ?')) return; var n = 0; for (var i = 0; i < gs.length; i++) { var g = gs[i], ix = 0; g.z.forEach(function (z, j) { if (newest ? lastAtZ(z) > lastAtZ(g.z[ix]) : createdZ(z) < createdZ(g.z[ix])) ix = j; }); try { await dupKeep(g, ix); n++; } catch (e) { toast(errText(e)); break; } } toast('✔ ' + n + ' डुप्लिकेट साफ़ हुए'); draw(); }; }
+        bar.appendChild(mk('🆕 सब में नया रखें', '#0f766e', bulk(true))); bar.appendChild(mk('🕰 सब में पुराना रखें', '#475569', bulk(false))); p.b.appendChild(bar);
+        gs.forEach(function (g) {
+          var c0 = g.z[0].c, box = document.createElement('div'); box.style.cssText = 'border:1px solid #e2e8f0;border-radius:12px;padding:9px;margin:8px 0';
+          box.innerHTML = '<div style="font-weight:800">' + esc(c0.caseNo) + ' · ' + esc((c0.vadiName || '—') + ' बनाम ' + (c0.prativadiName || '—')) + '</div>';
+          var newest = 0; g.z.forEach(function (z, j) { if (lastAtZ(z) > lastAtZ(g.z[newest])) newest = j; });
+          var rows = [['मालिक', function (z) { return z.x.ownerName || ''; }], ['पहली बार बना', function (z) { return dFmt(createdZ(z)); }], ['आख़िरी अपडेट', function (z) { return dFmt(lastAtZ(z)) + (z.x.by ? ' · ' + z.x.by : ''); }], ['कोर्ट', function (z) { return z.c.court || '—'; }], ['प्रकार', function (z) { return z.c.type || '—'; }], ['केस तारीख', function (z) { return z.c.caseDate || '—'; }], ['अगली तारीख', function (z) { return z.c.nextDate || '—'; }], ['नोट', function (z) { return String(z.c.notes || '—').slice(0, 60); }]];
+          var tb = '<table style="border-collapse:collapse;font-size:12px;min-width:100%"><tr><th style="padding:4px 6px;background:#0f2a4a;color:#fff"></th>' + g.z.map(function (z, j) { return '<th style="padding:4px 6px;background:#0f2a4a;color:#fff;text-align:left">' + (j === newest ? '🆕 नया' : '🕰 पुराना') + '</th>'; }).join('') + '</tr>';
+          rows.forEach(function (r, ri) { var vs = g.z.map(function (z) { return String(r[1](z)); }), diff = vs.some(function (v) { return v !== vs[0]; }); tb += '<tr style="background:' + (diff ? '#fff3cf' : (ri % 2 ? '#f8fafc' : '#fff')) + '"><td style="padding:4px 6px;font-weight:700">' + r[0] + '</td>' + vs.map(function (v) { return '<td style="padding:4px 6px">' + esc(v) + '</td>'; }).join('') + '</tr>'; });
+          var wrap = document.createElement('div'); wrap.style.cssText = 'overflow:auto;margin:8px 0'; wrap.innerHTML = tb + '</table>'; box.appendChild(wrap);
+          g.z.forEach(function (z, j) { box.appendChild(mk('✔ ' + (j === newest ? 'नया' : 'पुराना') + ' रखें (' + (z.x.ownerName || '') + ')', '#0f766e', async function () { if (!confirm('यह रखें और बाकी कॉपी हमेशा के लिए हटाएँ?')) return; try { await dupKeep(g, j); toast('✔ हो गया'); draw(); } catch (e) { toast(errText(e)); } })); });
+          box.appendChild(mk('दोनों रखें (डुप्लिकेट नहीं)', '#475569', async function () { try { await dupBoth(g); draw(); } catch (e) { toast(errText(e)); } }));
+          p.b.appendChild(box);
+        });
+      })();
+    }
+    mergeScan = async function () { return 0; }; mergeOpen = dupOpen; api.mergeList = dupOpen;
+    async function purgeJunk() {
+      if (DUP.busy || (role() !== 'master' && role() !== 'admin') || !S.fb || !TS.id || TS.first) return; DUP.busy = true;
+      try {
+        var now = Date.now(), n = 0, ks = Object.keys(TS.docs || {});
+        for (var i = 0; i < ks.length && n < 60; i++) {
+          var k = ks[i], x = TS.docs[k]; if (!x || !x.cid) continue; var kill = false;
+          if (x.del === true && (x.dupDel === true || x.merged === true)) { var t = ms(x.delAt) || ms(x.mergedAt); if (t && now - t > 7 * 864e5) kill = true; }
+          else if (isBlankDoc(x)) { var t2 = ms(x.at); if (!t2 || now - t2 > 5 * 6e4) kill = true; }
+          if (kill) { await S.fb.deleteDoc(ref('teams/' + TS.id + '/cases/' + k)); delete TS.docs[k]; n++; }
+        }
+        if (n) toast('🧹 ' + n + ' खाली/पुराने रिकॉर्ड सर्वर से हमेशा के लिए हटे');
+      } catch (e) { } finally { DUP.busy = false; }
+    }
+    setInterval(purgeJunk, 30000);
+    setInterval(function () {
+      try {
+        if ((role() !== 'master' && role() !== 'admin') || !S.fb || !TS.id || TS.first) return;
+        var gs = dupFind(TS.docs), n = gs.length, sig = gs.map(function (g) { return g.k + ':' + g.z.length; }).join('|');
+        var b = $('ccMergeBtn'); if (b) { b.textContent = '🔀 डुप्लिकेट' + (n ? ' (' + n + ')' : ''); b.style.cssText = btnStyle(n ? '#ea580c' : '#7c3aed', '#fff') + ';order:9'; }
+        if (!n) { DUP.sig = ''; return; }
+        if (sig !== DUP.sig) { DUP.sig = sig; toast('🔀 डुप्लिकेट डेटा आ गया — चुनकर निपटाएँ'); if (!$('ccDupPop')) dupOpen(); }
+      } catch (e) { }
+    }, 5000);
+    setInterval(function () {
+      try {
+        if ((role() !== 'master' && role() !== 'admin') || !S.fb || !TS.id || TS.first) return;
+        var l = vList(TS.docs), sig = l.map(function (z) { return z.key + (z.es[0].baseH || ''); }).join('|');
+        if (!l.length) { VC.sig = ''; return; }
+        if (sig !== VC.sig) { VC.sig = sig; verOpen(); }
+      } catch (e) { }
+    }, 6000);
 
   })();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
